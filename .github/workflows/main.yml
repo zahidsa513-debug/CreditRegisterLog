@@ -39,9 +39,10 @@ jobs:
             npx cap add android
           fi
           npx cap sync android
-      - name: Fix Kotlin Conflicts (Global Strategy)
+
+      - name: Fix Kotlin and Gradle
         run: |
-          # অ্যান্ড্রয়েডের রুট build.gradle ফাইলে রেজোলিউশন স্ট্র্যাটেজি যোগ করা
+          # ডুপ্লিকেট ক্লাস এবং ভার্সন সমস্যা সমাধানের জন্য স্ট্র্যাটেজি
           echo "subprojects {
               configurations.all {
                   resolutionStrategy {
@@ -53,13 +54,15 @@ jobs:
                   }
               }
           }" >> android/build.gradle
+
       - name: Build Android APK
         run: |
           cd android
           chmod +x gradlew
-          ./gradlew assembleDebug
+          ./gradlew assembleDebug --stacktrace
+
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: CreditRegister-APK
+          name: CreditRegister-Final-APK
           path: android/app/build/outputs/apk/debug/app-debug.apk
