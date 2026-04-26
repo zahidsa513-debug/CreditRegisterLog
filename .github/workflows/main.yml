@@ -16,7 +16,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20 # লেটেস্ট স্টেবল ভার্সন
+          node-version: 20
           cache: 'npm'
 
       - name: Install Dependencies
@@ -25,17 +25,19 @@ jobs:
       - name: Build Web Project
         run: npm run build
 
-      - name: Set up Java 17
+      - name: Set up Java 21 # এখানে Java 21 সেট করা হয়েছে
         uses: actions/setup-java@v4
         with:
-          java-version: '17'
+          java-version: '21'
           distribution: 'temurin'
 
-      - name: Initialize Capacitor and Android
+      - name: Setup Capacitor and Android
         run: |
           npm install @capacitor/core @capacitor/cli @capacitor/android
-          npx cap init "CreditRegister" "com.zahidsa.creditreg" --web-dir dist
-          npx cap add android
+          if [ ! -d "android" ]; then
+            npx cap init "CreditRegister" "com.zahidsa.creditreg" --web-dir dist
+            npx cap add android
+          fi
           npx cap sync android
 
       - name: Build Android APK
