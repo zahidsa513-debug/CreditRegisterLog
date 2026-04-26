@@ -16,14 +16,12 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: 20 # লেটেস্ট স্টেবল ভার্সন
           cache: 'npm'
 
       - name: Install Dependencies
-        run: |
-          npm install -f
-          npm rebuild
-          
+        run: npm install --force
+
       - name: Build Web Project
         run: npm run build
 
@@ -33,14 +31,12 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Install Capacitor Android
-        run: npm install @capacitor/android
-
-      - name: Add Android Platform
-        run: npx cap add android || echo "Android platform already exists"
-
-      - name: Sync Capacitor
-        run: npx cap sync android
+      - name: Initialize Capacitor and Android
+        run: |
+          npm install @capacitor/core @capacitor/cli @capacitor/android
+          npx cap init "CreditRegister" "com.zahidsa.creditreg" --web-dir dist
+          npx cap add android
+          npx cap sync android
 
       - name: Build Android APK
         run: |
@@ -51,5 +47,5 @@ jobs:
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: CreditRegister-Debug-APK
+          name: CreditRegister-APK
           path: android/app/build/outputs/apk/debug/app-debug.apk
