@@ -123,7 +123,7 @@ const App = () => {
 
   const renderContent = () => {
     switch (activeTab) {
-      case 'dashboard': return <Dashboard language={language} currency={currency} monthlyTarget={monthlyTarget} />;
+      case 'dashboard': return <Dashboard language={language} currency={currency} monthlyTarget={monthlyTarget} setActiveTab={setActiveTab} />;
       case 'areas': return <Areas language={language} currency={currency} />;
       case 'customers': return <Customers language={language} currency={currency} />;
       case 'sales': return <SalesEntry language={language} theme={theme} currency={currency} />;
@@ -143,7 +143,7 @@ const App = () => {
           onLogout={handleLogout}
         />
       );
-      default: return <Dashboard language={language} currency={currency} monthlyTarget={monthlyTarget} />;
+      default: return <Dashboard language={language} currency={currency} monthlyTarget={monthlyTarget} setActiveTab={setActiveTab} />;
     }
   };
 
@@ -151,12 +151,13 @@ const App = () => {
     return (
       <div className="fixed inset-0 flex flex-col items-center justify-center bg-white dark:bg-slate-950 z-50">
         <motion.div
-          animate={{ scale: [1, 1.05, 1] }}
-          transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+          initial={{ scale: 0.8, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ duration: 0.5, repeat: Infinity, repeatType: 'reverse' }}
           className="mb-8"
         >
-          <div className="w-28 h-28 bg-white dark:bg-white rounded-[2rem] flex items-center justify-center shadow-2xl p-4 ring-1 ring-slate-100 dark:ring-white/20">
-            <img src="/input_file_0.png" alt="Logo" className="w-full h-full object-contain" referrerPolicy="no-referrer" />
+          <div className="w-24 h-24 bg-indigo-600 rounded-2xl flex items-center justify-center shadow-xl shadow-indigo-200">
+            <TrendingUp className="text-white w-12 h-12" />
           </div>
         </motion.div>
         <motion.h1 
@@ -187,8 +188,8 @@ const App = () => {
       {/* Mobile Header */}
       <header className="lg:hidden flex items-center justify-between p-4 bg-white dark:bg-slate-900 border-b dark:border-slate-800 sticky top-0 z-40">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center p-1 shadow-md ring-1 ring-white/20 overflow-hidden">
-            <img src="/input_file_0.png" alt="Logo" className="w-full h-full object-contain" referrerPolicy="no-referrer" />
+          <div className="w-8 h-8 bg-indigo-500 rounded-lg flex items-center justify-center shadow-lg shadow-indigo-500/20">
+            <TrendingUp className="text-white w-5 h-5" />
           </div>
           <span className="font-display font-bold text-lg">CrediRegistry</span>
         </div>
@@ -207,13 +208,10 @@ const App = () => {
           isSidebarOpen ? "translate-x-0" : "-translate-x-full"
         )}>
           <div className="p-6 hidden lg:flex items-center gap-3">
-            <div className="shrink-0 w-10 h-10 bg-white rounded-xl flex items-center justify-center p-1 shadow-lg ring-1 ring-white/20">
-              <img 
-                src="/input_file_0.png" 
-                alt="Logo" 
-                className="w-full h-full object-contain"
-                referrerPolicy="no-referrer"
-              />
+            <div className="shrink-0">
+              <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/20">
+                <TrendingUp className="text-white w-6 h-6" />
+              </div>
             </div>
             <div>
               <h1 className="font-display font-bold text-xl tracking-tight leading-tight">Credit<span className="text-indigo-400">Reg</span></h1>
@@ -266,7 +264,7 @@ const App = () => {
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium truncate">{userProfile?.name || 'User'}</p>
-              <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider truncate">{userProfile?.email || 'Admin'}</p>
+              <p className="text-[10px] text-indigo-400 uppercase font-bold tracking-wider truncate leading-none mb-0.5">{userProfile?.designation || (userProfile?.email || 'Admin')}</p>
             </div>
             <button className="text-[10px] font-bold px-1.5 py-0.5 bg-slate-700 rounded text-slate-300 uppercase shrink-0">{language}</button>
           </div>

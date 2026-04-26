@@ -1,6 +1,6 @@
 {
   "name": "CrediRegistry",
   "description": "A specialized credit register app with multi-currency support, area-wise data management, daily sales/collection entry, and automated PDF money receipt generation.",
-  "requestFramePermissions": [],
+  "requestFramePermissions": ["geolocation"],
   "majorCapabilities": []
 }

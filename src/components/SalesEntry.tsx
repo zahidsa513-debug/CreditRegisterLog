@@ -32,11 +32,23 @@ const SalesEntry = ({ language, theme, currency }: { language: 'en' | 'bn', them
     cashSale: 0,
     chequeSale: 0,
     creditSale: 0,
+    totalAmount: 0,
     type: 'sale',
-    receiptNumber: ''
+    receiptNumber: '',
+    invoiceNumber: '',
+    billNumber: ''
   });
 
   const [isSuccess, setIsSuccess] = useState(false);
+
+  React.useEffect(() => {
+    if (formData.type === 'sale') {
+      const calculatedCredit = (formData.totalAmount || 0) - (formData.cashSale || 0) - (formData.chequeSale || 0);
+      setFormData(prev => ({ ...prev, creditSale: Math.max(0, calculatedCredit) }));
+    } else if (formData.type === 'direct') {
+      setFormData(prev => ({ ...prev, cashSale: prev.totalAmount || 0, creditSale: 0, chequeSale: 0 }));
+    }
+  }, [formData.totalAmount, formData.cashSale, formData.chequeSale, formData.type]);
 
   const amountToWords = (num: number) => {
     const a = ['', 'One ', 'Two ', 'Three ', 'Four ', 'Five ', 'Six ', 'Seven ', 'Eight ', 'Nine ', 'Ten ', 'Eleven ', 'Twelve ', 'Thirteen ', 'Fourteen ', 'Fifteen ', 'Sixteen ', 'Seventeen ', 'Eighteen ', 'Nineteen '];
@@ -136,15 +148,20 @@ const SalesEntry = ({ language, theme, currency }: { language: 'en' | 'bn', them
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.customerId) return;
+    if (formData.type !== 'direct' && !formData.customerId) {
+      alert(language === 'en' ? 'Please select a customer' : 'অনুগ্রহ করে একজন কাস্টমার নির্বাচন করুন');
+      return;
+    }
 
     const signature = sigPad.current?.isEmpty() ? undefined : sigPad.current?.getTrimmedCanvas().toDataURL('image/png');
     
     // Get customer for balance before update
-    const customer = await db.customers.get(formData.customerId);
-    if (!customer) return;
-
-    const prevBalance = customer.debit - customer.credit;
+    let customer = null;
+    if (formData.customerId) {
+        customer = await db.customers.get(formData.customerId);
+    }
+    
+    const prevBalance = customer ? customer.debit - customer.credit : 0;
     
     const saleData = {
       ...formData,
@@ -156,13 +173,15 @@ const SalesEntry = ({ language, theme, currency }: { language: 'en' | 'bn', them
     saleData.id = id as number;
 
     // Update customer totals
-    const debitIncr = (formData.cashSale || 0) + (formData.chequeSale || 0) + (formData.creditSale || 0);
-    await db.customers.update(customer.id!, {
-      debit: (customer.debit || 0) + (formData.type === 'sale' ? debitIncr : 0),
-      credit: (customer.credit || 0) + (formData.type === 'payment' ? debitIncr : 0)
-    });
+    if (customer) {
+      const debitIncr = (formData.cashSale || 0) + (formData.chequeSale || 0) + (formData.creditSale || 0);
+      await db.customers.update(customer.id!, {
+        debit: (customer.debit || 0) + (formData.type === 'sale' ? (formData.creditSale || 0) : 0),
+        credit: (customer.credit || 0) + (formData.type === 'payment' ? debitIncr : 0)
+      });
+    }
 
-    if (formData.type === 'payment') {
+    if (formData.type === 'payment' && customer) {
       generateReceipt(saleData, customer, prevBalance);
     }
 
@@ -176,8 +195,11 @@ const SalesEntry = ({ language, theme, currency }: { language: 'en' | 'bn', them
         cashSale: 0,
         chequeSale: 0,
         creditSale: 0,
+        totalAmount: 0,
         type: 'sale',
-        receiptNumber: ''
+        receiptNumber: '',
+        invoiceNumber: '',
+        billNumber: ''
       });
       sigPad.current?.clear();
     }, 2000);
@@ -195,12 +217,12 @@ const SalesEntry = ({ language, theme, currency }: { language: 'en' | 'bn', them
       <form onSubmit={handleSave} className="grid grid-cols-1 md:grid-cols-2 gap-8">
         <div className="space-y-6">
           <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-5">
-            <div className="grid grid-cols-2 gap-2 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl">
+            <div className="grid grid-cols-3 gap-2 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl">
               <button
                 type="button"
                 onClick={() => setFormData({ ...formData, type: 'sale' })}
                 className={cn(
-                  "py-2.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all",
+                  "py-2.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all",
                   formData.type === 'sale' ? "bg-white dark:bg-slate-700 text-rose-600 shadow-sm" : "text-slate-500"
                 )}
               >
@@ -208,9 +230,19 @@ const SalesEntry = ({ language, theme, currency }: { language: 'en' | 'bn', them
               </button>
               <button
                 type="button"
+                onClick={() => setFormData({ ...formData, type: 'direct' })}
+                className={cn(
+                  "py-2.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all",
+                  formData.type === 'direct' ? "bg-white dark:bg-slate-700 text-indigo-600 shadow-sm" : "text-slate-500"
+                )}
+              >
+                {language === 'en' ? 'Direct' : 'সরাসরি'}
+              </button>
+              <button
+                type="button"
                 onClick={() => setFormData({ ...formData, type: 'payment' })}
                 className={cn(
-                  "py-2.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all",
+                  "py-2.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all",
                   formData.type === 'payment' ? "bg-white dark:bg-slate-700 text-emerald-600 shadow-sm" : "text-slate-500"
                 )}
               >
@@ -231,35 +263,68 @@ const SalesEntry = ({ language, theme, currency }: { language: 'en' | 'bn', them
               />
             </div>
 
-            <div className="space-y-1">
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                <UserIcon className="w-3 h-3 text-indigo-500" /> {t.customers}
-              </label>
-              <select 
-                required
-                value={formData.customerId}
-                onChange={e => setFormData({...formData, customerId: Number(e.target.value)})}
-                className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-800 border-none focus:ring-2 focus:ring-indigo-500 outline-none font-medium appearance-none text-sm"
-              >
-                <option value={0}>Select Customer</option>
-                {customers?.map(c => (
-                  <option key={c.id} value={c.id}>{c.name}</option>
-                ))}
-              </select>
-            </div>
+            {formData.type !== 'direct' && (
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                  <UserIcon className="w-3 h-3 text-indigo-500" /> {t.customers}
+                </label>
+                <select 
+                  required
+                  value={formData.customerId}
+                  onChange={e => setFormData({...formData, customerId: Number(e.target.value)})}
+                  className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-800 border-none focus:ring-2 focus:ring-indigo-500 outline-none font-medium appearance-none text-sm"
+                >
+                  <option value={0}>Select Customer</option>
+                  {customers?.map(c => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </select>
+              </div>
+            )}
 
-            <div className="space-y-1">
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                <Hash className="w-3 h-3 text-indigo-500" /> {t.receiptNumber}
-              </label>
-              <input 
-                type="text"
-                value={formData.receiptNumber}
-                onChange={e => setFormData({...formData, receiptNumber: e.target.value})}
-                className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-800 border-none focus:ring-2 focus:ring-indigo-500 outline-none font-medium text-sm"
-                placeholder={language === 'en' ? 'Manual Receipt #' : 'রশিদ নং (ঐচ্ছিক)'}
-              />
-            </div>
+            {formData.type === 'payment' ? (
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                  <Hash className="w-3 h-3 text-indigo-500" /> {language === 'en' ? 'Money Receipt Number' : 'মানি রিসিট নাম্বার'}
+                </label>
+                <input 
+                  required
+                  type="text"
+                  value={formData.receiptNumber}
+                  onChange={e => setFormData({...formData, receiptNumber: e.target.value})}
+                  className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-800 border-none focus:ring-2 focus:ring-indigo-500 outline-none font-medium text-sm"
+                  placeholder={language === 'en' ? 'MR-2024-xxx' : 'রশিদ নং লিখুন'}
+                />
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                    <FileText className="w-3 h-3 text-indigo-500" /> {language === 'en' ? 'Sales Invoice #' : 'সেলস ইনভয়েস নং'}
+                  </label>
+                  <input 
+                    required
+                    type="text"
+                    value={formData.invoiceNumber}
+                    onChange={e => setFormData({...formData, invoiceNumber: e.target.value})}
+                    className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-800 border-none focus:ring-2 focus:ring-indigo-500 outline-none font-medium text-sm"
+                    placeholder="INV-..."
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                    <Hash className="w-3 h-3 text-indigo-500" /> {language === 'en' ? 'Bill Number' : 'বিল নাম্বার'}
+                  </label>
+                  <input 
+                    type="text"
+                    value={formData.billNumber}
+                    onChange={e => setFormData({...formData, billNumber: e.target.value})}
+                    className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-800 border-none focus:ring-2 focus:ring-indigo-500 outline-none font-medium text-sm"
+                    placeholder="B-..."
+                  />
+                </div>
+              </div>
+            )}
 
             <div className="space-y-1">
               <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
@@ -278,9 +343,28 @@ const SalesEntry = ({ language, theme, currency }: { language: 'en' | 'bn', them
 
         <div className="space-y-6">
           <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-6">
+            {formData.type !== 'payment' && (
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none">
+                  {language === 'en' ? 'Total Sales Amount' : 'মোট বিক্রির পরিমাণ'}
+                </label>
+                <div className="relative">
+                  <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-xs font-bold">{currency}</div>
+                  <input 
+                    required
+                    type="number"
+                    value={formData.totalAmount || ''}
+                    onChange={e => setFormData({...formData, totalAmount: Number(e.target.value)})}
+                    className="w-full pl-12 pr-4 py-3 rounded-xl bg-indigo-50 dark:bg-indigo-900/10 border border-indigo-100 dark:border-indigo-800 focus:ring-2 focus:ring-indigo-500 outline-none font-bold text-lg text-indigo-700 dark:text-indigo-400"
+                    placeholder="0.00"
+                  />
+                </div>
+              </div>
+            )}
+
             <div className="grid grid-cols-1 gap-4">
               <div className="space-y-1">
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none">{t.cash}</label>
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none">{formData.type === 'payment' ? 'Cash Received' : t.cash}</label>
                 <div className="relative">
                   <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-xs font-bold">{currency}</div>
                   <input 
@@ -303,18 +387,20 @@ const SalesEntry = ({ language, theme, currency }: { language: 'en' | 'bn', them
                   />
                 </div>
               </div>
-              <div className="space-y-1">
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none">{t.credit}</label>
-                <div className="relative">
-                  <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-xs font-bold">{currency}</div>
-                  <input 
-                    type="number"
-                    value={formData.creditSale || ''}
-                    onChange={e => setFormData({...formData, creditSale: Number(e.target.value)})}
-                    className="w-full pl-12 pr-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-800 border-none focus:ring-2 focus:ring-indigo-500 outline-none font-bold text-lg"
-                  />
+              {formData.type === 'sale' && (
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none">{t.credit}</label>
+                  <div className="relative">
+                    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-xs font-bold">{currency}</div>
+                    <input 
+                      type="number"
+                      value={formData.creditSale || ''}
+                      onChange={e => setFormData({...formData, creditSale: Number(e.target.value)})}
+                      className="w-full pl-12 pr-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-800 border-none focus:ring-2 focus:ring-indigo-500 outline-none font-bold text-lg"
+                    />
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
 
             <div className="space-y-3">

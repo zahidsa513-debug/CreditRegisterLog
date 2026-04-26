@@ -4,6 +4,9 @@ export interface UserProfile {
   email: string;
   phone?: string;
   avatar?: string;
+  designation?: string;
+  location?: string;
+  monthlyTarget?: number;
 }
 
 export interface Area {
@@ -20,19 +23,29 @@ export interface Customer {
   areaId: number;
   debit: number;
   credit: number;
+  ownerName?: string;
+  shopName?: string;
+  email?: string;
+  address?: string;
+  location?: { lat: number; lng: number };
+  licensePhoto?: string;
+  documents?: string[];
 }
 
 export interface Sale {
   id?: number;
   date: Date;
-  customerId: number;
+  customerId?: number;
   description: string;
   cashSale: number;
   chequeSale: number;
   creditSale: number;
+  totalAmount?: number;
   signature?: string; // Data URL
-  type: 'sale' | 'payment';
+  type: 'sale' | 'payment' | 'direct';
   receiptNumber?: string;
+  invoiceNumber?: string;
+  billNumber?: string;
 }
 
 export type Language = 'en' | 'bn';

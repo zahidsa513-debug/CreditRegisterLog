@@ -1,4 +1,5 @@
 import React from 'react';
+import { useLiveQuery } from 'dexie-react-hooks';
 import { 
   Sun, 
   Moon, 
@@ -13,11 +14,17 @@ import {
   User,
   LogOut,
   Camera,
-  Save
+  Save,
+  MapPin,
+  Plus,
+  Trash2,
+  CheckCircle2,
+  X
 } from 'lucide-react';
 import { translations } from '../translations';
 import { cn } from '../lib/utils';
 import { db } from '../db/db';
+import { Area } from '../types';
 
 const SettingsView = ({ 
   language, 
@@ -33,12 +40,33 @@ const SettingsView = ({
   onLogout
 }: any) => {
   const t = translations[language as 'en' | 'bn'];
+  const areas = useLiveQuery(() => db.areas.toArray());
   const [isEditing, setIsEditing] = React.useState(false);
+  const [isAddingArea, setIsAddingArea] = React.useState(false);
+  const [newArea, setNewArea] = React.useState({ name: '', target: 1000, color: '#6366f1' });
   const [profileForm, setProfileForm] = React.useState({
     name: userProfile?.name || '',
     phone: userProfile?.phone || '',
-    avatar: userProfile?.avatar || ''
+    avatar: userProfile?.avatar || '',
+    designation: userProfile?.designation || '',
+    location: userProfile?.location || '',
+    monthlyTarget: userProfile?.monthlyTarget || 100000
   });
+
+  const handleAddArea = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newArea.name) {
+      await db.areas.add(newArea as Area);
+      setNewArea({ name: '', target: 1000, color: '#6366f1' });
+      setIsAddingArea(false);
+    }
+  };
+
+  const deleteArea = async (id: number) => {
+    if (confirm(language === 'en' ? 'Are you sure? Customers in this area will need reassignment.' : 'আপনি কি নিশ্চিত? এই এলাকার গ্রাহকদের আবার এলাকা এসাইন করতে হবে।')) {
+      await db.areas.delete(id);
+    }
+  };
 
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -130,21 +158,43 @@ const SettingsView = ({
                     className="w-full text-xl font-bold bg-slate-50 dark:bg-slate-800 rounded-xl px-4 py-2 border-none focus:ring-2 focus:ring-indigo-500 outline-none"
                   />
                   <input 
+                    type="text" 
+                    value={profileForm.designation} 
+                    onChange={e => setProfileForm({...profileForm, designation: e.target.value})}
+                    placeholder={language === 'en' ? 'Designation / Role' : 'পদবি'}
+                    className="w-full text-sm font-medium bg-slate-50 dark:bg-slate-800 rounded-xl px-4 py-2 border-none focus:ring-2 focus:ring-indigo-500 outline-none"
+                  />
+                  <input 
                     type="tel" 
                     value={profileForm.phone} 
                     onChange={e => setProfileForm({...profileForm, phone: e.target.value})}
                     placeholder="Phone Number"
                     className="w-full text-sm bg-slate-50 dark:bg-slate-800 rounded-xl px-4 py-2 border-none focus:ring-2 focus:ring-indigo-500 outline-none"
                   />
+                  <input 
+                    type="number" 
+                    value={profileForm.monthlyTarget} 
+                    onChange={e => setProfileForm({...profileForm, monthlyTarget: Number(e.target.value)})}
+                    placeholder={language === 'en' ? 'Monthly Sales Target' : 'মাসিক বিক্রির লক্ষ্যমাত্রা'}
+                    className="w-full text-sm bg-slate-50 dark:bg-slate-800 rounded-xl px-4 py-2 border-none focus:ring-2 focus:ring-indigo-500 outline-none"
+                  />
                 </div>
               ) : (
                 <>
                   <h3 className="text-2xl font-display font-bold text-slate-900 dark:text-white truncate max-w-xs">{userProfile?.name}</h3>
+                  <p className="text-indigo-600 dark:text-indigo-400 font-bold text-xs uppercase tracking-wider">{userProfile?.designation || 'No Designation'}</p>
                   <p className="text-slate-500 font-medium flex items-center justify-center sm:justify-start gap-2">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                     {userProfile?.email}
                   </p>
-                  <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">{userProfile?.phone || 'No phone set'}</p>
+                  <div className="flex flex-wrap items-center justify-center sm:justify-start gap-4">
+                    <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">{userProfile?.phone || 'No phone set'}</p>
+                    {userProfile?.location && (
+                      <p className="text-xs text-slate-400 font-bold uppercase tracking-widest flex items-center gap-1">
+                        <MapPin className="w-3 h-3" /> {userProfile.location}
+                      </p>
+                    )}
+                  </div>
                 </>
               )}
             </div>
@@ -168,6 +218,93 @@ const SettingsView = ({
             </div>
           </div>
         </div>
+
+        {/* Area Management Section */}
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+          <div className="p-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="p-2.5 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-xl">
+                <MapPin className="w-5 h-5" />
+              </div>
+              <div>
+                <p className="font-bold text-sm tracking-tight">{language === 'en' ? 'Manage Areas' : 'এলাকা পরিচালনা'}</p>
+                <p className="text-xs text-slate-500">{language === 'en' ? 'Configure default areas' : 'এলাকাগুলো সেট করুন'}</p>
+              </div>
+            </div>
+            <button 
+              onClick={() => setIsAddingArea(true)}
+              className="p-2 bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400 rounded-lg hover:bg-indigo-200 transition-colors"
+            >
+              <Plus className="w-4 h-4" />
+            </button>
+          </div>
+          
+          <div className="divide-y dark:divide-slate-800">
+            {areas?.map(area => (
+              <div key={area.id} className="p-4 flex items-center justify-between hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
+                <div className="flex items-center gap-3">
+                  <div className="w-2 h-2 rounded-full" style={{ backgroundColor: area.color }} />
+                  <span className="text-sm font-bold">{area.name}</span>
+                </div>
+                <button 
+                  onClick={() => deleteArea(area.id!)}
+                  className="p-2 text-slate-300 hover:text-rose-500 rounded-lg transition-colors"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+            ))}
+            {(!areas || areas.length === 0) && (
+              <div className="p-8 text-center text-slate-400 text-xs font-medium">
+                No areas found. Add one to get started.
+              </div>
+            )}
+          </div>
+        </div>
+
+        {isAddingArea && (
+          <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+            <div className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-[2rem] p-6 shadow-2xl relative">
+              <button 
+                onClick={() => setIsAddingArea(false)}
+                className="absolute top-4 right-4 p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-400"
+              >
+                <X className="w-5 h-5" />
+              </button>
+              
+              <h3 className="text-xl font-display font-bold mb-6">{language === 'en' ? 'Add New Area' : 'নতুন এলাকা যোগ করুন'}</h3>
+              <form onSubmit={handleAddArea} className="space-y-4">
+                <div className="space-y-1">
+                   <label className="text-xs font-bold text-slate-400 uppercase tracking-tight">Area Name</label>
+                   <input 
+                    required
+                    autoFocus
+                    type="text"
+                    value={newArea.name}
+                    onChange={e => setNewArea({...newArea, name: e.target.value})}
+                    className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 font-bold"
+                    placeholder="Ex: Kuala Lumpur"
+                   />
+                </div>
+                <div className="space-y-1">
+                   <label className="text-xs font-bold text-slate-400 uppercase tracking-tight">Color Label</label>
+                   <input 
+                    type="color"
+                    value={newArea.color}
+                    onChange={e => setNewArea({...newArea, color: e.target.value})}
+                    className="w-full h-12 bg-slate-50 dark:bg-slate-800 rounded-xl overflow-hidden cursor-pointer p-1"
+                   />
+                </div>
+                <button 
+                  type="submit"
+                  className="w-full py-4 bg-indigo-600 text-white rounded-xl font-bold shadow-lg shadow-indigo-100 dark:shadow-none active:scale-95 transition-transform"
+                >
+                  Create Area
+                </button>
+              </form>
+            </div>
+          </div>
+        )}
 
         {/* Preference Section */}
         <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 divide-y dark:divide-slate-800 shadow-sm overflow-hidden">

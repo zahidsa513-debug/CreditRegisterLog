@@ -22,9 +22,27 @@ const Reports = ({ language, currency }: { language: 'en' | 'bn', currency: stri
   const t = translations[language];
   const areas = useLiveQuery(() => db.areas.toArray());
   const customers = useLiveQuery(() => db.customers.toArray());
+  const sales = useLiveQuery(() => db.sales.toArray());
 
   const [dateRange, setDateRange] = useState({ start: '', end: '' });
   const [selectedArea, setSelectedArea] = useState('all');
+  const [selectedCustomer, setSelectedCustomer] = useState('all');
+
+  const calculateAge = (date: Date | string) => {
+    const start = new Date(date);
+    const today = new Date();
+    const diffTime = Math.abs(today.getTime() - start.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays;
+  };
+
+  const filteredSales = sales?.filter(s => {
+    const customer = customers?.find(c => c.id === s.customerId);
+    const dateMatch = (!dateRange.start || s.date >= dateRange.start) && (!dateRange.end || s.date <= dateRange.end);
+    const areaMatch = selectedArea === 'all' || customer?.areaId === Number(selectedArea);
+    const customerMatch = selectedCustomer === 'all' || s.customerId === Number(selectedCustomer);
+    return dateMatch && areaMatch && customerMatch;
+  });
 
   const printPDF = () => {
     const doc = new jsPDF();
@@ -150,13 +168,38 @@ const Reports = ({ language, currency }: { language: 'en' | 'bn', currency: stri
               </div>
 
               <div className="space-y-1">
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Select Customer</label>
+                <div className="relative">
+                  <select 
+                    value={selectedCustomer}
+                    onChange={e => setSelectedCustomer(e.target.value)}
+                    className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border-none rounded-lg outline-none appearance-none font-bold text-xs"
+                  >
+                    <option value="all">All Customers</option>
+                    {customers?.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  </select>
+                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
+                </div>
+              </div>
+
+              <div className="space-y-1">
                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Start Date</label>
-                <input type="date" className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border-none rounded-lg outline-none font-bold text-xs" />
+                <input 
+                  type="date" 
+                  value={dateRange.start}
+                  onChange={e => setDateRange({...dateRange, start: e.target.value})}
+                  className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border-none rounded-lg outline-none font-bold text-xs" 
+                />
               </div>
 
               <div className="space-y-1">
                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">End Date</label>
-                <input type="date" className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border-none rounded-lg outline-none font-bold text-xs" />
+                <input 
+                  type="date" 
+                  value={dateRange.end}
+                  onChange={e => setDateRange({...dateRange, end: e.target.value})}
+                  className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border-none rounded-lg outline-none font-bold text-xs" 
+                />
               </div>
 
               <button className="w-full py-3 bg-slate-900 dark:bg-slate-800 text-white rounded-xl font-bold text-xs mt-2 active:scale-95 transition-transform uppercase tracking-widest">
@@ -179,31 +222,100 @@ const Reports = ({ language, currency }: { language: 'en' | 'bn', currency: stri
         <div className="lg:col-span-3 space-y-6">
           <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
             <div className="p-4 border-b dark:border-slate-800 flex items-center justify-between">
-              <h4 className="font-bold text-sm uppercase tracking-wider text-slate-700 dark:text-slate-300">Sales Summary</h4>
+              <h4 className="font-bold text-sm uppercase tracking-wider text-slate-700 dark:text-slate-300">
+                {language === 'en' ? 'Transaction Age Report' : 'বকেয়া বয়স রিপোর্ট'}
+              </h4>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
                   <tr className="bg-slate-50/50 dark:bg-slate-800/50 text-left">
-                    <th className="px-6 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Customer</th>
-                    <th className="px-6 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Last Activity</th>
-                    <th className="px-6 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Debit</th>
-                    <th className="px-6 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Credit</th>
-                    <th className="px-6 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Status</th>
+                    <th className="px-6 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">{language === 'en' ? 'Customer' : 'কাস্টমার'}</th>
+                    <th className="px-6 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">{language === 'en' ? 'Bill / Receipt' : 'বিল / রিসিট'}</th>
+                    <th className="px-6 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">{language === 'en' ? 'Date' : 'তারিখ'}</th>
+                    <th className="px-6 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">{language === 'en' ? 'Age (Days)' : 'বয়স (দিন)'}</th>
+                    <th className="px-6 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">{language === 'en' ? 'Amount' : 'পরিমাণ'}</th>
+                    <th className="px-6 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">{language === 'en' ? 'Type' : 'ধরণ'}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                  {customers?.slice(0, 5).map((c, i) => (
-                    <tr key={i} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
-                      <td className="px-6 py-3.5 text-sm font-bold text-slate-900 dark:text-white">{c.name}</td>
-                      <td className="px-6 py-3.5 text-xs text-slate-500">2026-04-26</td>
-                      <td className="px-6 py-3.5 text-sm font-bold">{formatCurrency(c.debit, currency)}</td>
-                      <td className="px-6 py-3.5 text-sm font-bold">{formatCurrency(c.credit, currency)}</td>
-                      <td className="px-6 py-3.5">
-                        <span className="inline-flex px-1.5 py-0.5 bg-amber-50 text-amber-600 dark:bg-amber-900/30 rounded text-[9px] font-bold uppercase tracking-tighter">Draft</span>
+                  {filteredSales?.map((s, i) => {
+                    const customer = customers?.find(c => c.id === s.customerId);
+                    const age = calculateAge(s.date);
+                    return (
+                      <tr key={i} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
+                        <td className="px-6 py-3.5 text-sm font-bold text-slate-900 dark:text-white">{customer?.name || 'Unknown'}</td>
+                        <td className="px-6 py-3.5 text-xs text-slate-500 font-mono">{s.invoiceNumber || s.receiptNumber || 'N/A'}</td>
+                        <td className="px-6 py-3.5 text-xs text-slate-500">{new Date(s.date).toLocaleDateString()}</td>
+                        <td className="px-6 py-3.5">
+                          <span className={cn(
+                            "px-2 py-0.5 rounded text-[11px] font-bold",
+                            age > 30 ? "bg-rose-50 text-rose-600" : "bg-emerald-50 text-emerald-600"
+                          )}>
+                            {age} {language === 'en' ? 'Days' : 'দিন'}
+                          </span>
+                        </td>
+                        <td className="px-6 py-3.5 text-sm font-bold">
+                          {formatCurrency(s.cashSale + s.chequeSale + s.creditSale, currency)}
+                        </td>
+                        <td className="px-6 py-3.5">
+                          <span className={cn(
+                            "inline-flex px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-tighter",
+                            s.type === 'sale' ? "bg-indigo-50 text-indigo-600" : "bg-emerald-50 text-emerald-600"
+                          )}>
+                            {s.type}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                  {(!filteredSales || filteredSales.length === 0) && (
+                    <tr>
+                      <td colSpan={6} className="px-6 py-10 text-center text-slate-400 text-sm italic">
+                        {language === 'en' ? 'No transactions found for current filters' : 'ফিল্টার অনুযায়ী কোনো লেনদেন পাওয়া যায়নি'}
                       </td>
                     </tr>
-                  ))}
+                  )}
+                </tbody>
+              </table>
+            </div>
+            <div className="p-4 border-b dark:border-slate-800 flex items-center justify-between mt-8">
+              <h4 className="font-bold text-sm uppercase tracking-wider text-slate-700 dark:text-slate-300">
+                {language === 'en' ? 'Monthly Customer Summary' : 'মাসিক কাস্টমার সংক্ষিপ্ত বিবরণ'}
+              </h4>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="bg-slate-50/50 dark:bg-slate-800/50 text-left">
+                    <th className="px-6 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">{language === 'en' ? 'Customer' : 'কাস্টমার'}</th>
+                    <th className="px-6 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">{language === 'en' ? 'Total Sales' : 'মোট বিক্রি'}</th>
+                    <th className="px-6 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">{language === 'en' ? 'Total Collection' : 'মোট কালেকশন'}</th>
+                    <th className="px-6 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">{language === 'en' ? 'Balance' : 'বাকি'}</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                  {customers?.filter(c => selectedCustomer === 'all' || c.id === Number(selectedCustomer)).map((c, i) => {
+                    const customerSales = sales?.filter(s => s.customerId === c.id) || [];
+                    const customerDebit = customerSales.filter(s => s.type === 'sale').reduce((acc, s) => acc + (s.cashSale + s.chequeSale + s.creditSale), 0);
+                    const customerCredit = customerSales.filter(s => s.type === 'payment').reduce((acc, s) => acc + (s.cashSale + s.chequeSale + s.creditSale), 0);
+                    
+                    return (
+                      <tr key={i} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
+                        <td className="px-6 py-3.5 text-sm font-bold text-slate-900 dark:text-white">{c.name}</td>
+                        <td className="px-6 py-3.5 text-xs text-slate-500">{formatCurrency(customerDebit, currency)}</td>
+                        <td className="px-6 py-3.5 text-xs text-slate-500">{formatCurrency(customerCredit, currency)}</td>
+                        <td className="px-6 py-3.5">
+                          <span className={cn(
+                            "px-2 py-0.5 rounded text-[11px] font-bold",
+                            (customerDebit - customerCredit) > 0 ? "bg-rose-50 text-rose-600" : "bg-emerald-50 text-emerald-600"
+                          )}>
+                            {formatCurrency(customerDebit - customerCredit, currency)}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

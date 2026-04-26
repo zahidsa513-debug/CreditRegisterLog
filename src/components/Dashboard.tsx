@@ -32,8 +32,15 @@ import { db } from '../db/db';
 import { translations } from '../translations';
 import { cn, formatCurrency } from '../lib/utils';
 
-const StatCard = ({ title, value, icon: Icon, trend, color, language }: any) => (
-  <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm transition-all hover:shadow-md group">
+const StatCard = ({ title, value, icon: Icon, trend, color, language, onClick }: any) => (
+  <button 
+    onClick={onClick}
+    disabled={!onClick}
+    className={cn(
+      "bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm transition-all group text-left w-full disabled:cursor-default",
+      onClick && "hover:shadow-lg hover:border-indigo-200 dark:hover:border-indigo-900 active:scale-98"
+    )}
+  >
     <div className="flex items-start justify-between">
       <div className={cn("p-2.5 rounded-xl transition-colors", color)}>
         <Icon className="text-white w-5 h-5" />
@@ -51,19 +58,82 @@ const StatCard = ({ title, value, icon: Icon, trend, color, language }: any) => 
       <p className="text-slate-400 dark:text-slate-500 text-[10px] font-bold uppercase tracking-wider">{title}</p>
       <h3 className="text-2xl font-bold font-display mt-0.5 tracking-tight group-hover:text-indigo-600 transition-colors">{value}</h3>
     </div>
-  </div>
+    {onClick && (
+      <div className="mt-3 pt-3 border-t border-slate-50 dark:border-slate-800 flex items-center gap-1.5 text-indigo-500 font-bold text-[9px] uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">
+        {language === 'en' ? 'View Details' : 'বিস্তারিত দেখুন'} <ArrowUpRight className="w-2.5 h-2.5" />
+      </div>
+    )}
+  </button>
 );
 
-const Dashboard = ({ language, currency, monthlyTarget }: { language: 'en' | 'bn', currency: string, monthlyTarget: number }) => {
+const Dashboard = ({ language, currency, monthlyTarget, setActiveTab }: { language: 'en' | 'bn', currency: string, monthlyTarget: number, setActiveTab: (tab: string) => void }) => {
   const t = translations[language];
 
   const totalCustomers = useLiveQuery(() => db.customers.count());
   const totals = useLiveQuery(async () => {
     const customers = await db.customers.toArray();
-    return customers.reduce((acc, curr) => ({
-      debit: acc.debit + (curr.debit || 0),
-      credit: acc.credit + (curr.credit || 0),
-    }), { debit: 0, credit: 0 });
+    const sales = await db.sales.toArray();
+    
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+
+    const lastMonth = currentMonth === 0 ? 11 : currentMonth - 1;
+    const lastMonthYear = currentMonth === 0 ? currentYear - 1 : currentYear;
+
+    // Calculate total credit (Baki) from sales
+    const currentMonthSales = sales.filter(s => {
+      const d = new Date(s.date);
+      return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
+    });
+
+    const lastMonthSalesList = sales.filter(s => {
+      const d = new Date(s.date);
+      return d.getMonth() === lastMonth && d.getFullYear() === lastMonthYear;
+    });
+
+    const totalCreditSaleCurrentMonth = currentMonthSales.reduce((acc, s) => acc + (s.creditSale || 0), 0);
+    const totalCreditSaleOverall = sales.reduce((acc, s) => acc + (s.creditSale || 0), 0);
+    
+    // Total Today Sales (including direct)
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todaySales = sales
+      .filter(s => new Date(s.date).setHours(0,0,0,0) === today.getTime())
+      .reduce((acc, s) => acc + (s.totalAmount || (s.cashSale + s.chequeSale + s.creditSale)), 0);
+
+    // Calculate monthly total sales
+    const monthlyTotalAchieved = currentMonthSales.reduce((acc, s) => acc + (s.totalAmount || (s.cashSale + s.chequeSale + s.creditSale)), 0);
+    const lastMonthTotalAchieved = lastMonthSalesList.reduce((acc, s) => acc + (s.totalAmount || (s.cashSale + s.chequeSale + s.creditSale)), 0);
+    
+    // Calculate daily average sales for current month
+    const daysInMonthPast = now.getDate();
+    const dailyAverage = monthlyTotalAchieved / daysInMonthPast;
+
+    const creditCustomersCount = customers.filter(c => (c.debit - c.credit) > 0).length;
+
+    const profile = await db.profiles.toArray();
+    const target = profile[0]?.monthlyTarget || 100000;
+
+    const totalDebitOverall = customers.reduce((acc, curr) => acc + (curr.debit || 0), 0);
+    const totalCreditOverall = customers.reduce((acc, curr) => acc + (curr.credit || 0), 0);
+    const totalOutstanding = totalDebitOverall - totalCreditOverall;
+
+    return {
+      debit: totalDebitOverall,
+      credit: totalCreditOverall,
+      currentMonthBaki: totalCreditSaleCurrentMonth,
+      oldOutstanding: totalOutstanding - totalCreditSaleCurrentMonth,
+      totalOutstanding,
+      todaySales,
+      dailyAverage,
+      lastMonthSales: lastMonthTotalAchieved,
+      totalSales: sales.reduce((acc, s) => acc + (s.totalAmount || (s.cashSale + s.chequeSale + s.creditSale)), 0),
+      creditCustomersCount,
+      monthlyTotalAchieved,
+      target,
+      targetRemaining: Math.max(0, target - monthlyTotalAchieved)
+    };
   });
 
   const areaData = useLiveQuery(async () => {
@@ -74,24 +144,18 @@ const Dashboard = ({ language, currency, monthlyTarget }: { language: 'en' | 'bn
       const areaCustomers = customers.filter(c => c.areaId === area.id);
       const debit = areaCustomers.reduce((acc, curr) => acc + curr.debit, 0);
       const credit = areaCustomers.reduce((acc, curr) => acc + curr.credit, 0);
+      const areaProgress = Math.round((debit / (monthlyTarget / (areas.length || 1))) * 100);
+      
       return {
         name: area.name,
         debit,
         credit,
         color: area.color,
-        balance: debit - credit
+        balance: debit - credit,
+        progress: areaProgress
       };
     });
-  });
-
-  const monthlyGrowth = [
-    { name: 'Jan', value: 4000 },
-    { name: 'Feb', value: 3000 },
-    { name: 'Mar', value: 2000 },
-    { name: 'Apr', value: 2780 },
-    { name: 'May', value: 1890 },
-    { name: 'Jun', value: 2390 },
-  ];
+  }, [monthlyTarget]);
 
   return (
     <div className="space-y-8 pb-12">
@@ -101,52 +165,60 @@ const Dashboard = ({ language, currency, monthlyTarget }: { language: 'en' | 'bn
           <p className="text-slate-500 dark:text-slate-400 mt-0.5 text-sm">System Status: <span className="text-emerald-500 font-bold">Online</span></p>
         </div>
         <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2">
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Area:</span>
-            <select className="text-sm bg-transparent border-none font-bold text-indigo-600 cursor-pointer focus:ring-0">
-              <option>All Areas</option>
-              {areaData?.map((a, idx) => <option key={`${a.name}-${idx}`}>{a.name}</option>)}
-            </select>
-          </div>
           <button className="bg-indigo-600 text-white px-5 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 shadow-lg shadow-indigo-200 dark:shadow-none hover:bg-indigo-700 transition-all active:scale-95 leading-none">
             <PlusCircle className="w-4 h-4" />
-            New Entry
+            {language === 'en' ? 'New Transaction' : 'নতুন লেনদেন'}
           </button>
         </div>
       </div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
         <StatCard 
-          title={t.totalDebit} 
-          value={formatCurrency(totals?.debit || 0, currency)} 
-          icon={DollarSign} 
-          color="bg-slate-900"
-          trend={12}
+          title={language === 'en' ? "Daily Average" : 'প্রতিদিনের গড় বিক্রি'} 
+          value={formatCurrency(totals?.dailyAverage || 0, currency)} 
+          icon={TrendingUp} 
+          color="bg-emerald-500"
           language={language}
         />
         <StatCard 
-          title={t.totalCredit} 
-          value={formatCurrency(totals?.credit || 0, currency)} 
+          title={language === 'en' ? "Last Month's Sales" : 'গতমাসের মোট বিক্রি'} 
+          value={formatCurrency(totals?.lastMonthSales || 0, currency)} 
+          icon={BarChart} 
+          color="bg-indigo-600"
+          language={language}
+        />
+        <StatCard 
+          title={language === 'en' ? 'Credit This Month' : 'চলতি মাসের বাকি'} 
+          value={formatCurrency(totals?.currentMonthBaki || 0, currency)} 
           icon={CreditCard} 
-          color="bg-slate-600"
-          trend={-5}
+          color="bg-rose-500"
           language={language}
         />
         <StatCard 
-          title={t.balance} 
-          value={formatCurrency((totals?.debit || 0) - (totals?.credit || 0), currency)} 
+          title={language === 'en' ? 'Total Outstanding' : 'মোট বকেয়া'} 
+          value={formatCurrency(totals?.totalOutstanding || 0, currency)} 
           icon={Wallet} 
-          color="bg-indigo-500"
-          trend={8}
+          color="bg-amber-500"
           language={language}
         />
+      </div>
+
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
         <StatCard 
-          title={t.totalCustomers} 
+          title={language === 'en' ? 'Total Customers' : 'মোট কাস্টমার'} 
           value={totalCustomers || 0} 
           icon={Users} 
-          color="bg-slate-400"
+          color="bg-slate-500"
           language={language}
+          onClick={() => setActiveTab('customers')}
+        />
+        <StatCard 
+          title={language === 'en' ? 'Credit Customers' : 'বাকি ক্রেতা'} 
+          value={totals?.creditCustomersCount || 0} 
+          icon={Users} 
+          color="bg-indigo-400"
+          language={language}
+          onClick={() => setActiveTab('customers')}
         />
       </div>
 
@@ -154,11 +226,7 @@ const Dashboard = ({ language, currency, monthlyTarget }: { language: 'en' | 'bn
         {/* Main Chart */}
         <div className="lg:col-span-2 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col">
           <div className="p-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
-            <h3 className="font-bold text-slate-800 dark:text-slate-100">Area Performance Dashboard</h3>
-            <div className="flex gap-2">
-              <button className="text-[10px] uppercase tracking-wider font-bold px-3 py-1 bg-slate-100 dark:bg-slate-800 rounded-full text-slate-500">Weekly</button>
-              <button className="text-[10px] uppercase tracking-wider font-bold px-3 py-1 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-full">Monthly</button>
-            </div>
+            <h3 className="font-bold text-slate-800 dark:text-slate-100">{language === 'en' ? 'Sales vs Collection' : 'বিক্রি বনাম কালেকশন'}</h3>
           </div>
           <div className="flex-1 p-6 flex flex-col justify-between">
             <div className="h-[240px] w-full">
@@ -181,65 +249,90 @@ const Dashboard = ({ language, currency, monthlyTarget }: { language: 'en' | 'bn
                     cursor={{ fill: '#f8fafc' }}
                     contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', fontSize: '12px' }}
                   />
-                  <Bar dataKey="debit" fill="#6366f1" radius={[4, 4, 0, 0]} barSize={24} />
-                  <Bar dataKey="credit" fill="#10b981" radius={[4, 4, 0, 0]} barSize={24} />
+                  <Bar dataKey="debit" name={language === 'en' ? 'Sale' : 'বিক্রি'} fill="#6366f1" radius={[4, 4, 0, 0]} barSize={24} />
+                  <Bar dataKey="credit" name={language === 'en' ? 'Collection' : 'সংগ্রহ'} fill="#10b981" radius={[4, 4, 0, 0]} barSize={24} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
             
             <div className="mt-8 grid grid-cols-3 gap-4 pt-6 border-t border-slate-100 dark:border-slate-800">
               <div className="text-center">
-                <p className="text-[10px] text-slate-400 uppercase font-bold tracking-widest">Daily Goal</p>
-                <p className="text-lg font-bold text-emerald-600 leading-tight">Reached</p>
+                <p className="text-[10px] text-slate-400 uppercase font-bold tracking-widest">{language === 'en' ? 'Monthly Target' : 'মাসিক টার্গেট'}</p>
+                <p className="text-lg font-bold text-slate-800 dark:text-slate-100 leading-tight">{formatCurrency(totals?.target || 0, currency)}</p>
               </div>
               <div className="text-center">
-                <p className="text-[10px] text-slate-400 uppercase font-bold tracking-widest">Collections</p>
-                <p className="text-lg font-bold text-slate-800 dark:text-slate-100 leading-tight">{currency} 4,200</p>
+                <p className="text-[10px] text-slate-400 uppercase font-bold tracking-widest">{language === 'en' ? 'Total Achieved' : 'অর্জিত মোট'}</p>
+                <p className="text-lg font-bold text-indigo-600 leading-tight">{formatCurrency(totals?.monthlyTotalAchieved || 0, currency)}</p>
               </div>
               <div className="text-center">
-                <p className="text-[10px] text-slate-400 uppercase font-bold tracking-widest">Active Areas</p>
-                <p className="text-lg font-bold text-slate-800 dark:text-slate-100 leading-tight">12 Regions</p>
+                <p className="text-[10px] text-slate-400 uppercase font-bold tracking-widest">{language === 'en' ? 'Remaining' : 'অবশিষ্ট'}</p>
+                <p className="text-lg font-bold text-rose-500 leading-tight">{formatCurrency(totals?.targetRemaining || 0, currency)}</p>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Progress Tracker */}
+        {/* Target Progress Card */}
         <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col">
           <div className="flex items-center justify-between mb-6">
-            <h3 className="font-bold text-slate-800 dark:text-slate-100 uppercase text-xs tracking-widest leading-none">Target Progress</h3>
+            <h3 className="font-bold text-slate-800 dark:text-slate-100 uppercase text-xs tracking-widest leading-none">Overall Progress</h3>
             <Target className="w-4 h-4 text-slate-400" />
           </div>
-          
-          <div className="flex-1 space-y-5">
-            {areaData?.map((area, idx) => (
-              <div key={idx} className="space-y-2">
-                <div className="flex justify-between items-center text-xs">
-                  <span className="font-bold text-slate-700 dark:text-slate-300">{area.name}</span>
-                  <span className="text-slate-500 font-mono text-[10px] font-bold">{Math.round((area.debit / (monthlyTarget / (areaData?.length || 1))) * 100)}%</span>
-                </div>
-                <div className="h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                  <motion.div 
-                    initial={{ width: 0 }}
-                    animate={{ width: `${Math.min((area.debit / (monthlyTarget / (areaData?.length || 1))) * 100, 100)}%` }}
-                    transition={{ duration: 1.5, ease: "easeOut", delay: idx * 0.1 }}
-                    className={cn("h-full rounded-full transition-all")}
-                    style={{ backgroundColor: idx % 2 === 0 ? '#6366f1' : '#10b981' }}
-                  />
+
+          <div className="flex-1 flex flex-col items-center justify-center space-y-6">
+            <div className="relative w-40 h-40">
+              <svg className="w-full h-full transform -rotate-90">
+                <circle
+                  cx="80"
+                  cy="80"
+                  r="70"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="12"
+                  className="text-slate-100 dark:text-slate-800"
+                />
+                <motion.circle
+                  cx="80"
+                  cy="80"
+                  r="70"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="12"
+                  strokeDasharray={440}
+                  initial={{ strokeDashoffset: 440 }}
+                  animate={{ strokeDashoffset: 440 - (440 * Math.min(1, (totals?.monthlyTotalAchieved || 0) / (totals?.target || 1))) }}
+                  transition={{ duration: 1.5, ease: "easeOut" }}
+                  strokeLinecap="round"
+                  className="text-indigo-600"
+                />
+              </svg>
+              <div className="absolute inset-0 flex flex-col items-center justify-center">
+                <span className="text-3xl font-black font-display text-slate-800 dark:text-white">
+                  {Math.round(Math.min(100, ((totals?.monthlyTotalAchieved || 0) / (totals?.target || 1)) * 100))}%
+                </span>
+                <span className="text-[9px] uppercase tracking-widest font-bold text-slate-400">Target</span>
+              </div>
+            </div>
+
+            <div className="w-full space-y-4">
+              <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-100 dark:border-slate-800">
+                <p className="text-[10px] text-slate-400 uppercase font-bold tracking-widest mb-2">{language === 'en' ? 'Target Summary' : 'টার্গেট সামারি'}</p>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-bold text-slate-600 dark:text-slate-400">{language === 'en' ? 'Sales Done' : 'বিক্রি হয়েছে'}</span>
+                  <span className="text-sm font-black text-indigo-500">{formatCurrency(totals?.monthlyTotalAchieved || 0, currency)}</span>
                 </div>
               </div>
-            ))}
+            </div>
           </div>
 
-          <div className="mt-8 p-5 bg-indigo-600 rounded-xl text-white relative overflow-hidden group border border-indigo-500">
+          <div className="mt-8 p-5 bg-gradient-to-br from-indigo-600 to-indigo-700 rounded-2xl text-white relative overflow-hidden group shadow-xl shadow-indigo-500/20">
             <div className="relative z-10">
-              <p className="text-indigo-200 text-[10px] font-bold uppercase tracking-widest">Monthly Growth</p>
-              <div className="flex items-end justify-between mt-1">
-                <h4 className="text-3xl font-bold font-display tracking-tight">↑ 78.4%</h4>
-                <div className="flex items-center text-[10px] font-bold bg-white/10 px-2 py-0.5 rounded backdrop-blur-md border border-white/10">
-                   +4.2% MOM
-                </div>
-              </div>
+              <p className="text-indigo-100 text-[10px] font-bold uppercase tracking-widest">{language === 'en' ? 'Monthly Achievement' : 'মাসিক অর্জন'}</p>
+              <h4 className="text-2xl font-bold font-display mt-1">
+                {(totals?.monthlyTotalAchieved || 0) >= (totals?.target || 0) 
+                  ? (language === 'en' ? 'Goal Reached! 🎉' : 'টার্গেট পূরণ! 🎉') 
+                  : (language === 'en' ? 'Keep Pushing! 💪' : 'চালিয়ে যান! 💪')}
+              </h4>
             </div>
             <TrendingUp className="absolute -bottom-2 -right-2 w-20 h-20 opacity-10 group-hover:scale-110 transition-transform" />
           </div>
