@@ -99,18 +99,21 @@ const Dashboard = ({ language, currency, monthlyTarget, setActiveTab }: { langua
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const todaySales = sales
-      .filter(s => new Date(s.date).setHours(0,0,0,0) === today.getTime())
-      .reduce((acc, s) => acc + (s.totalAmount || (s.cashSale + s.chequeSale + s.creditSale)), 0);
+      .filter(s => {
+        const d = new Date(s.date);
+        return !isNaN(d.getTime()) && d.setHours(0,0,0,0) === today.getTime();
+      })
+      .reduce((acc, s) => acc + (s.totalAmount || ((s.cashSale || 0) + (s.chequeSale || 0) + (s.creditSale || 0))), 0);
 
     // Calculate monthly total sales
-    const monthlyTotalAchieved = currentMonthSales.reduce((acc, s) => acc + (s.totalAmount || (s.cashSale + s.chequeSale + s.creditSale)), 0);
-    const lastMonthTotalAchieved = lastMonthSalesList.reduce((acc, s) => acc + (s.totalAmount || (s.cashSale + s.chequeSale + s.creditSale)), 0);
+    const monthlyTotalAchieved = currentMonthSales.reduce((acc, s) => acc + (s.totalAmount || ((s.cashSale || 0) + (s.chequeSale || 0) + (s.creditSale || 0))), 0);
+    const lastMonthTotalAchieved = lastMonthSalesList.reduce((acc, s) => acc + (s.totalAmount || ((s.cashSale || 0) + (s.chequeSale || 0) + (s.creditSale || 0))), 0);
     
     // Calculate daily average sales for current month
     const daysInMonthPast = now.getDate();
-    const dailyAverage = monthlyTotalAchieved / daysInMonthPast;
+    const dailyAverage = monthlyTotalAchieved / (daysInMonthPast || 1);
 
-    const creditCustomersCount = customers.filter(c => (c.debit - c.credit) > 0).length;
+    const creditCustomersCount = customers.filter(c => ((c.debit || 0) - (c.credit || 0)) > 0).length;
 
     const profile = await db.profiles.toArray();
     const target = profile[0]?.monthlyTarget || 100000;
@@ -128,7 +131,7 @@ const Dashboard = ({ language, currency, monthlyTarget, setActiveTab }: { langua
       todaySales,
       dailyAverage,
       lastMonthSales: lastMonthTotalAchieved,
-      totalSales: sales.reduce((acc, s) => acc + (s.totalAmount || (s.cashSale + s.chequeSale + s.creditSale)), 0),
+      totalSales: sales.reduce((acc, s) => acc + (s.totalAmount || ((s.cashSale || 0) + (s.chequeSale || 0) + (s.creditSale || 0))), 0),
       creditCustomersCount,
       monthlyTotalAchieved,
       target,

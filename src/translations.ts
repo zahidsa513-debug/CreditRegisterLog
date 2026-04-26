@@ -36,6 +36,7 @@ export const translations = {
     clear: 'Clear',
     due: 'Sale / Due',
     collection: 'Collection / Payment',
+    todaySales: "Today's Sales",
     printReport: 'Print Report',
     receiptNumber: 'Receipt No.',
     previousBalance: 'Previous Bal.',
@@ -45,6 +46,8 @@ export const translations = {
     receivedFrom: 'Received From',
     amountInWords: 'Amount in Words',
     authorizedSignature: 'Authorized Signature',
+    aboutDeveloper: 'About Developer',
+    developerDetails: 'Application Developer Details',
   },
   bn: {
     dashboard: 'ড্যাশবোর্ড',
@@ -83,6 +86,7 @@ export const translations = {
     clear: 'পরিষ্কার করুন',
     due: 'ডেইলি সেলস / বকেয়া',
     collection: 'কালেকশন / সংগ্রহ',
+    todaySales: 'আজকের বিক্রি',
     printReport: 'রিপোর্ট প্রিন্ট',
     receiptNumber: 'রশিদ নং',
     previousBalance: 'পূর্ববর্তী ব্যালেন্স',
@@ -92,5 +96,7 @@ export const translations = {
     receivedFrom: 'প্রাপক',
     amountInWords: 'কথায় অংক',
     authorizedSignature: 'অনুমোদিত স্বাক্ষর',
+    aboutDeveloper: 'ডেভেলপার সম্পর্কে',
+    developerDetails: 'অ্যাপ্লিকেশন ডেভেলপার এর বিস্তারিত',
   }
 };

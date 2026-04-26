@@ -14,6 +14,7 @@ import {
   User,
   LogOut,
   Camera,
+  Mail,
   Save,
   MapPin,
   Plus,
@@ -476,6 +477,49 @@ const SettingsView = ({
             </div>
           </div>
           <Info className="absolute -bottom-10 -right-10 w-40 h-40 opacity-5 text-white" />
+        </div>
+
+        {/* Developer Info Section */}
+        <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm">
+          <div className="flex items-center gap-4 mb-6">
+            <div className="p-2.5 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 rounded-xl">
+              <User className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="font-bold text-sm tracking-tight">{(t as any).aboutDeveloper}</p>
+              <p className="text-xs text-slate-500">{(t as any).developerDetails}</p>
+            </div>
+          </div>
+          
+          <div className="space-y-4">
+            <div className="flex items-start gap-4">
+              <div className="w-12 h-12 rounded-xl bg-slate-50 dark:bg-slate-800 flex items-center justify-center shrink-0">
+                <Smartphone className="w-6 h-6 text-slate-400" />
+              </div>
+              <div>
+                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-0.5">Developer</p>
+                <p className="text-sm font-bold text-slate-900 dark:text-white">Sakawat Zahid</p>
+                <p className="text-xs text-slate-500">Full Stack Developer</p>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-4">
+              <div className="w-12 h-12 rounded-xl bg-slate-50 dark:bg-slate-800 flex items-center justify-center shrink-0">
+                <Mail className="w-6 h-6 text-slate-400" />
+              </div>
+              <div>
+                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-0.5">Contact</p>
+                <p className="text-sm font-bold text-slate-900 dark:text-white">hello.sakawatzahid@gmail.com</p>
+                <p className="text-xs text-slate-500">Available for freelance & support</p>
+              </div>
+            </div>
+            
+            <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
+              <p className="text-[10px] text-slate-400 font-medium italic">
+                © 2024 CreditReg Pro. Built with performance and privacy in mind.
+              </p>
+            </div>
+          </div>
         </div>
       </div>
     </div>

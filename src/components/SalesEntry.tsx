@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import SignatureCanvas from 'react-signature-canvas';
 import { jsPDF } from 'jspdf';
@@ -13,18 +13,19 @@ import {
   Eraser,
   CheckCircle2,
   Hash,
-  Printer
+  Printer,
+  TrendingUp
 } from 'lucide-react';
 import { db } from '../db/db';
 import { translations } from '../translations';
 import { cn, formatCurrency } from '../lib/utils';
 import { Sale } from '../types';
 
-const SalesEntry = ({ language, theme, currency }: { language: 'en' | 'bn', theme: 'light' | 'dark', currency: string }) => {
+const SalesEntry = ({ language, theme, currency, editingSale, setEditingSale }: { language: 'en' | 'bn', theme: 'light' | 'dark', currency: string, editingSale?: Sale | null, setEditingSale?: (sale: Sale | null) => void }) => {
   const t = translations[language];
   const customers = useLiveQuery(() => db.customers.toArray());
   const sigPad = useRef<any>(null);
-  
+
   const [formData, setFormData] = useState<Partial<Sale>>({
     date: new Date(),
     customerId: 0,
@@ -40,15 +41,53 @@ const SalesEntry = ({ language, theme, currency }: { language: 'en' | 'bn', them
   });
 
   const [isSuccess, setIsSuccess] = useState(false);
+  const [editingId, setEditingId] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (editingSale) {
+      handleEdit(editingSale as Sale);
+      if (setEditingSale) setEditingSale(null);
+    }
+  }, [editingSale]);
+
+  const dailySalesList = useLiveQuery(() => 
+    db.sales.where('type').equals('direct').toArray()
+  );
 
   React.useEffect(() => {
     if (formData.type === 'sale') {
       const calculatedCredit = (formData.totalAmount || 0) - (formData.cashSale || 0) - (formData.chequeSale || 0);
-      setFormData(prev => ({ ...prev, creditSale: Math.max(0, calculatedCredit) }));
+      if (formData.creditSale !== Math.max(0, calculatedCredit)) {
+        setFormData(prev => ({ ...prev, creditSale: Math.max(0, calculatedCredit) }));
+      }
     } else if (formData.type === 'direct') {
-      setFormData(prev => ({ ...prev, cashSale: prev.totalAmount || 0, creditSale: 0, chequeSale: 0 }));
+      const targetCash = formData.totalAmount || 0;
+      if (formData.cashSale !== targetCash || formData.creditSale !== 0 || formData.chequeSale !== 0 || formData.customerId !== undefined) {
+        setFormData(prev => ({ 
+          ...prev, 
+          cashSale: targetCash, 
+          creditSale: 0, 
+          chequeSale: 0, 
+          customerId: undefined 
+        }));
+      }
     }
-  }, [formData.totalAmount, formData.cashSale, formData.chequeSale, formData.type]);
+  }, [formData.totalAmount, formData.cashSale, formData.chequeSale, formData.type, formData.creditSale, formData.customerId]);
+
+  const handleEdit = (sale: Sale) => {
+    setFormData({
+      ...sale,
+      date: new Date(sale.date)
+    });
+    setEditingId(sale.id || null);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleDelete = async (id: number) => {
+    if (confirm(language === 'en' ? 'Are you sure you want to delete this entry?' : 'আপনি কি এই এন্ট্রিটি ডিলিট করতে নিশ্চিত?')) {
+      await db.sales.delete(id);
+    }
+  };
 
   const amountToWords = (num: number) => {
     const a = ['', 'One ', 'Two ', 'Three ', 'Four ', 'Five ', 'Six ', 'Seven ', 'Eight ', 'Nine ', 'Ten ', 'Eleven ', 'Twelve ', 'Thirteen ', 'Fourteen ', 'Fifteen ', 'Sixteen ', 'Seventeen ', 'Eighteen ', 'Nineteen '];
@@ -169,8 +208,13 @@ const SalesEntry = ({ language, theme, currency }: { language: 'en' | 'bn', them
       signature
     } as Sale;
 
-    const id = await db.sales.add(saleData);
-    saleData.id = id as number;
+    if (editingId) {
+      await db.sales.update(editingId, saleData);
+      setEditingId(null);
+    } else {
+      const id = await db.sales.add(saleData);
+      saleData.id = id as number;
+    }
 
     // Update customer totals
     if (customer) {
@@ -181,7 +225,7 @@ const SalesEntry = ({ language, theme, currency }: { language: 'en' | 'bn', them
       });
     }
 
-    if (formData.type === 'payment' && customer) {
+    if (formData.type === 'payment' && customer && !editingId) {
       generateReceipt(saleData, customer, prevBalance);
     }
 
@@ -201,6 +245,7 @@ const SalesEntry = ({ language, theme, currency }: { language: 'en' | 'bn', them
         invoiceNumber: '',
         billNumber: ''
       });
+      setEditingId(null);
       sigPad.current?.clear();
     }, 2000);
   };
@@ -236,7 +281,7 @@ const SalesEntry = ({ language, theme, currency }: { language: 'en' | 'bn', them
                   formData.type === 'direct' ? "bg-white dark:bg-slate-700 text-indigo-600 shadow-sm" : "text-slate-500"
                 )}
               >
-                {language === 'en' ? 'Direct' : 'সরাসরি'}
+                {t.todaySales}
               </button>
               <button
                 type="button"
@@ -251,13 +296,18 @@ const SalesEntry = ({ language, theme, currency }: { language: 'en' | 'bn', them
             </div>
 
             <div className="space-y-1">
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                <Calendar className="w-3 h-3 text-indigo-500" /> {t.date}
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2 text-indigo-600">
+                {editingId && (
+                  <span className="bg-indigo-100 text-indigo-600 px-2 py-0.5 rounded-full text-[8px]">
+                    {language === 'en' ? 'EDITING MODE' : 'এডিট মুড'}
+                  </span>
+                )}
+                <Calendar className="w-3 h-3" /> {t.date}
               </label>
               <input 
                 required
                 type="date"
-                value={formData.date?.toISOString().split('T')[0]}
+                value={formData.date instanceof Date && !isNaN(formData.date.getTime()) ? formData.date.toISOString().split('T')[0] : ''}
                 onChange={e => setFormData({...formData, date: new Date(e.target.value)})}
                 className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-800 border-none focus:ring-2 focus:ring-indigo-500 outline-none font-medium text-sm"
               />
@@ -448,6 +498,60 @@ const SalesEntry = ({ language, theme, currency }: { language: 'en' | 'bn', them
           </div>
         </div>
       </form>
+
+      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden mt-12">
+        <div className="p-4 border-b dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-800 bg-opacity-50">
+          <h3 className="font-bold text-sm uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-2">
+            <TrendingUp className="w-4 h-4 text-indigo-500" />
+            {language === 'en' ? "Today's Sales History" : 'আজকের বিক্রির তালিকা'}
+          </h3>
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{dailySalesList?.length || 0} Entries</span>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr className="bg-slate-50/50 dark:bg-slate-800/50 text-left">
+                <th className="px-6 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">{t.date}</th>
+                <th className="px-6 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">{t.description}</th>
+                <th className="px-6 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">{t.cash}</th>
+                <th className="px-6 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">{language === 'en' ? 'Actions' : 'অ্যাকশন'}</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+              {dailySalesList?.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map((s) => (
+                <tr key={s.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
+                  <td className="px-6 py-3.5 text-xs text-slate-500">{new Date(s.date).toLocaleDateString()}</td>
+                  <td className="px-6 py-3.5 text-sm font-medium text-slate-900 dark:text-white capitalize">{s.description || 'No description'}</td>
+                  <td className="px-6 py-3.5 text-sm font-black text-indigo-600">{formatCurrency(s.cashSale, currency)}</td>
+                  <td className="px-6 py-3.5">
+                    <div className="flex items-center gap-2">
+                      <button 
+                        onClick={() => handleEdit(s)}
+                        className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded-lg transition-colors"
+                      >
+                        <Plus className="w-4 h-4 rotate-45" />
+                      </button>
+                      <button 
+                        onClick={() => handleDelete(s.id!)}
+                        className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded-lg transition-colors"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+              {(!dailySalesList || dailySalesList.length === 0) && (
+                <tr>
+                  <td colSpan={4} className="px-6 py-8 text-center text-slate-400 text-xs italic">
+                    {language === 'en' ? 'No history found' : 'কোনো তথ্য পাওয়া যায়নি'}
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   );
 };

@@ -9,10 +9,10 @@ export class CreditRegistryDB extends Dexie {
 
   constructor() {
     super('CreditRegistryDB');
-    this.version(3).stores({
+    this.version(4).stores({
       areas: '++id, name',
       customers: '++id, name, areaId, shopName, ownerName',
-      sales: '++id, date, customerId, invoiceNumber, receiptNumber',
+      sales: '++id, date, customerId, invoiceNumber, receiptNumber, type',
       profiles: '++id, email'
     });
   }

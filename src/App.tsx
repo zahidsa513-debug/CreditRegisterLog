@@ -38,6 +38,7 @@ const App = () => {
   const [currency, setCurrency] = useState('USD');
   const [activeTab, setActiveTab] = useState('dashboard');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [editingSale, setEditingSale] = useState<any>(null);
 
   const totalDebit = useLiveQuery(async () => {
     const customers = await db.customers.toArray();
@@ -126,8 +127,8 @@ const App = () => {
       case 'dashboard': return <Dashboard language={language} currency={currency} monthlyTarget={monthlyTarget} setActiveTab={setActiveTab} />;
       case 'areas': return <Areas language={language} currency={currency} />;
       case 'customers': return <Customers language={language} currency={currency} />;
-      case 'sales': return <SalesEntry language={language} theme={theme} currency={currency} />;
-      case 'reports': return <Reports language={language} currency={currency} />;
+      case 'sales': return <SalesEntry language={language} theme={theme} currency={currency} editingSale={editingSale} setEditingSale={setEditingSale} />;
+      case 'reports': return <Reports language={language} currency={currency} setActiveTab={setActiveTab} setEditingSale={setEditingSale} />;
       case 'settings': return (
         <SettingsView 
           language={language} 

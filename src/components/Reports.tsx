@@ -12,13 +12,16 @@ import {
   ChevronDown,
   Mail,
   Share2,
-  Printer
+  Printer,
+  Edit2,
+  Trash2
 } from 'lucide-react';
 import { db } from '../db/db';
 import { translations } from '../translations';
 import { cn, formatCurrency } from '../lib/utils';
+import { Sale } from '../types';
 
-const Reports = ({ language, currency }: { language: 'en' | 'bn', currency: string }) => {
+const Reports = ({ language, currency, setActiveTab, setEditingSale }: { language: 'en' | 'bn', currency: string, setActiveTab?: (tab: string) => void, setEditingSale?: (sale: Sale | null) => void }) => {
   const t = translations[language];
   const areas = useLiveQuery(() => db.areas.toArray());
   const customers = useLiveQuery(() => db.customers.toArray());
@@ -37,6 +40,7 @@ const Reports = ({ language, currency }: { language: 'en' | 'bn', currency: stri
   };
 
   const filteredSales = sales?.filter(s => {
+    if (s.type === 'direct') return false;
     const customer = customers?.find(c => c.id === s.customerId);
     const dateMatch = (!dateRange.start || s.date >= dateRange.start) && (!dateRange.end || s.date <= dateRange.end);
     const areaMatch = selectedArea === 'all' || customer?.areaId === Number(selectedArea);
@@ -73,6 +77,47 @@ const Reports = ({ language, currency }: { language: 'en' | 'bn', currency: stri
     });
 
     doc.save(`Credit_Report_${new Date().toISOString().split('T')[0]}.pdf`);
+  };
+
+
+  const handleEditDailySale = (sale: Sale) => {
+    if (setActiveTab && setEditingSale) {
+      setEditingSale(sale);
+      setActiveTab('sales');
+    }
+  };
+
+  const handleDeleteDailySale = async (id: number) => {
+    if (confirm(language === 'en' ? 'Are you sure you want to delete this entry?' : 'আপনি কি এই এন্ট্রিটি ডিলিট করতে নিশ্চিত?')) {
+      await db.sales.delete(id);
+    }
+  };
+
+  const handlePrintDailySales = () => {
+    const list = sales?.filter(s => s.type === 'direct' && (!dateRange.start || new Date(s.date) >= new Date(dateRange.start)) && (!dateRange.end || new Date(s.date) <= new Date(dateRange.end))) || [];
+    
+    if (list.length === 0) return;
+
+    const doc = new jsPDF();
+    doc.text(language === 'en' ? 'Daily Sales Report' : 'দৈনিক বিক্রির রিপোর্ট', 105, 10, { align: 'center' });
+    doc.text(`${language === 'en' ? 'Date range' : 'তারিখ সীমা'}: ${dateRange.start || 'Start'} - ${dateRange.end || 'End'}`, 105, 20, { align: 'center' });
+
+    autoTable(doc, {
+      startY: 30,
+      head: [[t.date, t.description, language === 'en' ? 'Invoice' : 'ইনভয়েস', t.cash]],
+      body: list.map(s => [
+        new Date(s.date).toLocaleDateString(),
+        s.description || 'N/A',
+        s.invoiceNumber || 'N/A',
+        formatCurrency(s.cashSale || 0, currency)
+      ]),
+      foot: [[
+        { content: language === 'en' ? 'Total' : 'মোট', colSpan: 3, styles: { halign: 'right', fontStyle: 'bold' } },
+        { content: formatCurrency(list.reduce((acc, s) => acc + (s.cashSale || 0), 0), currency), styles: { fontStyle: 'bold' } }
+      ]]
+    });
+
+    doc.save(`Daily_Sales_${new Date().toISOString().split('T')[0]}.pdf`);
   };
 
   const exportToExcel = () => {
@@ -279,6 +324,76 @@ const Reports = ({ language, currency }: { language: 'en' | 'bn', currency: stri
                 </tbody>
               </table>
             </div>
+
+            <div className="p-4 border-b dark:border-slate-800 flex items-center justify-between mt-8 bg-indigo-50/30 dark:bg-indigo-900/10">
+              <h4 className="font-bold text-sm uppercase tracking-wider text-indigo-700 dark:text-indigo-400">
+                {language === 'en' ? 'Daily Sales Report (Non-Credit)' : 'দৈনিক বিক্রি রিপোর্ট (নন-ক্রেডিট)'}
+              </h4>
+              <button
+                onClick={handlePrintDailySales}
+                className="flex items-center gap-2 px-3 py-1.5 bg-indigo-100 hover:bg-indigo-200 dark:bg-indigo-900/30 dark:hover:bg-indigo-800/30 text-indigo-700 dark:text-indigo-300 rounded-lg text-xs font-bold transition-all"
+              >
+                <Printer className="w-3.5 h-3.5" />
+                {language === 'en' ? 'Print' : 'প্রিন্ট'}
+              </button>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="bg-slate-50/50 dark:bg-slate-800/50 text-left">
+                    <th className="px-6 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">{t.date}</th>
+                    <th className="px-6 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">{t.description}</th>
+                    <th className="px-6 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">{language === 'en' ? 'Invoice' : 'ইনভয়েস'}</th>
+                    <th className="px-6 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">{t.cash}</th>
+                    <th className="px-6 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">{language === 'en' ? 'Actions' : 'অ্যাকশন'}</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                  {sales?.filter(s => s.type === 'direct' && (!dateRange.start || new Date(s.date) >= new Date(dateRange.start)) && (!dateRange.end || new Date(s.date) <= new Date(dateRange.end))).map((s, i) => (
+                    <tr key={i} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
+                      <td className="px-6 py-3.5 text-xs text-slate-500">{new Date(s.date).toLocaleDateString()}</td>
+                      <td className="px-6 py-3.5 text-sm font-medium text-slate-900 dark:text-white capitalize">{s.description || 'N/A'}</td>
+                      <td className="px-6 py-3.5 text-xs text-slate-500 font-mono">{s.invoiceNumber || 'N/A'}</td>
+                      <td className="px-6 py-3.5 text-sm font-black text-indigo-600">
+                        {formatCurrency(s.cashSale, currency)}
+                      </td>
+                      <td className="px-6 py-3.5">
+                        <div className="flex items-center gap-2">
+                          <button 
+                            onClick={() => handleEditDailySale(s)}
+                            className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded-lg transition-colors"
+                          >
+                            <Edit2 className="w-3.5 h-3.5" />
+                          </button>
+                          <button 
+                            onClick={() => handleDeleteDailySale(s.id!)}
+                            className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded-lg transition-colors"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                  {sales?.filter(s => s.type === 'direct').length === 0 && (
+                    <tr>
+                      <td colSpan={5} className="px-6 py-8 text-center text-slate-400 text-xs italic">
+                        {language === 'en' ? 'No daily sales entries' : 'কোনো তথ্য নেই'}
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+                <tfoot className="bg-slate-50/50 dark:bg-slate-800/50">
+                  <tr>
+                    <td colSpan={4} className="px-6 py-4 text-xs font-bold text-slate-500 uppercase text-right">{language === 'en' ? 'Total Daily Sales' : 'মোট দৈনিক বিক্রি'}</td>
+                    <td className="px-6 py-4 text-sm font-black text-indigo-600">
+                      {formatCurrency(sales?.filter(s => s.type === 'direct' && (!dateRange.start || new Date(s.date) >= new Date(dateRange.start)) && (!dateRange.end || new Date(s.date) <= new Date(dateRange.end))).reduce((acc, s) => acc + (s.cashSale || 0), 0) || 0, currency)}
+                    </td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+
             <div className="p-4 border-b dark:border-slate-800 flex items-center justify-between mt-8">
               <h4 className="font-bold text-sm uppercase tracking-wider text-slate-700 dark:text-slate-300">
                 {language === 'en' ? 'Monthly Customer Summary' : 'মাসিক কাস্টমার সংক্ষিপ্ত বিবরণ'}
@@ -297,8 +412,8 @@ const Reports = ({ language, currency }: { language: 'en' | 'bn', currency: stri
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                   {customers?.filter(c => selectedCustomer === 'all' || c.id === Number(selectedCustomer)).map((c, i) => {
                     const customerSales = sales?.filter(s => s.customerId === c.id) || [];
-                    const customerDebit = customerSales.filter(s => s.type === 'sale').reduce((acc, s) => acc + (s.cashSale + s.chequeSale + s.creditSale), 0);
-                    const customerCredit = customerSales.filter(s => s.type === 'payment').reduce((acc, s) => acc + (s.cashSale + s.chequeSale + s.creditSale), 0);
+                    const customerDebit = customerSales.filter(s => s.type === 'sale').reduce((acc, s) => acc + ((s.cashSale || 0) + (s.chequeSale || 0) + (s.creditSale || 0)), 0);
+                    const customerCredit = customerSales.filter(s => s.type === 'payment').reduce((acc, s) => acc + ((s.cashSale || 0) + (s.chequeSale || 0) + (s.creditSale || 0)), 0);
                     
                     return (
                       <tr key={i} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
