@@ -1,3 +1,11 @@
+export interface UserProfile {
+  id?: number;
+  name: string;
+  email: string;
+  phone?: string;
+  avatar?: string;
+}
+
 export interface Area {
   id?: number;
   name: string;

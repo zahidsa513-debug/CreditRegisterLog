@@ -9,14 +9,57 @@ import {
   CloudUpload,
   Info,
   Target,
-  DollarSign
+  DollarSign,
+  User,
+  LogOut,
+  Camera,
+  Save
 } from 'lucide-react';
 import { translations } from '../translations';
 import { cn } from '../lib/utils';
 import { db } from '../db/db';
 
-const SettingsView = ({ language, theme, setTheme, setLanguage, currency, setCurrency, monthlyTarget, setMonthlyTarget }: any) => {
+const SettingsView = ({ 
+  language, 
+  theme, 
+  setTheme, 
+  setLanguage, 
+  currency, 
+  setCurrency, 
+  monthlyTarget, 
+  setMonthlyTarget,
+  userProfile,
+  setUserProfile,
+  onLogout
+}: any) => {
   const t = translations[language as 'en' | 'bn'];
+  const [isEditing, setIsEditing] = React.useState(false);
+  const [profileForm, setProfileForm] = React.useState({
+    name: userProfile?.name || '',
+    phone: userProfile?.phone || '',
+    avatar: userProfile?.avatar || ''
+  });
+
+  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setProfileForm({ ...profileForm, avatar: reader.result as string });
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const saveProfile = async () => {
+    const profiles = await db.profiles.toArray();
+    if (profiles.length > 0) {
+      const updatedProfile = { ...profiles[0], ...profileForm };
+      await db.profiles.update(profiles[0].id!, profileForm);
+      setUserProfile(updatedProfile);
+      setIsEditing(false);
+    }
+  };
 
   const currencies = [
     { code: 'BDT', symbol: '৳', name: 'Bangladeshi Taka (টাকা)' },
@@ -40,12 +83,92 @@ const SettingsView = ({ language, theme, setTheme, setLanguage, currency, setCur
 
   return (
     <div className="max-w-2xl mx-auto space-y-8 pb-12">
-      <div>
-        <h2 className="text-3xl font-display font-bold tracking-tight">{t.settings}</h2>
-        <p className="text-slate-500 dark:text-slate-400 mt-1 text-sm">System configuration and data management</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-3xl font-display font-bold tracking-tight">{t.settings}</h2>
+          <p className="text-slate-500 dark:text-slate-400 mt-1 text-sm">System configuration and profile management</p>
+        </div>
+        <button 
+          onClick={onLogout}
+          className="p-3 bg-rose-50 text-rose-600 dark:bg-rose-900/30 dark:text-rose-400 rounded-2xl hover:bg-rose-100 transition-colors"
+          title={language === 'en' ? 'Logout' : 'লগআউট'}
+        >
+          <LogOut className="w-5 h-5" />
+        </button>
       </div>
 
       <div className="space-y-6">
+        {/* Profile Card */}
+        <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-8 border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 rounded-full -mr-16 -mt-16 blur-2xl" />
+          
+          <div className="flex flex-col sm:flex-row items-center gap-6 relative z-10">
+            <div className="relative group">
+              <div className="w-24 h-24 rounded-3xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center overflow-hidden border-2 border-indigo-100 dark:border-slate-700">
+                {profileForm.avatar ? (
+                  <img src={profileForm.avatar} className="w-full h-full object-cover" alt="avatar" referrerPolicy="no-referrer" />
+                ) : (
+                  <User className="w-10 h-10 text-slate-300" />
+                )}
+              </div>
+              {isEditing && (
+                <label className="absolute -bottom-2 -right-2 bg-indigo-500 text-white p-2 rounded-xl cursor-pointer shadow-lg active:scale-95 transition-transform">
+                  <Camera className="w-4 h-4" />
+                  <input type="file" className="hidden" accept="image/*" onChange={handleAvatarChange} />
+                </label>
+              )}
+            </div>
+
+            <div className="flex-1 text-center sm:text-left space-y-2">
+              {isEditing ? (
+                <div className="space-y-3">
+                  <input 
+                    type="text" 
+                    value={profileForm.name} 
+                    onChange={e => setProfileForm({...profileForm, name: e.target.value})}
+                    placeholder="Full Name"
+                    className="w-full text-xl font-bold bg-slate-50 dark:bg-slate-800 rounded-xl px-4 py-2 border-none focus:ring-2 focus:ring-indigo-500 outline-none"
+                  />
+                  <input 
+                    type="tel" 
+                    value={profileForm.phone} 
+                    onChange={e => setProfileForm({...profileForm, phone: e.target.value})}
+                    placeholder="Phone Number"
+                    className="w-full text-sm bg-slate-50 dark:bg-slate-800 rounded-xl px-4 py-2 border-none focus:ring-2 focus:ring-indigo-500 outline-none"
+                  />
+                </div>
+              ) : (
+                <>
+                  <h3 className="text-2xl font-display font-bold text-slate-900 dark:text-white truncate max-w-xs">{userProfile?.name}</h3>
+                  <p className="text-slate-500 font-medium flex items-center justify-center sm:justify-start gap-2">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                    {userProfile?.email}
+                  </p>
+                  <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">{userProfile?.phone || 'No phone set'}</p>
+                </>
+              )}
+            </div>
+
+            <div className="shrink-0">
+              {isEditing ? (
+                <button 
+                  onClick={saveProfile}
+                  className="bg-emerald-500 text-white px-6 py-3 rounded-2xl font-bold flex items-center gap-2 shadow-lg shadow-emerald-500/20 active:scale-95 transition-transform"
+                >
+                  <Save className="w-4 h-4" /> Save
+                </button>
+              ) : (
+                <button 
+                  onClick={() => setIsEditing(true)}
+                  className="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 px-6 py-3 rounded-2xl font-bold text-sm active:scale-95 transition-transform"
+                >
+                  Edit Profile
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+
         {/* Preference Section */}
         <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 divide-y dark:divide-slate-800 shadow-sm overflow-hidden">
           {/* Target Setting */}

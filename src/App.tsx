@@ -17,17 +17,20 @@ import {
   DollarSign
 } from 'lucide-react';
 import { translations } from './translations';
-import { Language, Theme } from './types';
+import { Language, Theme, UserProfile } from './types';
 import Dashboard from './components/Dashboard';
 import Areas from './components/Areas';
 import Customers from './components/Customers';
 import SalesEntry from './components/SalesEntry';
 import Reports from './components/Reports';
 import SettingsView from './components/SettingsView';
+import AuthScreen from './components/AuthScreen';
 import { cn } from './lib/utils';
 import { db } from './db/db';
 
 const App = () => {
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [language, setLanguage] = useState<Language>('en');
   const [theme, setTheme] = useState<Theme>('light');
@@ -45,6 +48,19 @@ const App = () => {
   const remaining = Math.max(monthlyTarget - totalDebit, 0);
 
   const t = translations[language];
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      const profiles = await db.profiles.toArray();
+      if (profiles.length > 0) {
+        setIsAuthenticated(true);
+        setUserProfile(profiles[0]);
+      } else {
+        setIsAuthenticated(false);
+      }
+    };
+    checkAuth();
+  }, []);
 
   useEffect(() => {
     // Check local storage for settings
@@ -91,6 +107,20 @@ const App = () => {
     { id: 'settings', icon: Settings, label: t.settings },
   ];
 
+  const handleAuthSuccess = async () => {
+    const profiles = await db.profiles.toArray();
+    if (profiles.length > 0) {
+      setUserProfile(profiles[0]);
+      setIsAuthenticated(true);
+    }
+  };
+
+  const handleLogout = async () => {
+    await db.profiles.clear();
+    setUserProfile(null);
+    setIsAuthenticated(false);
+  };
+
   const renderContent = () => {
     switch (activeTab) {
       case 'dashboard': return <Dashboard language={language} currency={currency} monthlyTarget={monthlyTarget} />;
@@ -98,41 +128,58 @@ const App = () => {
       case 'customers': return <Customers language={language} currency={currency} />;
       case 'sales': return <SalesEntry language={language} theme={theme} currency={currency} />;
       case 'reports': return <Reports language={language} currency={currency} />;
-      case 'settings': return <SettingsView language={language} setTheme={setTheme} setLanguage={setLanguage} theme={theme} currency={currency} setCurrency={setCurrency} monthlyTarget={monthlyTarget} setMonthlyTarget={setMonthlyTarget} />;
+      case 'settings': return (
+        <SettingsView 
+          language={language} 
+          setTheme={setTheme} 
+          setLanguage={setLanguage} 
+          theme={theme} 
+          currency={currency} 
+          setCurrency={setCurrency} 
+          monthlyTarget={monthlyTarget} 
+          setMonthlyTarget={setMonthlyTarget}
+          userProfile={userProfile}
+          setUserProfile={setUserProfile}
+          onLogout={handleLogout}
+        />
+      );
       default: return <Dashboard language={language} currency={currency} monthlyTarget={monthlyTarget} />;
     }
   };
 
-  if (loading) {
+  if (loading || isAuthenticated === null) {
     return (
-      <div className="fixed inset-0 flex flex-col items-center justify-center bg-white dark:bg-gray-900 z-50">
+      <div className="fixed inset-0 flex flex-col items-center justify-center bg-white dark:bg-slate-950 z-50">
         <motion.div
-          initial={{ scale: 0.8, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ duration: 0.5, repeat: Infinity, repeatType: 'reverse' }}
+          animate={{ scale: [1, 1.05, 1] }}
+          transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
           className="mb-8"
         >
-          <div className="w-24 h-24 bg-blue-600 rounded-2xl flex items-center justify-center shadow-xl shadow-blue-200">
-            <TrendingUp className="text-white w-12 h-12" />
+          <div className="w-28 h-28 bg-white dark:bg-white rounded-[2rem] flex items-center justify-center shadow-2xl p-4 ring-1 ring-slate-100 dark:ring-white/20">
+            <img src="/input_file_0.png" alt="Logo" className="w-full h-full object-contain" referrerPolicy="no-referrer" />
           </div>
         </motion.div>
         <motion.h1 
-          className="text-3xl font-bold font-display text-gray-900 dark:text-white"
-          initial={{ y: 20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
+          className="text-4xl font-display font-black tracking-tight text-white"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
         >
-          CrediRegistry
+          Credit <span className="text-indigo-400">Register</span>
         </motion.h1>
-        <motion.p 
-          className="text-gray-500 mt-2"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.5 }}
-        >
-          {language === 'en' ? 'Initializing phone storage...' : 'ফোন স্টোরেজ শুরু হচ্ছে...'}
-        </motion.p>
+        <div className="h-1 w-48 bg-slate-800 rounded-full overflow-hidden mt-6">
+          <motion.div 
+            initial={{ width: 0 }}
+            animate={{ width: "100%" }}
+            transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+            className="h-full bg-indigo-500 rounded-full"
+          />
+        </div>
       </div>
     );
+  }
+
+  if (!isAuthenticated) {
+    return <AuthScreen onAuthSuccess={handleAuthSuccess} language={language} />;
   }
 
   return (
@@ -140,8 +187,8 @@ const App = () => {
       {/* Mobile Header */}
       <header className="lg:hidden flex items-center justify-between p-4 bg-white dark:bg-slate-900 border-b dark:border-slate-800 sticky top-0 z-40">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-indigo-500 rounded-lg flex items-center justify-center">
-            <TrendingUp className="text-white w-5 h-5" />
+          <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center p-1 shadow-md ring-1 ring-white/20 overflow-hidden">
+            <img src="/input_file_0.png" alt="Logo" className="w-full h-full object-contain" referrerPolicy="no-referrer" />
           </div>
           <span className="font-display font-bold text-lg">CrediRegistry</span>
         </div>
@@ -160,15 +207,16 @@ const App = () => {
           isSidebarOpen ? "translate-x-0" : "-translate-x-full"
         )}>
           <div className="p-6 hidden lg:flex items-center gap-3">
-            <div className="shrink-0">
+            <div className="shrink-0 w-10 h-10 bg-white rounded-xl flex items-center justify-center p-1 shadow-lg ring-1 ring-white/20">
               <img 
-                src="https://ais-dev-tqnuv7k6atrmjktjev7pgg-511205091422.asia-southeast1.run.app/artifact/input_file_0.png" 
+                src="/input_file_0.png" 
                 alt="Logo" 
-                className="w-10 h-10 rounded-xl shadow-lg shadow-indigo-500/20 object-cover"
+                className="w-full h-full object-contain"
+                referrerPolicy="no-referrer"
               />
             </div>
             <div>
-              <h1 className="font-display font-bold text-xl tracking-tight leading-tight">CreditReg</h1>
+              <h1 className="font-display font-bold text-xl tracking-tight leading-tight">Credit<span className="text-indigo-400">Reg</span></h1>
               <p className="text-[9px] uppercase tracking-[0.2em] text-slate-500 font-bold">Smart Registry</p>
             </div>
           </div>
@@ -209,12 +257,18 @@ const App = () => {
           </div>
 
           <div className="p-4 border-t border-slate-800 flex items-center gap-3">
-            <div className="w-8 h-8 bg-slate-600 rounded-full flex items-center justify-center text-xs font-bold ring-2 ring-slate-700">RK</div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium truncate">Rahman Khan</p>
-              <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Admin Role</p>
+            <div className="w-8 h-8 rounded-full overflow-hidden bg-indigo-500 flex items-center justify-center text-xs font-bold ring-2 ring-slate-700 shrink-0">
+              {userProfile?.avatar ? (
+                <img src={userProfile.avatar} alt="avatar" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+              ) : (
+                userProfile?.name?.charAt(0) || 'U'
+              )}
             </div>
-            <button className="text-[10px] font-bold px-1.5 py-0.5 bg-slate-700 rounded text-slate-300">EN</button>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium truncate">{userProfile?.name || 'User'}</p>
+              <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider truncate">{userProfile?.email || 'Admin'}</p>
+            </div>
+            <button className="text-[10px] font-bold px-1.5 py-0.5 bg-slate-700 rounded text-slate-300 uppercase shrink-0">{language}</button>
           </div>
         </aside>
 
