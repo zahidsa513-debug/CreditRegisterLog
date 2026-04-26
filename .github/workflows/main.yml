@@ -21,6 +21,29 @@ jobs:
 
       - name: Install Dependencies
         run: npm install
+        - name: Install Dependencies
+  run: |
+    rm -rf node_modules package-lock.json
+    npm cache clean --force
+    npm install
+
+    - name: Checkout Source Code
+  uses: actions/checkout@v4
+
+- name: Set up Node.js
+  uses: actions/setup-node@v4
+  with:
+    node-version: 18
+    cache: 'npm'
+
+- name: Install Dependencies
+  run: |
+    rm -rf node_modules package-lock.json
+    npm cache clean --force
+    npm install
+
+- name: Build Web Project
+  run: npm run build
 
       - name: Build Web Project
         run: npm run build
