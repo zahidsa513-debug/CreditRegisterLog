@@ -48,14 +48,50 @@ const Reports = ({ language, currency, setActiveTab, setEditingSale }: { languag
     return dateMatch && areaMatch && customerMatch;
   });
 
-  const printPDF = () => {
+  const printPDF = async () => {
     const doc = new jsPDF();
-    const title = language === 'en' ? 'Credit Registry - Customer Summary' : 'ক্রেডিট রেজিস্ট্রি - গ্রাহকের সংক্ষিপ্ত বিবরণ';
+    const companySettingsList = await db.settings.toArray();
+    const company = companySettingsList.length > 0 ? companySettingsList[0] : {
+      companyName: 'CREDIT REGISTRY PRO',
+      phone: '',
+      email: '',
+      address: '',
+      website: ''
+    };
+
+    // Header Pad
+    doc.setFillColor(248, 250, 252);
+    doc.rect(0, 0, 210, 40, 'F');
     
-    doc.setFontSize(20);
-    doc.text(title, 14, 22);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(22);
+    doc.setTextColor(79, 70, 229);
+    doc.text(company.companyName.toUpperCase(), 14, 15);
+
+    doc.setTextColor(100, 116, 139);
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    let headerY = 22;
+    if (company.address) {
+      doc.text(company.address, 14, headerY);
+      headerY += 5;
+    }
+    if (company.phone || company.email) {
+      doc.text(`${company.phone ? 'Phone: ' + company.phone : ''} ${company.email ? ' | Email: ' + company.email : ''}`, 14, headerY);
+      headerY += 5;
+    }
+    if (company.website) {
+      doc.text(company.website, 14, headerY);
+    }
+
+    const title = language === 'en' ? 'Customer Credit Summary' : 'কাস্টমার ক্রেডিট সংক্ষিপ্ত বিবরণ';
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(14);
+    doc.setTextColor(0, 0, 0);
+    doc.text(title, 14, 50);
+    
     doc.setFontSize(10);
-    doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 30);
+    doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 56);
 
     const tableData = customers?.map(c => {
       const area = areas?.find(a => a.id === c.areaId);
@@ -69,7 +105,7 @@ const Reports = ({ language, currency, setActiveTab, setEditingSale }: { languag
     });
 
     autoTable(doc, {
-      startY: 35,
+      startY: 62,
       head: [[t.customers, t.areas, t.totalDebit, t.totalCredit, t.balance]],
       body: tableData || [],
       theme: 'grid',
@@ -79,31 +115,81 @@ const Reports = ({ language, currency, setActiveTab, setEditingSale }: { languag
     doc.save(`Credit_Report_${new Date().toISOString().split('T')[0]}.pdf`);
   };
 
-
   const handleEditDailySale = (sale: Sale) => {
-    if (setActiveTab && setEditingSale) {
-      setEditingSale(sale);
-      setActiveTab('sales');
+    const confirmMsg = language === 'en' 
+      ? 'Are you sure you want to edit this entry?' 
+      : 'আপনি কি এই এন্ট্রিটি ইডিট করতে নিশ্চিত?';
+    
+    if (window.confirm(confirmMsg)) {
+      if (setActiveTab && setEditingSale) {
+        setEditingSale(sale);
+        setActiveTab('sales');
+      }
     }
   };
 
   const handleDeleteDailySale = async (id: number) => {
-    if (confirm(language === 'en' ? 'Are you sure you want to delete this entry?' : 'আপনি কি এই এন্ট্রিটি ডিলিট করতে নিশ্চিত?')) {
-      await db.sales.delete(id);
+    const confirmMsg = language === 'en' 
+      ? 'Are you sure you want to delete this entry?' 
+      : 'আপনি কি এই এন্ট্রিটি ডিলিট করতে নিশ্চিত?';
+
+    if (window.confirm(confirmMsg)) {
+      try {
+        await db.sales.delete(id);
+      } catch (error) {
+        console.error("Failed to delete sale:", error);
+      }
     }
   };
 
-  const handlePrintDailySales = () => {
+  const handlePrintDailySales = async () => {
     const list = sales?.filter(s => s.type === 'direct' && (!dateRange.start || new Date(s.date) >= new Date(dateRange.start)) && (!dateRange.end || new Date(s.date) <= new Date(dateRange.end))) || [];
-    
     if (list.length === 0) return;
 
     const doc = new jsPDF();
-    doc.text(language === 'en' ? 'Daily Sales Report' : 'দৈনিক বিক্রির রিপোর্ট', 105, 10, { align: 'center' });
-    doc.text(`${language === 'en' ? 'Date range' : 'তারিখ সীমা'}: ${dateRange.start || 'Start'} - ${dateRange.end || 'End'}`, 105, 20, { align: 'center' });
+    const companySettingsList = await db.settings.toArray();
+    const company = companySettingsList.length > 0 ? companySettingsList[0] : {
+      companyName: 'CREDIT REGISTRY PRO',
+      phone: '',
+      email: '',
+      address: '',
+      website: ''
+    };
+
+    // Header Pad
+    doc.setFillColor(248, 250, 252);
+    doc.rect(0, 0, 210, 40, 'F');
+    
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(22);
+    doc.setTextColor(79, 70, 229);
+    doc.text(company.companyName.toUpperCase(), 14, 15);
+
+    doc.setTextColor(100, 116, 139);
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    let headerY = 22;
+    if (company.address) {
+      doc.text(company.address, 14, headerY);
+      headerY += 5;
+    }
+    if (company.phone || company.email) {
+      doc.text(`${company.phone ? 'Phone: ' + company.phone : ''} ${company.email ? ' | Email: ' + company.email : ''}`, 14, headerY);
+      headerY += 5;
+    }
+    if (company.website) {
+      doc.text(company.website, 14, headerY);
+    }
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(14);
+    doc.setTextColor(0, 0, 0);
+    doc.text(language === 'en' ? 'Daily Sales Report' : 'দৈনিক বিক্রির রিপোর্ট', 105, 50, { align: 'center' });
+    doc.setFontSize(10);
+    doc.text(`${language === 'en' ? 'Date range' : 'তারিখ সীমা'}: ${dateRange.start || 'Start'} - ${dateRange.end || 'End'}`, 105, 56, { align: 'center' });
 
     autoTable(doc, {
-      startY: 30,
+      startY: 65,
       head: [[t.date, t.description, language === 'en' ? 'Invoice' : 'ইনভয়েস', t.cash]],
       body: list.map(s => [
         new Date(s.date).toLocaleDateString(),
@@ -349,8 +435,8 @@ const Reports = ({ language, currency, setActiveTab, setEditingSale }: { languag
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                  {sales?.filter(s => s.type === 'direct' && (!dateRange.start || new Date(s.date) >= new Date(dateRange.start)) && (!dateRange.end || new Date(s.date) <= new Date(dateRange.end))).map((s, i) => (
-                    <tr key={i} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
+                  {sales?.filter(s => s.type === 'direct' && (!dateRange.start || new Date(s.date) >= new Date(dateRange.start)) && (!dateRange.end || new Date(s.date) <= new Date(dateRange.end))).map((s) => (
+                    <tr key={s.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
                       <td className="px-6 py-3.5 text-xs text-slate-500">{new Date(s.date).toLocaleDateString()}</td>
                       <td className="px-6 py-3.5 text-sm font-medium text-slate-900 dark:text-white capitalize">{s.description || 'N/A'}</td>
                       <td className="px-6 py-3.5 text-xs text-slate-500 font-mono">{s.invoiceNumber || 'N/A'}</td>
@@ -358,27 +444,40 @@ const Reports = ({ language, currency, setActiveTab, setEditingSale }: { languag
                         {formatCurrency(s.cashSale, currency)}
                       </td>
                       <td className="px-6 py-3.5">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-3">
                           <button 
-                            onClick={() => handleEditDailySale(s)}
-                            className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded-lg transition-colors"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleEditDailySale(s);
+                            }}
+                            className="p-2 text-indigo-600 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-900/30 dark:hover:bg-indigo-800/30 rounded-lg transition-all shadow-sm active:scale-95"
+                            title={language === 'en' ? 'Edit' : 'এডিট'}
                           >
-                            <Edit2 className="w-3.5 h-3.5" />
+                            <Edit2 className="w-4 h-4" />
                           </button>
                           <button 
-                            onClick={() => handleDeleteDailySale(s.id!)}
-                            className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded-lg transition-colors"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteDailySale(s.id!);
+                            }}
+                            className="p-2 text-rose-600 bg-rose-50 hover:bg-rose-100 dark:bg-rose-900/30 dark:hover:bg-rose-800/30 rounded-lg transition-all shadow-sm active:scale-95"
+                            title={language === 'en' ? 'Delete' : 'ডিলিট'}
                           >
-                            <Trash2 className="w-3.5 h-3.5" />
+                            <Trash2 className="w-4 h-4" />
                           </button>
                         </div>
                       </td>
                     </tr>
                   ))}
-                  {sales?.filter(s => s.type === 'direct').length === 0 && (
+                  {sales?.filter(s => s.type === 'direct' && (!dateRange.start || new Date(s.date) >= new Date(dateRange.start)) && (!dateRange.end || new Date(s.date) <= new Date(dateRange.end))).length === 0 && (
                     <tr>
-                      <td colSpan={5} className="px-6 py-8 text-center text-slate-400 text-xs italic">
-                        {language === 'en' ? 'No daily sales entries' : 'কোনো তথ্য নেই'}
+                      <td colSpan={5} className="px-6 py-12 text-center text-slate-400 text-xs italic">
+                        <div className="flex flex-col items-center justify-center gap-2">
+                          <div className="w-10 h-10 bg-slate-50 dark:bg-slate-800 rounded-full flex items-center justify-center">
+                            <TableIcon className="w-5 h-5 text-slate-300" />
+                          </div>
+                          {language === 'en' ? 'No daily sales entries found for this period' : 'এই সময়ের জন্য কোনো দৈনিক বিক্রির তথ্য পাওয়া যায়নি'}
+                        </div>
                       </td>
                     </tr>
                   )}

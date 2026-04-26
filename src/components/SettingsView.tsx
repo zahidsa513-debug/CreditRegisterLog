@@ -20,12 +20,13 @@ import {
   Plus,
   Trash2,
   CheckCircle2,
-  X
+  X,
+  Phone
 } from 'lucide-react';
 import { translations } from '../translations';
 import { cn } from '../lib/utils';
 import { db } from '../db/db';
-import { Area } from '../types';
+import { Area, CompanySettings } from '../types';
 
 const SettingsView = ({ 
   language, 
@@ -42,8 +43,12 @@ const SettingsView = ({
 }: any) => {
   const t = translations[language as 'en' | 'bn'];
   const areas = useLiveQuery(() => db.areas.toArray());
+  const companySettings = useLiveQuery(() => db.settings.toArray());
+  
   const [isEditing, setIsEditing] = React.useState(false);
   const [isAddingArea, setIsAddingArea] = React.useState(false);
+  const [isEditingCompany, setIsEditingCompany] = React.useState(false);
+
   const [newArea, setNewArea] = React.useState({ name: '', target: 1000, color: '#6366f1' });
   const [profileForm, setProfileForm] = React.useState({
     name: userProfile?.name || '',
@@ -54,6 +59,20 @@ const SettingsView = ({
     monthlyTarget: userProfile?.monthlyTarget || 100000
   });
 
+  const [companyForm, setCompanyForm] = React.useState<CompanySettings>({
+    companyName: '',
+    email: '',
+    phone: '',
+    address: '',
+    website: ''
+  });
+
+  React.useEffect(() => {
+    if (companySettings && companySettings.length > 0) {
+      setCompanyForm(companySettings[0]);
+    }
+  }, [companySettings]);
+
   const handleAddArea = async (e: React.FormEvent) => {
     e.preventDefault();
     if (newArea.name) {
@@ -61,6 +80,16 @@ const SettingsView = ({
       setNewArea({ name: '', target: 1000, color: '#6366f1' });
       setIsAddingArea(false);
     }
+  };
+
+  const saveCompanySettings = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (companySettings && companySettings.length > 0) {
+      await db.settings.update(companySettings[0].id!, companyForm);
+    } else {
+      await db.settings.add(companyForm);
+    }
+    setIsEditingCompany(false);
   };
 
   const deleteArea = async (id: number) => {
@@ -127,6 +156,100 @@ const SettingsView = ({
       </div>
 
       <div className="space-y-6">
+        {/* Company Settings Section */}
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+          <div className="p-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="p-2.5 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-xl">
+                <Database className="w-5 h-5" />
+              </div>
+              <div>
+                <p className="font-bold text-sm tracking-tight">{(t as any).companySettings}</p>
+                <p className="text-xs text-slate-500">{(t as any).companySettingsDesc}</p>
+              </div>
+            </div>
+            <button 
+              onClick={() => setIsEditingCompany(!isEditingCompany)}
+              className="p-2 bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400 rounded-lg hover:bg-indigo-200 transition-colors"
+            >
+              {isEditingCompany ? <X className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+            </button>
+          </div>
+          
+          {isEditingCompany ? (
+            <form onSubmit={saveCompanySettings} className="p-6 space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">{(t as any).companyName}</label>
+                  <input 
+                    type="text" 
+                    value={companyForm.companyName}
+                    onChange={e => setCompanyForm({...companyForm, companyName: e.target.value})}
+                    className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 text-sm font-bold"
+                    required
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">{(t as any).phone}</label>
+                  <input 
+                    type="tel" 
+                    value={companyForm.phone}
+                    onChange={e => setCompanyForm({...companyForm, phone: e.target.value})}
+                    className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 text-sm font-bold"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">Email</label>
+                  <input 
+                    type="email" 
+                    value={companyForm.email}
+                    onChange={e => setCompanyForm({...companyForm, email: e.target.value})}
+                    className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 text-sm font-bold"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">{(t as any).website}</label>
+                  <input 
+                    type="text" 
+                    value={companyForm.website}
+                    onChange={e => setCompanyForm({...companyForm, website: e.target.value})}
+                    className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 text-sm font-bold"
+                  />
+                </div>
+                <div className="md:col-span-2 space-y-1">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">Address</label>
+                  <textarea 
+                    value={companyForm.address}
+                    onChange={e => setCompanyForm({...companyForm, address: e.target.value})}
+                    className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 text-sm font-bold min-h-[80px]"
+                  />
+                </div>
+              </div>
+              <button 
+                type="submit"
+                className="w-full py-3 bg-indigo-600 text-white rounded-xl font-bold shadow-lg active:scale-95 transition-transform"
+              >
+                {t.save}
+              </button>
+            </form>
+          ) : (
+            <div className="p-6">
+              {companySettings && companySettings.length > 0 ? (
+                <div className="space-y-3">
+                  <p className="text-lg font-bold text-indigo-600">{companySettings[0].companyName}</p>
+                  <div className="grid grid-cols-2 gap-4">
+                    <p className="text-xs text-slate-500 flex items-center gap-2"><Phone className="w-3 h-3" /> {companySettings[0].phone}</p>
+                    <p className="text-xs text-slate-500 flex items-center gap-2"><Mail className="w-3 h-3" /> {companySettings[0].email}</p>
+                    <p className="text-xs text-slate-500 flex items-center gap-2"><MapPin className="w-3 h-3" /> {companySettings[0].address}</p>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-xs text-slate-400 italic">No company settings found. Click + to add.</p>
+              )}
+            </div>
+          )}
+        </div>
+
         {/* Profile Card */}
         <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-8 border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden">
           <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 rounded-full -mr-16 -mt-16 blur-2xl" />

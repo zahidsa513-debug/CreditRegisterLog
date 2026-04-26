@@ -29,6 +29,7 @@ export interface Customer {
   address?: string;
   location?: { lat: number; lng: number };
   licensePhoto?: string;
+  shopImage?: string;
   documents?: string[];
 }
 
@@ -46,6 +47,16 @@ export interface Sale {
   receiptNumber?: string;
   invoiceNumber?: string;
   billNumber?: string;
+}
+
+export interface CompanySettings {
+  id?: number;
+  companyName: string;
+  email: string;
+  phone: string;
+  address: string;
+  logo?: string;
+  website?: string;
 }
 
 export type Language = 'en' | 'bn';

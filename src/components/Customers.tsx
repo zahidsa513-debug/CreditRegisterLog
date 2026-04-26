@@ -32,6 +32,7 @@ const Customers = ({ language, currency }: { language: 'en' | 'bn', currency: st
     address: '',
     location: undefined,
     licensePhoto: '',
+    shopImage: '',
     documents: []
   });
 
@@ -70,6 +71,7 @@ const Customers = ({ language, currency }: { language: 'en' | 'bn', currency: st
         address: '',
         location: undefined,
         licensePhoto: '',
+        shopImage: '',
         documents: []
       });
       setIsModalOpen(false);
@@ -97,13 +99,15 @@ const Customers = ({ language, currency }: { language: 'en' | 'bn', currency: st
     );
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>, field: 'licensePhoto' | 'documents') => {
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>, field: 'licensePhoto' | 'shopImage' | 'documents') => {
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
         if (field === 'licensePhoto') {
           setNewCustomer({ ...newCustomer, licensePhoto: reader.result as string });
+        } else if (field === 'shopImage') {
+          setNewCustomer({ ...newCustomer, shopImage: reader.result as string });
         } else {
           setNewCustomer({ 
             ...newCustomer, 
@@ -219,9 +223,17 @@ const Customers = ({ language, currency }: { language: 'en' | 'bn', currency: st
                   <tr key={customer.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/30 transition-colors cursor-pointer group">
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-lg flex items-center justify-center font-bold font-display text-sm">
-                          {customer.name.charAt(0)}
-                        </div>
+                        {customer.shopImage ? (
+                          <img 
+                            src={customer.shopImage} 
+                            alt={customer.shopName} 
+                            className="w-9 h-9 rounded-lg object-cover border border-slate-100 dark:border-slate-800"
+                          />
+                        ) : (
+                          <div className="w-9 h-9 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-lg flex items-center justify-center font-bold font-display text-sm">
+                            {customer.name.charAt(0)}
+                          </div>
+                        )}
                         <div>
                           <p className="font-bold text-slate-900 dark:text-white leading-tight">{customer.name} <span className="text-[10px] text-slate-400 font-normal">({customer.shopName || 'No Shop'})</span></p>
                           <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5 flex items-center">
@@ -342,6 +354,26 @@ const Customers = ({ language, currency }: { language: 'en' | 'bn', currency: st
                       className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 rounded-xl border-none focus:ring-2 focus:ring-indigo-500 outline-none text-sm min-h-[100px]"
                       placeholder="Street address, City..."
                     />
+                  </div>
+
+                  <div className="space-y-2 pb-2">
+                    <label className="text-xs font-bold text-slate-400 pl-1 uppercase tracking-tight">{language === 'en' ? 'Shop Front Picture' : 'দোকানের সামনের ছবি'}</label>
+                    <label className="flex flex-col items-center justify-center p-6 bg-white dark:bg-slate-800 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-xl hover:border-indigo-400 transition-all cursor-pointer group relative overflow-hidden">
+                      {newCustomer.shopImage ? (
+                        <>
+                          <img src={newCustomer.shopImage} className="absolute inset-0 w-full h-full object-cover" alt="shop front" />
+                          <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                            <Camera className="w-8 h-8 text-white" />
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <Camera className="w-8 h-8 text-slate-300 group-hover:text-indigo-500 mb-2 transition-colors" />
+                          <span className="text-xs font-bold text-slate-400 group-hover:text-indigo-500 transition-colors uppercase tracking-widest">{language === 'en' ? 'Capture/Upload Shop' : 'দোকানের ছবি তুলুন/আপলোড দিন'}</span>
+                        </>
+                      )}
+                      <input type="file" className="hidden" accept="image/*" capture="environment" onChange={e => handleFileUpload(e, 'shopImage')} />
+                    </label>
                   </div>
 
                   <button 

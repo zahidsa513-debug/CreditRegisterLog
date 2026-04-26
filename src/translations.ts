@@ -48,6 +48,14 @@ export const translations = {
     authorizedSignature: 'Authorized Signature',
     aboutDeveloper: 'About Developer',
     developerDetails: 'Application Developer Details',
+    customerProfile: 'Customer Profile',
+    viewDetails: 'View Details',
+    editCustomer: 'Edit Customer',
+    deleteCustomer: 'Delete Customer',
+    companySettings: 'Company Pad Settings',
+    companySettingsDesc: 'Setup your company details for reports & receipts',
+    companyName: 'Company Name',
+    website: 'Website',
   },
   bn: {
     dashboard: 'ড্যাশবোর্ড',
@@ -98,5 +106,13 @@ export const translations = {
     authorizedSignature: 'অনুমোদিত স্বাক্ষর',
     aboutDeveloper: 'ডেভেলপার সম্পর্কে',
     developerDetails: 'অ্যাপ্লিকেশন ডেভেলপার এর বিস্তারিত',
+    customerProfile: 'কাস্টমার প্রোফাইল',
+    viewDetails: 'বিস্তারিত দেখুন',
+    editCustomer: 'কাস্টমার এডিট',
+    deleteCustomer: 'কাস্টমার ডিলিট',
+    companySettings: 'কোম্পানি প্যাড সেটিংস',
+    companySettingsDesc: 'রিপোর্ট ও রিসিপ্টের জন্য কোম্পানির তথ্য সেটআপ করুন',
+    companyName: 'কোম্পানির নাম',
+    website: 'ওয়েবসাইট',
   }
 };

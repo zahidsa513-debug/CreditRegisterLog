@@ -8,6 +8,7 @@ import {
   PlusCircle, 
   FileText, 
   Settings, 
+  User,
   Menu, 
   X, 
   Sun, 
@@ -21,6 +22,7 @@ import { Language, Theme, UserProfile } from './types';
 import Dashboard from './components/Dashboard';
 import Areas from './components/Areas';
 import Customers from './components/Customers';
+import CustomerProfile from './components/CustomerProfile';
 import SalesEntry from './components/SalesEntry';
 import Reports from './components/Reports';
 import SettingsView from './components/SettingsView';
@@ -103,6 +105,7 @@ const App = () => {
     { id: 'dashboard', icon: LayoutDashboard, label: t.dashboard },
     { id: 'areas', icon: MapPin, label: t.areas },
     { id: 'customers', icon: Users, label: t.customers },
+    { id: 'customerProfile', icon: User, label: t.customerProfile },
     { id: 'sales', icon: PlusCircle, label: t.salesEntry },
     { id: 'reports', icon: FileText, label: t.reports },
     { id: 'settings', icon: Settings, label: t.settings },
@@ -127,6 +130,7 @@ const App = () => {
       case 'dashboard': return <Dashboard language={language} currency={currency} monthlyTarget={monthlyTarget} setActiveTab={setActiveTab} />;
       case 'areas': return <Areas language={language} currency={currency} />;
       case 'customers': return <Customers language={language} currency={currency} />;
+      case 'customerProfile': return <CustomerProfile language={language} currency={currency} />;
       case 'sales': return <SalesEntry language={language} theme={theme} currency={currency} editingSale={editingSale} setEditingSale={setEditingSale} />;
       case 'reports': return <Reports language={language} currency={currency} setActiveTab={setActiveTab} setEditingSale={setEditingSale} />;
       case 'settings': return (

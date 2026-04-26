@@ -14,7 +14,8 @@ import {
   CheckCircle2,
   Hash,
   Printer,
-  TrendingUp
+  TrendingUp,
+  Edit2
 } from 'lucide-react';
 import { db } from '../db/db';
 import { translations } from '../translations';
@@ -84,8 +85,16 @@ const SalesEntry = ({ language, theme, currency, editingSale, setEditingSale }: 
   };
 
   const handleDelete = async (id: number) => {
-    if (confirm(language === 'en' ? 'Are you sure you want to delete this entry?' : 'আপনি কি এই এন্ট্রিটি ডিলিট করতে নিশ্চিত?')) {
-      await db.sales.delete(id);
+    const confirmMsg = language === 'en' 
+      ? 'Are you sure you want to delete this entry?' 
+      : 'আপনি কি এই এন্ট্রিটি ডিলিট করতে নিশ্চিত?';
+
+    if (window.confirm(confirmMsg)) {
+      try {
+        await db.sales.delete(id);
+      } catch (error) {
+        console.error("Failed to delete sale:", error);
+      }
     }
   };
 
@@ -106,28 +115,54 @@ const SalesEntry = ({ language, theme, currency, editingSale, setEditingSale }: 
     return str;
   };
 
-  const generateReceipt = (sale: Sale, customer: any, prevBalance: number) => {
+  const generateReceipt = async (sale: Sale, customer: any, prevBalance: number) => {
     const doc = new jsPDF({
       orientation: 'landscape',
       unit: 'mm',
       format: [210, 148] // A5 Landscape
     });
 
+    const companySettingsList = await db.settings.toArray();
+    const company = companySettingsList.length > 0 ? companySettingsList[0] : {
+      companyName: 'CREDIT REGISTRY PRO',
+      phone: '',
+      email: '',
+      address: '',
+      website: ''
+    };
+
     const totalPaid = sale.cashSale + sale.chequeSale + sale.creditSale;
     const remainingBalance = prevBalance - totalPaid;
 
-    // Header
+    // Header Pad
     doc.setFillColor(248, 250, 252);
-    doc.rect(0, 0, 210, 30, 'F');
+    doc.rect(0, 0, 210, 35, 'F');
     
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(24);
+    doc.setFontSize(20);
     doc.setTextColor(79, 70, 229);
-    doc.text('MONEY RECEIPT', 105, 20, { align: 'center' });
+    doc.text(company.companyName.toUpperCase(), 15, 15);
 
     doc.setTextColor(100, 116, 139);
-    doc.setFontSize(10);
-    doc.text('CREDIT REGISTRY PRO', 200, 10, { align: 'right' });
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'normal');
+    let headerY = 22;
+    if (company.address) {
+      doc.text(company.address, 15, headerY);
+      headerY += 4;
+    }
+    if (company.phone || company.email) {
+      doc.text(`${company.phone ? 'Phone: ' + company.phone : ''} ${company.email ? ' | Email: ' + company.email : ''}`, 15, headerY);
+      headerY += 4;
+    }
+    if (company.website) {
+      doc.text(company.website, 15, headerY);
+    }
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(18);
+    doc.setTextColor(148, 163, 184);
+    doc.text('MONEY RECEIPT', 200, 20, { align: 'right' });
 
     // Main Info
     doc.setTextColor(0, 0, 0);
@@ -226,7 +261,7 @@ const SalesEntry = ({ language, theme, currency, editingSale, setEditingSale }: 
     }
 
     if (formData.type === 'payment' && customer && !editingId) {
-      generateReceipt(saleData, customer, prevBalance);
+      await generateReceipt(saleData, customer, prevBalance);
     }
 
     setIsSuccess(true);
@@ -526,14 +561,22 @@ const SalesEntry = ({ language, theme, currency, editingSale, setEditingSale }: 
                   <td className="px-6 py-3.5">
                     <div className="flex items-center gap-2">
                       <button 
-                        onClick={() => handleEdit(s)}
-                        className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded-lg transition-colors"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleEdit(s);
+                        }}
+                        className="p-1.5 text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded-lg transition-colors"
+                        title={language === 'en' ? 'Edit' : 'এডিট'}
                       >
-                        <Plus className="w-4 h-4 rotate-45" />
+                        <Edit2 className="w-4 h-4" />
                       </button>
                       <button 
-                        onClick={() => handleDelete(s.id!)}
-                        className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded-lg transition-colors"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDelete(s.id!);
+                        }}
+                        className="p-1.5 text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded-lg transition-colors"
+                        title={language === 'en' ? 'Delete' : 'ডিলিট'}
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
