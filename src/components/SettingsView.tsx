@@ -1,5 +1,6 @@
 import React from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
+import { motion } from 'motion/react';
 import { 
   Sun, 
   Moon, 
@@ -8,6 +9,7 @@ import {
   Database, 
   Smartphone,
   CloudUpload,
+  CloudDownload,
   Info,
   Target,
   DollarSign,
@@ -21,12 +23,15 @@ import {
   Trash2,
   CheckCircle2,
   X,
-  Phone
+  Phone,
+  RefreshCw,
+  Cloud
 } from 'lucide-react';
 import { translations } from '../translations';
 import { cn } from '../lib/utils';
 import { db } from '../db/db';
 import { Area, CompanySettings } from '../types';
+import { syncToCloud, restoreFromCloud } from '../lib/sync';
 
 const SettingsView = ({ 
   language, 
@@ -48,6 +53,9 @@ const SettingsView = ({
   const [isEditing, setIsEditing] = React.useState(false);
   const [isAddingArea, setIsAddingArea] = React.useState(false);
   const [isEditingCompany, setIsEditingCompany] = React.useState(false);
+  const [isSyncing, setIsSyncing] = React.useState(false);
+  const [isRestoring, setIsRestoring] = React.useState(false);
+  const [syncStatus, setSyncStatus] = React.useState<{msg: string, type: 'success' | 'error' | null}>({msg: '', type: null});
 
   const [newArea, setNewArea] = React.useState({ name: '', target: 1000, color: '#6366f1' });
   const [profileForm, setProfileForm] = React.useState({
@@ -58,6 +66,49 @@ const SettingsView = ({
     location: userProfile?.location || '',
     monthlyTarget: userProfile?.monthlyTarget || 100000
   });
+
+  const handleCloudBackup = async () => {
+    setIsSyncing(true);
+    setSyncStatus({msg: '', type: null});
+    try {
+      await syncToCloud();
+      setSyncStatus({
+        msg: language === 'en' ? 'Backup completed successfully!' : 'ব্যাকআপ সফলভাবে সম্পন্ন হয়েছে!',
+        type: 'success'
+      });
+    } catch (error) {
+      setSyncStatus({
+        msg: language === 'en' ? 'Backup failed. Please try again.' : 'ব্যাকআপ ব্যর্থ হয়েছে। আবার চেষ্টা করুন।',
+        type: 'error'
+      });
+    } finally {
+      setIsSyncing(false);
+      setTimeout(() => setSyncStatus({msg: '', type: null}), 5000);
+    }
+  };
+
+  const handleCloudRestore = async () => {
+    if (!confirm(language === 'en' ? 'Warning: This will overwrite your current local data. Continue?' : 'সতর্কতা: এটি আপনার বর্তমান লোকাল ডাটা পরিবর্তন করে ফেলবে। এগিয়ে যাবেন?')) return;
+    
+    setIsRestoring(true);
+    setSyncStatus({msg: '', type: null});
+    try {
+      await restoreFromCloud();
+      setSyncStatus({
+        msg: language === 'en' ? 'Data restored successfully! Page will reload.' : 'ডাটা সফলভাবে রিস্টোর হয়েছে! পেজ রিলোড হচ্ছে।',
+        type: 'success'
+      });
+      setTimeout(() => window.location.reload(), 2000);
+    } catch (error) {
+      setSyncStatus({
+        msg: language === 'en' ? 'Restore failed. Please try again.' : 'রিস্টোর ব্যর্থ হয়েছে। আবার চেষ্টা করুন।',
+        type: 'error'
+      });
+    } finally {
+      setIsRestoring(false);
+      setTimeout(() => setSyncStatus({msg: '', type: null}), 5000);
+    }
+  };
 
   const [companyForm, setCompanyForm] = React.useState<CompanySettings>({
     companyName: '',
@@ -541,17 +592,49 @@ const SettingsView = ({
             </div>
           </div>
 
-          <div className="p-5 flex items-center justify-between group cursor-pointer hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
-            <div className="flex items-center gap-4">
-              <div className="p-2.5 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 rounded-xl">
-                <CloudUpload className="w-5 h-5" />
+          <div className="p-5 space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="p-2.5 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 rounded-xl">
+                  <CloudUpload className="w-5 h-5" />
+                </div>
+                <div>
+                  <p className="font-bold text-sm tracking-tight">Cloud Backup</p>
+                  <p className="text-xs text-slate-500">Securely sync data to Google Cloud</p>
+                </div>
               </div>
-              <div>
-                <p className="font-bold text-sm tracking-tight">Cloud Backup</p>
-                <p className="text-xs text-slate-500">Auto-sync is currently active</p>
+              <div className="flex gap-2">
+                <button 
+                  onClick={handleCloudRestore}
+                  disabled={isRestoring || isSyncing}
+                  className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 rounded-lg text-[10px] font-bold uppercase tracking-widest text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all disabled:opacity-50 flex items-center gap-2"
+                >
+                  {isRestoring ? <RefreshCw className="w-3 h-3 animate-spin" /> : <CloudDownload className="w-3 h-3" />}
+                  Restore
+                </button>
+                <button 
+                  onClick={handleCloudBackup}
+                  disabled={isSyncing || isRestoring}
+                  className="px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-[10px] font-bold uppercase tracking-widest hover:bg-indigo-700 transition-all shadow-sm active:scale-95 disabled:opacity-50 flex items-center gap-2"
+                >
+                  {isSyncing ? <RefreshCw className="w-3 h-3 animate-spin" /> : <CloudUpload className="w-3 h-3" />}
+                  Backup
+                </button>
               </div>
             </div>
-            <button className="px-3 py-1 bg-slate-100 dark:bg-slate-800 rounded-lg text-[10px] font-bold uppercase tracking-widest text-slate-600 active:scale-95 transition-transform">Configure</button>
+
+            {syncStatus.msg && (
+              <motion.div 
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                className={cn(
+                  "px-4 py-2 rounded-xl text-xs font-bold text-center",
+                  syncStatus.type === 'success' ? "bg-emerald-50 text-emerald-600" : "bg-rose-50 text-rose-600"
+                )}
+              >
+                {syncStatus.msg}
+              </motion.div>
+            )}
           </div>
 
           <div className="p-5 bg-rose-50/30 dark:bg-rose-950/20 flex items-center justify-between">
@@ -583,7 +666,7 @@ const SettingsView = ({
             <h4 className="text-2xl font-display font-bold">CreditReg Pro v1.2</h4>
             <p className="text-slate-400 text-sm mt-2 leading-relaxed max-w-lg">
               Encryption active. Local storage isolated via IndexedDB. 
-              Regularly backup via Reports to ensure data integrity.
+              Backup your data to Google Cloud to prevent data loss.
             </p>
             <div className="mt-8 grid grid-cols-2 gap-4">
               <div className="p-4 bg-white/5 rounded-xl border border-white/10 backdrop-blur-md">

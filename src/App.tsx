@@ -29,11 +29,10 @@ import SettingsView from './components/SettingsView';
 import AuthScreen from './components/AuthScreen';
 import { cn } from './lib/utils';
 import { db } from './db/db';
+import { useAuth } from './hooks/useAuth';
 
 const App = () => {
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { user, profile: firebaseProfile, loading: authLoading, logout: firebaseLogout } = useAuth();
   const [language, setLanguage] = useState<Language>('en');
   const [theme, setTheme] = useState<Theme>('light');
   const [monthlyTarget, setMonthlyTarget] = useState<number>(50000);
@@ -51,19 +50,6 @@ const App = () => {
   const remaining = Math.max(monthlyTarget - totalDebit, 0);
 
   const t = translations[language];
-
-  useEffect(() => {
-    const checkAuth = async () => {
-      const profiles = await db.profiles.toArray();
-      if (profiles.length > 0) {
-        setIsAuthenticated(true);
-        setUserProfile(profiles[0]);
-      } else {
-        setIsAuthenticated(false);
-      }
-    };
-    checkAuth();
-  }, []);
 
   useEffect(() => {
     // Check local storage for settings
@@ -87,7 +73,6 @@ const App = () => {
         ]);
         console.log('Seeded initial areas');
       }
-      setLoading(false);
     };
 
     seedDB();
@@ -111,18 +96,8 @@ const App = () => {
     { id: 'settings', icon: Settings, label: t.settings },
   ];
 
-  const handleAuthSuccess = async () => {
-    const profiles = await db.profiles.toArray();
-    if (profiles.length > 0) {
-      setUserProfile(profiles[0]);
-      setIsAuthenticated(true);
-    }
-  };
-
   const handleLogout = async () => {
-    await db.profiles.clear();
-    setUserProfile(null);
-    setIsAuthenticated(false);
+    await firebaseLogout();
   };
 
   const renderContent = () => {
@@ -143,8 +118,8 @@ const App = () => {
           setCurrency={setCurrency} 
           monthlyTarget={monthlyTarget} 
           setMonthlyTarget={setMonthlyTarget}
-          userProfile={userProfile}
-          setUserProfile={setUserProfile}
+          userProfile={firebaseProfile as any}
+          setUserProfile={() => {}} // Firebase profile is managed via hook
           onLogout={handleLogout}
         />
       );
@@ -152,7 +127,7 @@ const App = () => {
     }
   };
 
-  if (loading || isAuthenticated === null) {
+  if (authLoading) {
     return (
       <div className="fixed inset-0 flex flex-col items-center justify-center bg-white dark:bg-slate-950 z-50">
         <motion.div
@@ -184,8 +159,8 @@ const App = () => {
     );
   }
 
-  if (!isAuthenticated) {
-    return <AuthScreen onAuthSuccess={handleAuthSuccess} language={language} />;
+  if (!user) {
+    return <AuthScreen onAuthSuccess={() => {}} language={language} />;
   }
 
   return (
@@ -261,15 +236,15 @@ const App = () => {
 
           <div className="p-4 border-t border-slate-800 flex items-center gap-3">
             <div className="w-8 h-8 rounded-full overflow-hidden bg-indigo-500 flex items-center justify-center text-xs font-bold ring-2 ring-slate-700 shrink-0">
-              {userProfile?.avatar ? (
-                <img src={userProfile.avatar} alt="avatar" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+              {firebaseProfile?.avatar ? (
+                <img src={firebaseProfile.avatar} alt="avatar" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
               ) : (
-                userProfile?.name?.charAt(0) || 'U'
+                firebaseProfile?.name?.charAt(0) || 'U'
               )}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium truncate">{userProfile?.name || 'User'}</p>
-              <p className="text-[10px] text-indigo-400 uppercase font-bold tracking-wider truncate leading-none mb-0.5">{userProfile?.designation || (userProfile?.email || 'Admin')}</p>
+              <p className="text-sm font-medium truncate">{firebaseProfile?.name || 'User'}</p>
+              <p className="text-[10px] text-indigo-400 uppercase font-bold tracking-wider truncate leading-none mb-0.5">{firebaseProfile?.designation || (firebaseProfile?.email || 'Admin')}</p>
             </div>
             <button className="text-[10px] font-bold px-1.5 py-0.5 bg-slate-700 rounded text-slate-300 uppercase shrink-0">{language}</button>
           </div>

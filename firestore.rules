@@ -1,0 +1,115 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // 0. Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- Helpers ---
+    function isSignedIn() {
+      return request.auth != null && request.auth.token.email_verified == true;
+    }
+    
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+    
+    function isResourceOwner() {
+      return isSignedIn() && resource.data.userId == request.auth.uid;
+    }
+    
+    function incoming() {
+      return request.resource.data;
+    }
+    
+    function existing() {
+      return resource.data;
+    }
+    
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isValidTimestamp(val) {
+      return val is timestamp || val is string; // Allow ISO string or Timestamp
+    }
+
+    // --- Entity Validations ---
+
+    function isValidArea(data) {
+      return data.keys().hasAll(['name', 'target', 'color', 'userId']) 
+        && data.name is string && data.name.size() > 0 && data.name.size() <= 100
+        && data.target is number && data.target >= 0
+        && data.color is string && data.color.size() <= 20
+        && data.userId == request.auth.uid;
+    }
+
+    function isValidCustomer(data) {
+      return data.keys().hasAll(['name', 'phone', 'areaId', 'userId'])
+        && data.name is string && data.name.size() > 0 && data.name.size() <= 100
+        && data.phone is string && data.phone.size() >= 5 && data.phone.size() <= 20
+        && data.areaId is string && data.userId == request.auth.uid;
+    }
+
+    function isValidSale(data) {
+      return data.keys().hasAll(['date', 'type', 'userId'])
+        && isValidTimestamp(data.date)
+        && data.type in ['sale', 'payment', 'direct']
+        && (data.keys().hasAny(['cashSale']) ? data.cashSale is number : true)
+        && (data.keys().hasAny(['chequeSale']) ? data.chequeSale is number : true)
+        && (data.keys().hasAny(['creditSale']) ? data.creditSale is number : true)
+        && data.userId == request.auth.uid;
+    }
+
+    function isValidSettings(data) {
+      return data.keys().hasAll(['companyName', 'email', 'userId'])
+        && data.companyName is string && data.companyName.size() > 0
+        && data.email is string && data.userId == request.auth.uid;
+    }
+
+    // --- Match Blocks ---
+
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      allow create, update: if isOwner(userId) && incoming().email == request.auth.token.email;
+    }
+
+    match /areas/{areaId} {
+      allow get: if isSignedIn() && isResourceOwner();
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && isValidId(areaId) && isValidArea(incoming());
+      allow update: if isSignedIn() && isResourceOwner() && isValidArea(incoming())
+        && incoming().userId == existing().userId;
+      allow delete: if isSignedIn() && isResourceOwner();
+    }
+
+    match /customers/{customerId} {
+      allow get: if isSignedIn() && isResourceOwner();
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && isValidId(customerId) && isValidCustomer(incoming());
+      allow update: if isSignedIn() && isResourceOwner() && isValidCustomer(incoming())
+        && incoming().userId == existing().userId;
+      allow delete: if isSignedIn() && isResourceOwner();
+    }
+
+    match /sales/{saleId} {
+      allow get: if isSignedIn() && isResourceOwner();
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && isValidId(saleId) && isValidSale(incoming());
+      allow update: if isSignedIn() && isResourceOwner() && isValidSale(incoming())
+        && incoming().userId == existing().userId;
+      allow delete: if isSignedIn() && isResourceOwner();
+    }
+
+    match /settings/{settingId} {
+      allow get: if isSignedIn() && isResourceOwner();
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && isValidId(settingId) && isValidSettings(incoming());
+      allow update: if isSignedIn() && isResourceOwner() && isValidSettings(incoming())
+        && incoming().userId == existing().userId;
+      allow delete: if isSignedIn() && isResourceOwner();
+    }
+  }
+}

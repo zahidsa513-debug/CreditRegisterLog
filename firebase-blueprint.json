@@ -1,0 +1,110 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "User Profile",
+      "description": "User account information",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "phone": { "type": "string" },
+        "avatar": { "type": "string" },
+        "designation": { "type": "string" },
+        "location": { "type": "string" },
+        "monthlyTarget": { "type": "number" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "email"]
+    },
+    "Area": {
+      "title": "Area",
+      "description": "Sales area or zone",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "target": { "type": "number" },
+        "color": { "type": "string" },
+        "userId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "target", "color", "userId"]
+    },
+    "Customer": {
+      "title": "Customer",
+      "description": "Customer details",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "phone": { "type": "string" },
+        "areaId": { "type": "string" },
+        "debit": { "type": "number" },
+        "credit": { "type": "number" },
+        "ownerName": { "type": "string" },
+        "shopName": { "type": "string" },
+        "email": { "type": "string" },
+        "address": { "type": "string" },
+        "userId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "phone", "areaId", "userId"]
+    },
+    "Sale": {
+      "title": "Sale",
+      "description": "Sales or payment transaction",
+      "type": "object",
+      "properties": {
+        "date": { "type": "string", "format": "date-time" },
+        "customerId": { "type": "string" },
+        "description": { "type": "string" },
+        "cashSale": { "type": "number" },
+        "chequeSale": { "type": "number" },
+        "creditSale": { "type": "number" },
+        "totalAmount": { "type": "number" },
+        "type": { "enum": ["sale", "payment", "direct"] },
+        "receiptNumber": { "type": "string" },
+        "invoiceNumber": { "type": "string" },
+        "billNumber": { "type": "string" },
+        "userId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["date", "type", "userId"]
+    },
+    "CompanySettings": {
+      "title": "Company Settings",
+      "description": "Global company settings",
+      "type": "object",
+      "properties": {
+        "companyName": { "type": "string" },
+        "email": { "type": "string" },
+        "phone": { "type": "string" },
+        "address": { "type": "string" },
+        "logo": { "type": "string" },
+        "website": { "type": "string" },
+        "userId": { "type": "string" }
+      },
+      "required": ["companyName", "email", "userId"]
+    }
+  },
+  "firestore": {
+    "users/{userId}": {
+      "schema": "UserProfile",
+      "description": "User profile document"
+    },
+    "areas": {
+      "schema": "Area",
+      "description": "Collection of areas"
+    },
+    "customers": {
+      "schema": "Customer",
+      "description": "Collection of customers"
+    },
+    "sales": {
+      "schema": "Sale",
+      "description": "Collection of sales and payments"
+    },
+    "settings": {
+      "schema": "CompanySettings",
+      "description": "Global settings per user"
+    }
+  }
+}
