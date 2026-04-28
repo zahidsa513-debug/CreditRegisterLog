@@ -27,3 +27,11 @@ jobs:
 
     - name: Lint
       run: npm run lint
+- name: Create Release
+        uses: softprops/action-gh-release@v1
+        if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main'
+        with:
+          tag_name: v${{ github.run_number }}
+          files: android/app/build/outputs/apk/debug/app-debug.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
