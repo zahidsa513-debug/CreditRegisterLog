@@ -56,6 +56,7 @@ export const translations = {
     companySettingsDesc: 'Setup your company details for reports & receipts',
     companyName: 'Company Name',
     website: 'Website',
+    redEye: 'Red Eye',
   },
   bn: {
     dashboard: 'ড্যাশবোর্ড',
@@ -114,5 +115,6 @@ export const translations = {
     companySettingsDesc: 'রিপোর্ট ও রিসিপ্টের জন্য কোম্পানির তথ্য সেটআপ করুন',
     companyName: 'কোম্পানির নাম',
     website: 'ওয়েবসাইট',
+    redEye: 'রেড আই',
   }
 };

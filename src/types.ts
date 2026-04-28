@@ -59,6 +59,21 @@ export interface CompanySettings {
   website?: string;
 }
 
+export interface Check {
+  id?: string;
+  checkNumber: string;
+  bankName: string;
+  amount: number;
+  dueDate: Date;
+  notes?: string;
+  userId: string;
+  createdAt: Date;
+  isCleared: boolean;
+  customerId?: number;
+  customerName?: string;
+  imageUrl?: string;
+}
+
 export type Language = 'en' | 'bn';
 export type Theme = 'light' | 'dark';
 export type Currency = {

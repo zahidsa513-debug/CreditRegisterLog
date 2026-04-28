@@ -43,6 +43,7 @@ const SalesEntry = ({ language, theme, currency, editingSale, setEditingSale }: 
 
   const [isSuccess, setIsSuccess] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
+  const [originalSale, setOriginalSale] = useState<Sale | null>(null);
 
   useEffect(() => {
     if (editingSale) {
@@ -51,9 +52,17 @@ const SalesEntry = ({ language, theme, currency, editingSale, setEditingSale }: 
     }
   }, [editingSale]);
 
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+
   const dailySalesList = useLiveQuery(() => 
-    db.sales.where('type').equals('direct').toArray()
-  );
+    db.sales
+      .where('date')
+      .between(today, tomorrow)
+      .toArray()
+  , [today, tomorrow]);
 
   React.useEffect(() => {
     if (formData.type === 'sale') {
@@ -81,16 +90,31 @@ const SalesEntry = ({ language, theme, currency, editingSale, setEditingSale }: 
       date: new Date(sale.date)
     });
     setEditingId(sale.id || null);
+    setOriginalSale(JSON.parse(JSON.stringify(sale))); // Keep a copy for balance delta calculation
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleDelete = async (id: number) => {
+    const saleToDelete = await db.sales.get(id);
+    if (!saleToDelete) return;
+
     const confirmMsg = language === 'en' 
       ? 'Are you sure you want to delete this entry?' 
       : 'আপনি কি এই এন্ট্রিটি ডিলিট করতে নিশ্চিত?';
 
     if (window.confirm(confirmMsg)) {
       try {
+        // Revert customer balance
+        if (saleToDelete.customerId) {
+          const customer = await db.customers.get(saleToDelete.customerId);
+          if (customer) {
+            const amountDelta = (saleToDelete.cashSale || 0) + (saleToDelete.chequeSale || 0) + (saleToDelete.creditSale || 0);
+            await db.customers.update(customer.id!, {
+              debit: (customer.debit || 0) - (saleToDelete.type === 'sale' ? (saleToDelete.creditSale || 0) : 0),
+              credit: (customer.credit || 0) - (saleToDelete.type === 'payment' ? amountDelta : 0)
+            });
+          }
+        }
         await db.sales.delete(id);
       } catch (error) {
         console.error("Failed to delete sale:", error);
@@ -244,20 +268,35 @@ const SalesEntry = ({ language, theme, currency, editingSale, setEditingSale }: 
     } as Sale;
 
     if (editingId) {
+      if (originalSale && originalSale.customerId) {
+        const oldCustomer = await db.customers.get(originalSale.customerId);
+        if (oldCustomer) {
+            // Revert old values
+            const oldAmount = (originalSale.cashSale || 0) + (originalSale.chequeSale || 0) + (originalSale.creditSale || 0);
+            await db.customers.update(oldCustomer.id!, {
+                debit: (oldCustomer.debit || 0) - (originalSale.type === 'sale' ? (originalSale.creditSale || 0) : 0),
+                credit: (oldCustomer.credit || 0) - (originalSale.type === 'payment' ? oldAmount : 0)
+            });
+        }
+      }
       await db.sales.update(editingId, saleData);
       setEditingId(null);
+      setOriginalSale(null);
     } else {
       const id = await db.sales.add(saleData);
       saleData.id = id as number;
     }
 
-    // Update customer totals
-    if (customer) {
-      const debitIncr = (formData.cashSale || 0) + (formData.chequeSale || 0) + (formData.creditSale || 0);
-      await db.customers.update(customer.id!, {
-        debit: (customer.debit || 0) + (formData.type === 'sale' ? (formData.creditSale || 0) : 0),
-        credit: (customer.credit || 0) + (formData.type === 'payment' ? debitIncr : 0)
-      });
+    // Apply new values to customer totals
+    if (formData.customerId) {
+      const customerForNewValues = await db.customers.get(formData.customerId);
+      if (customerForNewValues) {
+        const debitIncr = (formData.cashSale || 0) + (formData.chequeSale || 0) + (formData.creditSale || 0);
+        await db.customers.update(customerForNewValues.id!, {
+          debit: (customerForNewValues.debit || 0) + (formData.type === 'sale' ? (formData.creditSale || 0) : 0),
+          credit: (customerForNewValues.credit || 0) + (formData.type === 'payment' ? debitIncr : 0)
+        });
+      }
     }
 
     if (formData.type === 'payment' && customer && !editingId) {
@@ -538,7 +577,7 @@ const SalesEntry = ({ language, theme, currency, editingSale, setEditingSale }: 
         <div className="p-4 border-b dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-800 bg-opacity-50">
           <h3 className="font-bold text-sm uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-2">
             <TrendingUp className="w-4 h-4 text-indigo-500" />
-            {language === 'en' ? "Today's Sales History" : 'আজকের বিক্রির তালিকা'}
+            {language === 'en' ? "Today's Transaction History" : 'আজকের লেনদেনের তালিকা'}
           </h3>
           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{dailySalesList?.length || 0} Entries</span>
         </div>
@@ -547,25 +586,38 @@ const SalesEntry = ({ language, theme, currency, editingSale, setEditingSale }: 
             <thead>
               <tr className="bg-slate-50/50 dark:bg-slate-800/50 text-left">
                 <th className="px-6 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">{t.date}</th>
+                <th className="px-6 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">{language === 'en' ? 'Type' : 'ধরণ'}</th>
                 <th className="px-6 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">{t.description}</th>
-                <th className="px-6 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">{t.cash}</th>
-                <th className="px-6 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">{language === 'en' ? 'Actions' : 'অ্যাকশন'}</th>
+                <th className="px-6 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">{language === 'en' ? 'Amount' : 'পরিমাণ'}</th>
+                <th className="px-6 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-right">{language === 'en' ? 'Actions' : 'অ্যাকশন'}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
               {dailySalesList?.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map((s) => (
-                <tr key={s.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
-                  <td className="px-6 py-3.5 text-xs text-slate-500">{new Date(s.date).toLocaleDateString()}</td>
-                  <td className="px-6 py-3.5 text-sm font-medium text-slate-900 dark:text-white capitalize">{s.description || 'No description'}</td>
-                  <td className="px-6 py-3.5 text-sm font-black text-indigo-600">{formatCurrency(s.cashSale, currency)}</td>
+                <tr key={s.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors group">
+                  <td className="px-6 py-3.5 text-[11px] text-slate-500 font-medium">{new Date(s.date).toLocaleDateString()}</td>
                   <td className="px-6 py-3.5">
-                    <div className="flex items-center gap-2">
+                    <span className={cn(
+                      "text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest bg-opacity-10",
+                      s.type === 'sale' ? "bg-rose-500 text-rose-600" : 
+                      s.type === 'payment' ? "bg-emerald-500 text-emerald-600" : 
+                      "bg-indigo-500 text-indigo-600"
+                    )}>
+                      {s.type === 'sale' ? t.due : s.type === 'payment' ? t.collection : t.todaySales}
+                    </span>
+                  </td>
+                  <td className="px-6 py-3.5 text-sm font-medium text-slate-700 dark:text-slate-300 capitalize max-w-[200px] truncate">{s.description || 'No description'}</td>
+                  <td className="px-6 py-3.5 text-sm font-black text-slate-900 dark:text-white">
+                    {formatCurrency((s.cashSale || 0) + (s.chequeSale || 0) + (s.creditSale || 0), currency)}
+                  </td>
+                  <td className="px-6 py-3.5 text-right">
+                    <div className="flex items-center justify-end gap-1">
                       <button 
                         onClick={(e) => {
                           e.stopPropagation();
                           handleEdit(s);
                         }}
-                        className="p-1.5 text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded-lg transition-colors"
+                        className="p-2 text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded-xl transition-all active:scale-90"
                         title={language === 'en' ? 'Edit' : 'এডিট'}
                       >
                         <Edit2 className="w-4 h-4" />
@@ -575,7 +627,7 @@ const SalesEntry = ({ language, theme, currency, editingSale, setEditingSale }: 
                           e.stopPropagation();
                           handleDelete(s.id!);
                         }}
-                        className="p-1.5 text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded-lg transition-colors"
+                        className="p-2 text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded-xl transition-all active:scale-90"
                         title={language === 'en' ? 'Delete' : 'ডিলিট'}
                       >
                         <Trash2 className="w-4 h-4" />

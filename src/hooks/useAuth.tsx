@@ -2,7 +2,8 @@ import { useState, useEffect, createContext, useContext, ReactNode } from 'react
 import { 
   onAuthStateChanged, 
   signInWithPopup, 
-  signOut, 
+  sendPasswordResetEmail,
+  signOut,
   User,
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
@@ -19,6 +20,7 @@ interface AuthContextType {
   login: () => Promise<void>;
   loginWithEmail: (email: string, pass: string) => Promise<void>;
   registerWithEmail: (email: string, pass: string, name: string) => Promise<void>;
+  resetPassword: (email: string) => Promise<void>;
   logout: () => Promise<void>;
 }
 
@@ -98,6 +100,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const resetPassword = async (email: string) => {
+    try {
+      await sendPasswordResetEmail(auth, email);
+    } catch (error) {
+      console.error("Password reset failed:", error);
+      throw error;
+    }
+  };
+
   const logout = async () => {
     try {
       await signOut(auth);
@@ -110,7 +121,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     async function testConnection() {
       try {
-        const testDoc = await getDoc(doc(db, 'test', 'connection'));
+        await getDoc(doc(db, 'test', 'connection'));
       } catch (error) {
         if (error instanceof Error && error.message.includes('the client is offline')) {
           console.error("Please check your Firebase configuration.");
@@ -121,7 +132,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, profile, loading, login, logout }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      profile, 
+      loading, 
+      login, 
+      loginWithEmail, 
+      registerWithEmail, 
+      resetPassword, 
+      logout 
+    }}>
       {children}
     </AuthContext.Provider>
   );

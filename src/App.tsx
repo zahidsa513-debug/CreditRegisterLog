@@ -15,7 +15,8 @@ import {
   Moon,
   TrendingUp,
   CreditCard,
-  DollarSign
+  DollarSign,
+  Eye
 } from 'lucide-react';
 import { translations } from './translations';
 import { Language, Theme, UserProfile } from './types';
@@ -28,6 +29,7 @@ import SalesEntry from './components/SalesEntry';
 import Reports from './components/Reports';
 import SettingsView from './components/SettingsView';
 import AuthScreen from './components/AuthScreen';
+import RedEye from './components/RedEye';
 import { cn } from './lib/utils';
 import { db } from './db/db';
 import { useAuth } from './hooks/useAuth';
@@ -94,6 +96,7 @@ const App = () => {
     { id: 'customerProfile', icon: User, label: t.customerProfile },
     { id: 'sales', icon: PlusCircle, label: t.salesEntry },
     { id: 'reports', icon: FileText, label: t.reports },
+    { id: 'redeye', icon: Eye, label: t.redEye },
     { id: 'settings', icon: Settings, label: t.settings },
   ];
 
@@ -109,6 +112,7 @@ const App = () => {
       case 'customerProfile': return <CustomerProfile language={language} currency={currency} />;
       case 'sales': return <SalesEntry language={language} theme={theme} currency={currency} editingSale={editingSale} setEditingSale={setEditingSale} />;
       case 'reports': return <Reports language={language} currency={currency} setActiveTab={setActiveTab} setEditingSale={setEditingSale} />;
+      case 'redeye': return <RedEye language={language} currency={currency} />;
       case 'settings': return (
         <SettingsView 
           language={language} 

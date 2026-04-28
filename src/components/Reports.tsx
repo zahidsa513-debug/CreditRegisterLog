@@ -14,8 +14,10 @@ import {
   Share2,
   Printer,
   Edit2,
-  Trash2
+  Trash2,
+  X
 } from 'lucide-react';
+import { motion } from 'motion/react';
 import { db } from '../db/db';
 import { translations } from '../translations';
 import { cn, formatCurrency } from '../lib/utils';
@@ -30,6 +32,8 @@ const Reports = ({ language, currency, setActiveTab, setEditingSale }: { languag
   const [dateRange, setDateRange] = useState({ start: '', end: '' });
   const [selectedArea, setSelectedArea] = useState('all');
   const [selectedCustomer, setSelectedCustomer] = useState('all');
+  const [deleteId, setDeleteId] = useState<number | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const calculateAge = (date: Date | string) => {
     const start = new Date(date);
@@ -129,13 +133,16 @@ const Reports = ({ language, currency, setActiveTab, setEditingSale }: { languag
   };
 
   const handleDeleteDailySale = async (id: number) => {
-    const confirmMsg = language === 'en' 
-      ? 'Are you sure you want to delete this entry?' 
-      : 'আপনি কি এই এন্ট্রিটি ডিলিট করতে নিশ্চিত?';
+    setDeleteId(id);
+    setIsDeleting(true);
+  };
 
-    if (window.confirm(confirmMsg)) {
+  const confirmDelete = async () => {
+    if (deleteId) {
       try {
-        await db.sales.delete(id);
+        await db.sales.delete(deleteId);
+        setIsDeleting(false);
+        setDeleteId(null);
       } catch (error) {
         console.error("Failed to delete sale:", error);
       }
@@ -536,6 +543,43 @@ const Reports = ({ language, currency, setActiveTab, setEditingSale }: { languag
           </div>
         </div>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {isDeleting && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-[2rem] p-8 shadow-2xl text-center"
+          >
+            <div className="w-16 h-16 bg-rose-50 dark:bg-rose-900/30 text-rose-600 rounded-full flex items-center justify-center mx-auto mb-6">
+              <Trash2 className="w-8 h-8" />
+            </div>
+            <h3 className="text-xl font-display font-bold text-slate-900 dark:text-white mb-2">
+              {language === 'en' ? 'Confirm Deletion' : 'ডিলিট নিশ্চিত করুন'}
+            </h3>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mb-8 leading-relaxed">
+              {language === 'en' 
+                ? 'Are you sure you want to remove this record? This action cannot be undone.' 
+                : 'আপনি কি এই রেকর্ডটি মুছে ফেলতে নিশ্চিত? এই কাজটি আর ফিরিয়ে আনা যাবে না।'}
+            </p>
+            <div className="flex gap-3">
+              <button 
+                onClick={() => setIsDeleting(false)}
+                className="flex-1 py-3 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-xl font-bold transition active:scale-95"
+              >
+                {t.cancel}
+              </button>
+              <button 
+                onClick={confirmDelete}
+                className="flex-1 py-3 bg-rose-600 text-white rounded-xl font-bold shadow-lg shadow-rose-100 dark:shadow-none active:scale-95 transition-all"
+              >
+                {language === 'en' ? 'Delete Now' : 'ডিলিট করুন'}
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
     </div>
   );
 };

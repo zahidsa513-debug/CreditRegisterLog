@@ -69,6 +69,17 @@ service cloud.firestore {
         && data.email is string && data.userId == request.auth.uid;
     }
 
+    function isValidCheck(data) {
+      return data.keys().hasAll(['checkNumber', 'bankName', 'amount', 'dueDate', 'userId'])
+        && data.checkNumber is string && data.checkNumber.size() > 0
+        && data.bankName is string && data.bankName.size() > 0
+        && data.amount is number && data.amount >= 0
+        && isValidTimestamp(data.dueDate)
+        && data.userId == request.auth.uid
+        && (!data.keys().contains('customerName') || data.customerName is string)
+        && (!data.keys().contains('imageUrl') || data.imageUrl is string);
+    }
+
     // --- Match Blocks ---
 
     match /users/{userId} {
@@ -108,6 +119,15 @@ service cloud.firestore {
       allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
       allow create: if isSignedIn() && isValidId(settingId) && isValidSettings(incoming());
       allow update: if isSignedIn() && isResourceOwner() && isValidSettings(incoming())
+        && incoming().userId == existing().userId;
+      allow delete: if isSignedIn() && isResourceOwner();
+    }
+
+    match /checks/{checkId} {
+      allow get: if isSignedIn() && isResourceOwner();
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && isValidId(checkId) && isValidCheck(incoming());
+      allow update: if isSignedIn() && isResourceOwner() && isValidCheck(incoming())
         && incoming().userId == existing().userId;
       allow delete: if isSignedIn() && isResourceOwner();
     }

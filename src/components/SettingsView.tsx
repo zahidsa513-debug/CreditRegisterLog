@@ -25,7 +25,8 @@ import {
   X,
   Phone,
   RefreshCw,
-  Cloud
+  Cloud,
+  Edit2
 } from 'lucide-react';
 import Logo from './Logo';
 import { translations } from '../translations';
@@ -58,6 +59,7 @@ const SettingsView = ({
   const [isRestoring, setIsRestoring] = React.useState(false);
   const [syncStatus, setSyncStatus] = React.useState<{msg: string, type: 'success' | 'error' | null}>({msg: '', type: null});
 
+  const [editingArea, setEditingArea] = React.useState<Area | null>(null);
   const [newArea, setNewArea] = React.useState({ name: '', target: 1000, color: '#6366f1' });
   const [profileForm, setProfileForm] = React.useState({
     name: userProfile?.name || '',
@@ -67,6 +69,20 @@ const SettingsView = ({
     location: userProfile?.location || '',
     monthlyTarget: userProfile?.monthlyTarget || 100000
   });
+
+  const [companyForm, setCompanyForm] = React.useState<CompanySettings>({
+    companyName: '',
+    email: '',
+    phone: '',
+    address: '',
+    website: ''
+  });
+
+  React.useEffect(() => {
+    if (companySettings && companySettings.length > 0) {
+      setCompanyForm(companySettings[0]);
+    }
+  }, [companySettings]);
 
   const handleCloudBackup = async () => {
     setIsSyncing(true);
@@ -111,27 +127,31 @@ const SettingsView = ({
     }
   };
 
-  const [companyForm, setCompanyForm] = React.useState<CompanySettings>({
-    companyName: '',
-    email: '',
-    phone: '',
-    address: '',
-    website: ''
-  });
-
   React.useEffect(() => {
-    if (companySettings && companySettings.length > 0) {
-      setCompanyForm(companySettings[0]);
+    if (editingArea) {
+      setNewArea({ name: editingArea.name, target: editingArea.target || 1000, color: editingArea.color || '#6366f1' });
+      setIsAddingArea(true);
+    } else {
+      setNewArea({ name: '', target: 1000, color: '#6366f1' });
     }
-  }, [companySettings]);
+  }, [editingArea]);
 
   const handleAddArea = async (e: React.FormEvent) => {
     e.preventDefault();
     if (newArea.name) {
-      await db.areas.add(newArea as Area);
-      setNewArea({ name: '', target: 1000, color: '#6366f1' });
+      if (editingArea) {
+        await db.areas.update(editingArea.id!, newArea as Area);
+      } else {
+        await db.areas.add(newArea as Area);
+      }
+      setEditingArea(null);
       setIsAddingArea(false);
     }
+  };
+
+  const closeAreaModal = () => {
+    setIsAddingArea(false);
+    setEditingArea(null);
   };
 
   const saveCompanySettings = async (e: React.FormEvent) => {
@@ -417,17 +437,25 @@ const SettingsView = ({
           
           <div className="divide-y dark:divide-slate-800">
             {areas?.map(area => (
-              <div key={area.id} className="p-4 flex items-center justify-between hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
+              <div key={area.id} className="p-4 flex items-center justify-between group hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
                 <div className="flex items-center gap-3">
                   <div className="w-2 h-2 rounded-full" style={{ backgroundColor: area.color }} />
                   <span className="text-sm font-bold">{area.name}</span>
                 </div>
-                <button 
-                  onClick={() => deleteArea(area.id!)}
-                  className="p-2 text-slate-300 hover:text-rose-500 rounded-lg transition-colors"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
+                <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <button 
+                    onClick={() => setEditingArea(area)}
+                    className="p-1.5 text-slate-400 hover:text-indigo-600 transition-colors"
+                  >
+                    <Edit2 className="w-3.5 h-3.5" />
+                  </button>
+                  <button 
+                    onClick={() => deleteArea(area.id!)}
+                    className="p-1.5 text-slate-400 hover:text-rose-600 transition-colors"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
               </div>
             ))}
             {(!areas || areas.length === 0) && (
@@ -442,13 +470,15 @@ const SettingsView = ({
           <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
             <div className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-[2rem] p-6 shadow-2xl relative">
               <button 
-                onClick={() => setIsAddingArea(false)}
+                onClick={closeAreaModal}
                 className="absolute top-4 right-4 p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-400"
               >
                 <X className="w-5 h-5" />
               </button>
               
-              <h3 className="text-xl font-display font-bold mb-6">{language === 'en' ? 'Add New Area' : 'নতুন এলাকা যোগ করুন'}</h3>
+              <h3 className="text-xl font-display font-bold mb-6">
+                {editingArea ? (language === 'en' ? 'Edit Area' : 'এলাকা সংস্কার') : (language === 'en' ? 'Add New Area' : 'নতুন এলাকা যোগ করুন')}
+              </h3>
               <form onSubmit={handleAddArea} className="space-y-4">
                 <div className="space-y-1">
                    <label className="text-xs font-bold text-slate-400 uppercase tracking-tight">Area Name</label>
@@ -475,7 +505,7 @@ const SettingsView = ({
                   type="submit"
                   className="w-full py-4 bg-indigo-600 text-white rounded-xl font-bold shadow-lg shadow-indigo-100 dark:shadow-none active:scale-95 transition-transform"
                 >
-                  Create Area
+                  {editingArea ? (language === 'en' ? 'Update Area' : 'আপডেট করুন') : (language === 'en' ? 'Create Area' : 'তৈরী করুন')}
                 </button>
               </form>
             </div>

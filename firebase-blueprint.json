@@ -83,6 +83,25 @@
         "userId": { "type": "string" }
       },
       "required": ["companyName", "email", "userId"]
+    },
+    "Check": {
+      "title": "Check",
+      "description": "Check issue notes and notifications",
+      "type": "object",
+      "properties": {
+        "checkNumber": { "type": "string" },
+        "bankName": { "type": "string" },
+        "amount": { "type": "number" },
+        "dueDate": { "type": "string", "format": "date-time" },
+        "notes": { "type": "string" },
+        "userId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "isCleared": { "type": "boolean" },
+        "customerId": { "type": "number" },
+        "customerName": { "type": "string" },
+        "imageUrl": { "type": "string" }
+      },
+      "required": ["checkNumber", "bankName", "amount", "dueDate", "userId"]
     }
   },
   "firestore": {
@@ -105,6 +124,10 @@
     "settings": {
       "schema": "CompanySettings",
       "description": "Global settings per user"
+    },
+    "checks": {
+      "schema": "Check",
+      "description": "Collection of checks"
     }
   }
 }
