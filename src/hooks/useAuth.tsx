@@ -26,6 +26,53 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+enum OperationType {
+  CREATE = 'create',
+  UPDATE = 'update',
+  DELETE = 'delete',
+  LIST = 'list',
+  GET = 'get',
+  WRITE = 'write',
+}
+
+interface FirestoreErrorInfo {
+  error: string;
+  operationType: OperationType;
+  path: string | null;
+  authInfo: {
+    userId?: string | null;
+    email?: string | null;
+    emailVerified?: boolean | null;
+    isAnonymous?: boolean | null;
+    tenantId?: string | null;
+    providerInfo?: {
+      providerId?: string | null;
+      email?: string | null;
+    }[];
+  }
+}
+
+function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
+  const errInfo: FirestoreErrorInfo = {
+    error: error instanceof Error ? error.message : String(error),
+    authInfo: {
+      userId: auth.currentUser?.uid,
+      email: auth.currentUser?.email,
+      emailVerified: auth.currentUser?.emailVerified,
+      isAnonymous: auth.currentUser?.isAnonymous,
+      tenantId: auth.currentUser?.tenantId,
+      providerInfo: auth.currentUser?.providerData?.map(provider => ({
+        providerId: provider.providerId,
+        email: provider.email,
+      })) || []
+    },
+    operationType,
+    path
+  }
+  console.error('Firestore Error: ', JSON.stringify(errInfo));
+  throw new Error(JSON.stringify(errInfo));
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -36,6 +83,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(user);
       if (user) {
         // Fetch or create profile
+        const path = `users/${user.uid}`;
         try {
           const profileDoc = await getDoc(doc(db, 'users', user.uid));
           if (profileDoc.exists()) {
@@ -51,7 +99,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setProfile(newProfile);
           }
         } catch (err) {
-          console.error("Error fetching profile:", err);
+          console.error("Profile issue:", err);
+          // Don't throw here to avoid breaking auth state management
         }
       } else {
         setProfile(null);
@@ -92,8 +141,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         updatedAt: new Date().toISOString()
       } as any;
       
-      await setDoc(doc(db, 'users', userCredential.user.uid), newProfile);
-      setProfile(newProfile);
+      const path = `users/${userCredential.user.uid}`;
+      try {
+        await setDoc(doc(db, 'users', userCredential.user.uid), newProfile);
+        setProfile(newProfile);
+      } catch (err) {
+        handleFirestoreError(err, OperationType.WRITE, path);
+      }
     } catch (error) {
       console.error("Registration failed:", error);
       throw error;

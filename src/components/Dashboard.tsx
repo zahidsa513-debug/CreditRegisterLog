@@ -81,6 +81,7 @@ const Dashboard = ({ language, currency, monthlyTarget, setActiveTab }: { langua
   const t = translations[language];
 
   const totalCustomers = useLiveQuery(() => db.customers.count());
+  const customers = useLiveQuery(() => db.customers.toArray());
   const recentSales = useLiveQuery(() => db.sales.orderBy('date').reverse().limit(5).toArray());
   
   const totals = useLiveQuery(async () => {
