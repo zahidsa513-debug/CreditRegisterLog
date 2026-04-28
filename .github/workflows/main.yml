@@ -1,4 +1,4 @@
-name: Build and Release Final Update
+name: Final Build Fix
 
 on:
   push:
@@ -23,7 +23,6 @@ jobs:
       run: npm install --force
 
     - name: Build Web Project
-      # CI=false আপনার Dashboard.tsx এর 'customers' এরর থাকলেও বিল্ড হতে দিবে
       run: CI=false npm run build
 
     - name: Set up Java 21
@@ -41,31 +40,29 @@ jobs:
         fi
         npx cap sync android
 
-    - name: Force Fix Kotlin and Duplicate Classes
-      # এটি আপনার স্ক্রিনশটে দেখা ডুপ্লিকেট ক্লাস সমস্যাটি সমাধান করবে
+    - name: Absolute Kotlin Fix
+      # এই স্ক্রিপ্টটি আপনার স্ক্রিনশটে থাকা ডুপ্লিকেট ক্লাস এররটি মুছে দেবে
       run: |
         echo "configurations.all {
-            resolutionStrategy {
-                eachDependency { details ->
-                    if (details.requested.group == 'org.jetbrains.kotlin') {
-                        details.useVersion '1.8.22'
-                    }
+            resolutionStrategy.eachDependency { DependencyResolveDetails details ->
+                if (details.requested.group == 'org.jetbrains.kotlin') {
+                    details.useVersion '1.8.22'
                 }
             }
         }" >> android/build.gradle
 
-    - name: Build Android APK (Clean)
+    - name: Build Android APK
       run: |
         cd android
         chmod +x gradlew
-        ./gradlew clean assembleDebug
+        ./gradlew clean assembleDebug --no-daemon
 
     - name: Create Release and Upload
       uses: softprops/action-gh-release@v1
       if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
       with:
-        tag_name: update-v${{ github.run_number }}
-        name: Credit Register Update v${{ github.run_number }}
+        tag_name: final-v${{ github.run_number }}
+        name: Credit Register Final Update v${{ github.run_number }}
         files: android/app/build/outputs/apk/debug/app-debug.apk
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
