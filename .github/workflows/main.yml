@@ -1,4 +1,4 @@
-name: Credit Register Final Build
+name: Credit Register - Final Solution
 
 on:
   push:
@@ -23,7 +23,6 @@ jobs:
       run: npm install --force
 
     - name: Build Web Project
-      # Dashboard.tsx এর 'customers' এরর থাকলেও বিল্ড সচল রাখবে
       run: CI=false npm run build
 
     - name: Set up Java 21
@@ -41,31 +40,35 @@ jobs:
         fi
         npx cap sync android
 
-    - name: Fix Kotlin and Duplicate Classes (Crucial Fix)
-      # এটি আপনার স্ক্রিনশটে থাকা ডুপ্লিকেট ক্লাস এররটি ১০০% সমাধান করবে
+    - name: Force Clean Kotlin Dependencies
+      # এটি আপনার স্ক্রিনশটে দেখা 'Duplicate class' এররটি সমূলে দূর করবে
       run: |
-        echo "configurations.all {
-            resolutionStrategy {
-                eachDependency { details ->
-                    if (details.requested.group == 'org.jetbrains.kotlin') {
-                        details.useVersion '1.8.22'
+        cd android
+        sed -i 's/ext.kotlin_version = .*/ext.kotlin_version = "1.8.22"/' build.gradle
+        echo "subprojects {
+            configurations.all {
+                resolutionStrategy {
+                    eachDependency { details ->
+                        if (details.requested.group == 'org.jetbrains.kotlin') {
+                            details.useVersion '1.8.22'
+                        }
                     }
                 }
             }
-        }" >> android/build.gradle
+        }" >> build.gradle
 
-    - name: Build Android APK (Clean Build)
+    - name: Build Android APK
       run: |
         cd android
         chmod +x gradlew
         ./gradlew clean assembleDebug --no-daemon
 
-    - name: Create GitHub Release
+    - name: Create Release
       uses: softprops/action-gh-release@v1
       if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
       with:
-        tag_name: build-v${{ github.run_number }}
-        name: Credit Register Update v${{ github.run_number }}
+        tag_name: v${{ github.run_number }}
+        name: Credit Register Stable v${{ github.run_number }}
         files: android/app/build/outputs/apk/debug/app-debug.apk
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
