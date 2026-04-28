@@ -24,7 +24,6 @@ jobs:
 
       - name: Build Web Project (Ignoring TS Errors)
         run: |
-          # টাইপস্ক্রিপ্ট এরর থাকলেও যেন বিল্ড সম্পন্ন হয় তার জন্য CI=false ব্যবহার করা হয়েছে
           CI=false npm run build
 
       - name: Set up Java 21
@@ -33,9 +32,14 @@ jobs:
           java-version: '21'
           distribution: 'temurin'
 
-      - name: Setup Capacitor and Android
+      - name: Setup Capacitor and Android Platform
         run: |
           npm install @capacitor/core @capacitor/cli @capacitor/android
+          # অ্যান্ড্রয়েড ফোল্ডার না থাকলে সেটি তৈরি করা এবং প্ল্যাটফর্ম অ্যাড করা
+          if [ ! -d "android" ]; then
+            npx cap init "CreditRegister" "com.zahidsa.creditreg" --web-dir dist
+            npx cap add android
+          fi
           npx cap sync android
 
       - name: Fix Kotlin and Duplicate Classes
