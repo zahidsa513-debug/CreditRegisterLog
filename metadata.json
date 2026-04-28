@@ -1,5 +1,5 @@
 {
-  "name": "CrediRegistry",
+  "name": "Credit Register",
   "description": "A specialized credit register app with cloud backup, Google authentication, multi-currency support, area-wise data management, daily sales/collection entry, and automated PDF money receipt generation.",
   "requestFramePermissions": ["geolocation"],
   "majorCapabilities": []

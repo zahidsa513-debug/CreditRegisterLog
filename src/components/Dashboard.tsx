@@ -17,6 +17,7 @@ import {
   AreaChart,
   Area
 } from 'recharts';
+import Logo from './Logo';
 import { 
   ArrowUpRight, 
   ArrowDownRight, 
@@ -337,7 +338,9 @@ const Dashboard = ({ language, currency, monthlyTarget, setActiveTab }: { langua
                   : (language === 'en' ? 'Keep Pushing! 💪' : 'চালিয়ে যান! 💪')}
               </h4>
             </div>
-            <TrendingUp className="absolute -bottom-2 -right-2 w-20 h-20 opacity-10 group-hover:scale-110 transition-transform" />
+            <div className="absolute -bottom-2 -right-2 w-24 h-24 opacity-20 group-hover:scale-110 transition-transform">
+               <Logo size="xl" className="bg-transparent shadow-none ring-0 grayscale invert" />
+            </div>
           </div>
         </div>
       </div>

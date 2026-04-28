@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { translations } from './translations';
 import { Language, Theme, UserProfile } from './types';
+import Logo from './components/Logo';
 import Dashboard from './components/Dashboard';
 import Areas from './components/Areas';
 import Customers from './components/Customers';
@@ -136,9 +137,7 @@ const App = () => {
           transition={{ duration: 0.5, repeat: Infinity, repeatType: 'reverse' }}
           className="mb-8"
         >
-          <div className="w-24 h-24 bg-indigo-600 rounded-2xl flex items-center justify-center shadow-xl shadow-indigo-200">
-            <TrendingUp className="text-white w-12 h-12" />
-          </div>
+          <Logo size="xl" />
         </motion.div>
         <motion.h1 
           className="text-4xl font-display font-black tracking-tight text-white"
@@ -168,10 +167,8 @@ const App = () => {
       {/* Mobile Header */}
       <header className="lg:hidden flex items-center justify-between p-4 bg-white dark:bg-slate-900 border-b dark:border-slate-800 sticky top-0 z-40">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-indigo-500 rounded-lg flex items-center justify-center shadow-lg shadow-indigo-500/20">
-            <TrendingUp className="text-white w-5 h-5" />
-          </div>
-          <span className="font-display font-bold text-lg">CrediRegistry</span>
+          <Logo size="sm" className="rounded-lg shadow-lg ring-1 ring-slate-100 dark:ring-white/10" />
+          <span className="font-display font-bold text-lg">CreditRegister</span>
         </div>
         <button 
           onClick={() => setIsSidebarOpen(!isSidebarOpen)}
@@ -189,13 +186,11 @@ const App = () => {
         )}>
           <div className="p-6 hidden lg:flex items-center gap-3">
             <div className="shrink-0">
-              <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/20">
-                <TrendingUp className="text-white w-6 h-6" />
-              </div>
+              <Logo size="md" className="rounded-2xl shadow-xl ring-1 ring-white/10" />
             </div>
             <div>
-              <h1 className="font-display font-bold text-xl tracking-tight leading-tight">Credit<span className="text-indigo-400">Reg</span></h1>
-              <p className="text-[9px] uppercase tracking-[0.2em] text-slate-500 font-bold">Smart Registry</p>
+              <h1 className="font-display font-bold text-xl tracking-tight leading-tight">Credit<span className="text-indigo-400">Register</span></h1>
+              <p className="text-[9px] uppercase tracking-[0.2em] text-slate-500 font-bold">Official Business App</p>
             </div>
           </div>
 

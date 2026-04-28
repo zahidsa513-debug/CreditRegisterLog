@@ -5,7 +5,7 @@ import {
   Printer, Mail, Store, FileText, Camera, 
   Trash2, Edit2, X, Download, ExternalLink,
   Info, Calendar, CreditCard, DollarSign,
-  UploadCloud
+  UploadCloud, Navigation, CheckCircle2
 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { db } from '../db/db';
@@ -22,6 +22,7 @@ const CustomerProfile = ({ language, currency }: { language: 'en' | 'bn', curren
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [isEditing, setIsEditing] = useState(false);
+  const [isLocating, setIsLocating] = useState(false);
   const [editFormData, setEditFormData] = useState<Partial<Customer>>({});
 
   const filteredCustomers = customers?.filter(c => 
@@ -41,6 +42,47 @@ const CustomerProfile = ({ language, currency }: { language: 'en' | 'bn', curren
       await db.customers.update(editFormData.id, editFormData);
       setSelectedCustomer({ ...selectedCustomer, ...editFormData } as Customer);
       setIsEditing(false);
+    }
+  };
+
+  const handleLocationFetch = () => {
+    setIsLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setEditFormData({
+          ...editFormData,
+          location: {
+            lat: position.coords.latitude,
+            lng: position.coords.longitude
+          }
+        });
+        setIsLocating(false);
+      },
+      (error) => {
+        console.error("Error fetching location", error);
+        setIsLocating(false);
+        alert(language === 'en' ? "Could not fetch location" : "লোকেশন পাওয়া যায়নি");
+      }
+    );
+  };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>, field: 'licensePhoto' | 'shopImage' | 'documents') => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        if (field === 'licensePhoto') {
+          setEditFormData({ ...editFormData, licensePhoto: reader.result as string });
+        } else if (field === 'shopImage') {
+          setEditFormData({ ...editFormData, shopImage: reader.result as string });
+        } else {
+          setEditFormData({ 
+            ...editFormData, 
+            documents: [...(editFormData.documents || []), reader.result as string] 
+          });
+        }
+      };
+      reader.readAsDataURL(file);
     }
   };
 
@@ -307,49 +349,135 @@ const CustomerProfile = ({ language, currency }: { language: 'en' | 'bn', curren
 
               <form onSubmit={handleUpdate} className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <label className="text-xs font-bold text-slate-400 uppercase tracking-tight">Shop Name</label>
-                    <input 
-                      type="text" 
-                      value={editFormData.shopName}
-                      onChange={e => setEditFormData({...editFormData, shopName: e.target.value})}
-                      className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 rounded-xl border-none focus:ring-2 focus:ring-indigo-500 outline-none text-sm"
-                    />
+                  {/* Shop Section */}
+                  <div className="space-y-4">
+                    <h4 className="text-[10px] font-bold text-indigo-500 uppercase tracking-widest flex items-center gap-2">
+                      <Store className="w-3 h-3" /> {language === 'en' ? 'Shop Information' : 'দোকানের তথ্য'}
+                    </h4>
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-slate-400 uppercase tracking-tight">Shop Name</label>
+                      <input 
+                        type="text" 
+                        value={editFormData.shopName}
+                        onChange={e => setEditFormData({...editFormData, shopName: e.target.value})}
+                        className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 rounded-xl border-none focus:ring-2 focus:ring-indigo-500 outline-none text-sm"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-slate-400 uppercase tracking-tight">{language === 'en' ? 'Area' : 'এলাকা'}</label>
+                      <select 
+                        required
+                        value={editFormData.areaId}
+                        onChange={e => setEditFormData({...editFormData, areaId: Number(e.target.value)})}
+                        className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 rounded-xl border-none focus:ring-2 focus:ring-indigo-500 outline-none text-sm appearance-none"
+                      >
+                        {areas?.map(area => (
+                          <option key={area.id} value={area.id}>{area.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-slate-400 uppercase tracking-tight">Address</label>
+                      <textarea 
+                        value={editFormData.address}
+                        onChange={e => setEditFormData({...editFormData, address: e.target.value})}
+                        className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 rounded-xl border-none focus:ring-2 focus:ring-indigo-500 outline-none text-sm min-h-[100px]"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-slate-400 pl-1 uppercase tracking-tight">{language === 'en' ? 'Shop Front Picture' : 'দোকানের সামনের ছবি'}</label>
+                      <label className="flex flex-col items-center justify-center p-6 bg-white dark:bg-slate-800 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-xl hover:border-indigo-400 transition-all cursor-pointer group relative overflow-hidden h-32">
+                        {editFormData.shopImage ? (
+                          <>
+                            <img src={editFormData.shopImage} className="absolute inset-0 w-full h-full object-cover" alt="shop front" />
+                            <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                              <Camera className="w-8 h-8 text-white" />
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            <Camera className="w-8 h-8 text-slate-300 group-hover:text-indigo-500 mb-2 transition-colors" />
+                            <span className="text-[10px] font-bold text-slate-400 uppercase">{language === 'en' ? 'Upload' : 'আপলোড'}</span>
+                          </>
+                        )}
+                        <input type="file" className="hidden" accept="image/*" capture="environment" onChange={e => handleFileUpload(e, 'shopImage')} />
+                      </label>
+                    </div>
+                    <button 
+                      type="button"
+                      onClick={handleLocationFetch}
+                      disabled={isLocating}
+                      className="w-full py-3 px-4 bg-white dark:bg-slate-800 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-xl flex items-center justify-center gap-3 text-sm font-bold text-slate-600 dark:text-slate-400 hover:border-indigo-400 transition-all"
+                    >
+                      {isLocating ? (
+                        <div className="animate-spin rounded-full h-4 w-4 border-2 border-indigo-500 border-t-transparent" />
+                      ) : (
+                        <Navigation className="w-4 h-4 text-indigo-500" />
+                      )}
+                      {editFormData.location ? 'Location Updated' : 'Update Location'}
+                    </button>
                   </div>
-                  <div className="space-y-2">
-                    <label className="text-xs font-bold text-slate-400 uppercase tracking-tight">Owner Name</label>
-                    <input 
-                      type="text" 
-                      value={editFormData.name}
-                      onChange={e => setEditFormData({...editFormData, name: e.target.value, ownerName: e.target.value})}
-                      className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 rounded-xl border-none focus:ring-2 focus:ring-indigo-500 outline-none text-sm"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-xs font-bold text-slate-400 uppercase tracking-tight">Phone</label>
-                    <input 
-                      type="tel" 
-                      value={editFormData.phone}
-                      onChange={e => setEditFormData({...editFormData, phone: e.target.value})}
-                      className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 rounded-xl border-none focus:ring-2 focus:ring-indigo-500 outline-none text-sm"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-xs font-bold text-slate-400 uppercase tracking-tight">Email</label>
-                    <input 
-                      type="email" 
-                      value={editFormData.email}
-                      onChange={e => setEditFormData({...editFormData, email: e.target.value})}
-                      className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 rounded-xl border-none focus:ring-2 focus:ring-indigo-500 outline-none text-sm"
-                    />
-                  </div>
-                  <div className="md:col-span-2 space-y-2">
-                    <label className="text-xs font-bold text-slate-400 uppercase tracking-tight">Address</label>
-                    <textarea 
-                      value={editFormData.address}
-                      onChange={e => setEditFormData({...editFormData, address: e.target.value})}
-                      className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 rounded-xl border-none focus:ring-2 focus:ring-indigo-500 outline-none text-sm min-h-[100px]"
-                    />
+
+                  {/* Owner Section */}
+                  <div className="space-y-4">
+                    <h4 className="text-[10px] font-bold text-indigo-500 uppercase tracking-widest flex items-center gap-2">
+                      <User className="w-3 h-3" /> {language === 'en' ? 'Owner Information' : 'মালিকের তথ্য'}
+                    </h4>
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-slate-400 uppercase tracking-tight">Owner Name</label>
+                      <input 
+                        type="text" 
+                        value={editFormData.name}
+                        onChange={e => setEditFormData({...editFormData, name: e.target.value, ownerName: e.target.value})}
+                        className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 rounded-xl border-none focus:ring-2 focus:ring-indigo-500 outline-none text-sm"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-slate-400 uppercase tracking-tight">Phone</label>
+                      <input 
+                        type="tel" 
+                        value={editFormData.phone}
+                        onChange={e => setEditFormData({...editFormData, phone: e.target.value})}
+                        className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 rounded-xl border-none focus:ring-2 focus:ring-indigo-500 outline-none text-sm"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-slate-400 uppercase tracking-tight">Email</label>
+                      <input 
+                        type="email" 
+                        value={editFormData.email}
+                        onChange={e => setEditFormData({...editFormData, email: e.target.value})}
+                        className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 rounded-xl border-none focus:ring-2 focus:ring-indigo-500 outline-none text-sm"
+                      />
+                    </div>
+                    {/* Documents Section */}
+                    <div className="space-y-3 pt-2">
+                      <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">{language === 'en' ? 'License & Documents' : 'লাইসেন্স এবং ডকুমেন্টস'}</label>
+                      <div className="grid grid-cols-2 gap-3">
+                        <label className="flex flex-col items-center justify-center p-4 bg-slate-50 dark:bg-slate-800 rounded-xl border-2 border-dashed border-slate-200 dark:border-slate-700 hover:border-indigo-400 transition-all cursor-pointer group">
+                          {editFormData.licensePhoto ? (
+                            <div className="relative w-full h-12">
+                              <img src={editFormData.licensePhoto} className="w-full h-full object-cover rounded" alt="license" />
+                              <CheckCircle2 className="absolute -top-1 -right-1 w-4 h-4 text-emerald-500 bg-white rounded-full" />
+                            </div>
+                          ) : (
+                            <>
+                              <Camera className="w-5 h-5 text-slate-300 group-hover:text-indigo-500 mb-1" />
+                              <span className="text-[9px] font-bold text-slate-400 uppercase">License</span>
+                            </>
+                          )}
+                          <input type="file" className="hidden" accept="image/*" onChange={e => handleFileUpload(e, 'licensePhoto')} />
+                        </label>
+
+                        <label className="flex flex-col items-center justify-center p-4 bg-slate-50 dark:bg-slate-800 rounded-xl border-2 border-dashed border-slate-200 dark:border-slate-700 hover:border-indigo-400 transition-all cursor-pointer group">
+                          <UploadCloud className="w-5 h-5 text-slate-300 group-hover:text-indigo-500 mb-1" />
+                          <span className="text-[9px] font-bold text-slate-400 uppercase">
+                            {editFormData.documents?.length ? `${editFormData.documents.length} Docs` : 'Documents'}
+                          </span>
+                          <input type="file" className="hidden" multiple accept="image/*,.pdf" onChange={e => handleFileUpload(e, 'documents')} />
+                        </label>
+                      </div>
+                    </div>
                   </div>
                 </div>
 

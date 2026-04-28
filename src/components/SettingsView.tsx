@@ -27,6 +27,7 @@ import {
   RefreshCw,
   Cloud
 } from 'lucide-react';
+import Logo from './Logo';
 import { translations } from '../translations';
 import { cn } from '../lib/utils';
 import { db } from '../db/db';
@@ -658,17 +659,23 @@ const SettingsView = ({
 
         {/* Info Section */}
         <div className="bg-slate-900 rounded-2xl p-6 text-white relative overflow-hidden border border-slate-800">
-          <div className="relative z-10">
-            <div className="flex items-center gap-2 text-indigo-400 mb-4">
-              <Smartphone className="w-4 h-4" />
-              <span className="text-[10px] font-bold uppercase tracking-[0.2em]">Application Status</span>
+          <div className="relative z-10 flex items-start justify-between">
+            <div>
+              <div className="flex items-center gap-2 text-indigo-400 mb-4">
+                <Smartphone className="w-4 h-4" />
+                <span className="text-[10px] font-bold uppercase tracking-[0.2em]">Application Status</span>
+              </div>
+              <h4 className="text-2xl font-display font-bold">CreditReg Pro v1.2</h4>
+              <p className="text-slate-400 text-sm mt-2 leading-relaxed max-w-lg">
+                Encryption active. Local storage isolated via IndexedDB. 
+                Backup your data to Google Cloud to prevent data loss.
+              </p>
             </div>
-            <h4 className="text-2xl font-display font-bold">CreditReg Pro v1.2</h4>
-            <p className="text-slate-400 text-sm mt-2 leading-relaxed max-w-lg">
-              Encryption active. Local storage isolated via IndexedDB. 
-              Backup your data to Google Cloud to prevent data loss.
-            </p>
-            <div className="mt-8 grid grid-cols-2 gap-4">
+            <div className="shrink-0">
+               <Logo size="md" className="shadow-2xl" />
+            </div>
+          </div>
+          <div className="mt-8 grid grid-cols-2 gap-4">
               <div className="p-4 bg-white/5 rounded-xl border border-white/10 backdrop-blur-md">
                 <p className="text-[10px] text-slate-500 uppercase font-bold tracking-wider mb-1">Storage</p>
                 <p className="text-xl font-bold tracking-tight">1.28 MB</p>
@@ -681,7 +688,6 @@ const SettingsView = ({
                 </p>
               </div>
             </div>
-          </div>
           <Info className="absolute -bottom-10 -right-10 w-40 h-40 opacity-5 text-white" />
         </div>
 

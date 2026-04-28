@@ -3,7 +3,10 @@ import {
   onAuthStateChanged, 
   signInWithPopup, 
   signOut, 
-  User
+  User,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  updateProfile
 } from 'firebase/auth';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { auth, db, googleProvider } from '../lib/firebase';
@@ -14,6 +17,8 @@ interface AuthContextType {
   profile: UserProfile | null;
   loading: boolean;
   login: () => Promise<void>;
+  loginWithEmail: (email: string, pass: string) => Promise<void>;
+  registerWithEmail: (email: string, pass: string, name: string) => Promise<void>;
   logout: () => Promise<void>;
 }
 
@@ -29,18 +34,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(user);
       if (user) {
         // Fetch or create profile
-        const profileDoc = await getDoc(doc(db, 'users', user.uid));
-        if (profileDoc.exists()) {
-          setProfile(profileDoc.data() as UserProfile);
-        } else {
-          const newProfile: UserProfile = {
-            name: user.displayName || 'User',
-            email: user.email || '',
-            avatar: user.photoURL || undefined,
-            updatedAt: new Date().toISOString()
-          } as any;
-          await setDoc(doc(db, 'users', user.uid), newProfile);
-          setProfile(newProfile);
+        try {
+          const profileDoc = await getDoc(doc(db, 'users', user.uid));
+          if (profileDoc.exists()) {
+            setProfile(profileDoc.data() as UserProfile);
+          } else {
+            const newProfile: UserProfile = {
+              name: user.displayName || 'User',
+              email: user.email || '',
+              avatar: user.photoURL || '',
+              updatedAt: new Date().toISOString()
+            } as any;
+            await setDoc(doc(db, 'users', user.uid), newProfile);
+            setProfile(newProfile);
+          }
+        } catch (err) {
+          console.error("Error fetching profile:", err);
         }
       } else {
         setProfile(null);
@@ -56,6 +65,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await signInWithPopup(auth, googleProvider);
     } catch (error) {
       console.error("Login failed:", error);
+      throw error;
+    }
+  };
+
+  const loginWithEmail = async (email: string, pass: string) => {
+    try {
+      await signInWithEmailAndPassword(auth, email, pass);
+    } catch (error) {
+      console.error("Email login failed:", error);
+      throw error;
+    }
+  };
+
+  const registerWithEmail = async (email: string, pass: string, name: string) => {
+    try {
+      const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
+      await updateProfile(userCredential.user, { displayName: name });
+      
+      const newProfile: UserProfile = {
+        name,
+        email,
+        avatar: '',
+        updatedAt: new Date().toISOString()
+      } as any;
+      
+      await setDoc(doc(db, 'users', userCredential.user.uid), newProfile);
+      setProfile(newProfile);
+    } catch (error) {
+      console.error("Registration failed:", error);
+      throw error;
     }
   };
 

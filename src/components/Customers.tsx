@@ -3,7 +3,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { 
   Plus, Search, User, Phone, MapPin, ChevronRight, 
   Printer, Mail, Store, FileText, Camera, UploadCloud,
-  Navigation, CheckCircle2, X, Trash2
+  Navigation, CheckCircle2, X, Trash2, Edit2
 } from 'lucide-react';
 import { db } from '../db/db';
 import { translations } from '../translations';
@@ -18,9 +18,10 @@ const Customers = ({ language, currency }: { language: 'en' | 'bn', currency: st
   const areas = useLiveQuery(() => db.areas.toArray());
   const [searchQuery, setSearchQuery] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [isLocating, setIsLocating] = useState(false);
   
-  const [newCustomer, setNewCustomer] = useState<Partial<Customer>>({ 
+  const initialCustomerState: Partial<Customer> = { 
     name: '', 
     phone: '', 
     areaId: 0, 
@@ -34,7 +35,9 @@ const Customers = ({ language, currency }: { language: 'en' | 'bn', currency: st
     licensePhoto: '',
     shopImage: '',
     documents: []
-  });
+  };
+
+  const [newCustomer, setNewCustomer] = useState<Partial<Customer>>(initialCustomerState);
 
   const [deleteId, setDeleteId] = useState<number | null>(null);
 
@@ -58,24 +61,21 @@ const Customers = ({ language, currency }: { language: 'en' | 'bn', currency: st
   const handleAddCustomer = async (e: React.FormEvent) => {
     e.preventDefault();
     if (newCustomer.name && newCustomer.areaId) {
-      await db.customers.add(newCustomer as Customer);
-      setNewCustomer({ 
-        name: '', 
-        phone: '', 
-        areaId: 0, 
-        debit: 0, 
-        credit: 0,
-        shopName: '',
-        ownerName: '',
-        email: '',
-        address: '',
-        location: undefined,
-        licensePhoto: '',
-        shopImage: '',
-        documents: []
-      });
+      if (editingCustomer) {
+        await db.customers.update(editingCustomer.id!, newCustomer);
+      } else {
+        await db.customers.add(newCustomer as Customer);
+      }
+      setNewCustomer(initialCustomerState);
+      setEditingCustomer(null);
       setIsModalOpen(false);
     }
+  };
+
+  const openEditModal = (customer: Customer) => {
+    setEditingCustomer(customer);
+    setNewCustomer(customer);
+    setIsModalOpen(true);
   };
 
   const handleLocationFetch = () => {
@@ -261,6 +261,16 @@ const Customers = ({ language, currency }: { language: 'en' | 'bn', currency: st
                         <button 
                           onClick={(e) => {
                             e.stopPropagation();
+                            openEditModal(customer);
+                          }}
+                          className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+                          title={t.editCustomer}
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation();
                             setDeleteId(customer.id!);
                           }}
                           className="p-2 text-slate-400 hover:text-rose-600 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
@@ -294,11 +304,15 @@ const Customers = ({ language, currency }: { language: 'en' | 'bn', currency: st
           <div className="bg-white dark:bg-slate-900 w-full max-w-2xl rounded-[2.5rem] p-8 shadow-2xl my-8">
             <div className="flex items-center justify-between mb-8">
               <div>
-                <h3 className="text-2xl font-display font-bold">{t.addCustomer}</h3>
+                <h3 className="text-2xl font-display font-bold">{editingCustomer ? t.editCustomer : t.addCustomer}</h3>
                 <p className="text-slate-500 text-sm">{language === 'en' ? 'Complete shop and owner details' : 'দোকান এবং মালিকের বিস্তারিত তথ্য পূরণ করুন'}</p>
               </div>
               <button 
-                onClick={() => setIsModalOpen(false)}
+                onClick={() => {
+                  setIsModalOpen(false);
+                  setEditingCustomer(null);
+                  setNewCustomer(initialCustomerState);
+                }}
                 className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl"
               >
                 <X className="w-6 h-6 text-slate-400" />
