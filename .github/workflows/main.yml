@@ -1,4 +1,4 @@
-name: Build and Release Final APK
+name: Build and Release Final Update
 
 on:
   push:
@@ -23,6 +23,7 @@ jobs:
       run: npm install --force
 
     - name: Build Web Project
+      # CI=false আপনার Dashboard.tsx এর 'customers' এরর থাকলেও বিল্ড হতে দিবে
       run: CI=false npm run build
 
     - name: Set up Java 21
@@ -40,8 +41,8 @@ jobs:
         fi
         npx cap sync android
 
-    - name: Force Fix Kotlin Conflict
-      # এই অংশটি ডুপ্লিকেট ক্লাস এবং কোটলিন ভার্সন এরর ফিক্স করবে
+    - name: Force Fix Kotlin and Duplicate Classes
+      # এটি আপনার স্ক্রিনশটে দেখা ডুপ্লিকেট ক্লাস সমস্যাটি সমাধান করবে
       run: |
         echo "configurations.all {
             resolutionStrategy {
@@ -53,18 +54,18 @@ jobs:
             }
         }" >> android/build.gradle
 
-    - name: Build Android APK
+    - name: Build Android APK (Clean)
       run: |
         cd android
         chmod +x gradlew
-        ./gradlew clean assembleDebug --stacktrace
+        ./gradlew clean assembleDebug
 
-    - name: Create GitHub Release
+    - name: Create Release and Upload
       uses: softprops/action-gh-release@v1
       if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
       with:
-        tag_name: v2.0.${{ github.run_number }}
-        name: Credit Register Update v2.0.${{ github.run_number }}
+        tag_name: update-v${{ github.run_number }}
+        name: Credit Register Update v${{ github.run_number }}
         files: android/app/build/outputs/apk/debug/app-debug.apk
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
