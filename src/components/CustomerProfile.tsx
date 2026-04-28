@@ -156,178 +156,201 @@ const CustomerProfile = ({ language, currency }: { language: 'en' | 'bn', curren
     const balance = (selectedCustomer.debit || 0) - (selectedCustomer.credit || 0);
 
     return (
-      <div className="space-y-6">
-        <div className="flex items-center gap-4">
+      <div className="space-y-8 pb-12">
+        <div className="flex flex-col md:flex-row md:items-center gap-4 bg-white dark:bg-slate-900 p-4 rounded-[2rem] border border-slate-200 dark:border-slate-800 shadow-soft">
           <button 
             onClick={() => setSelectedCustomer(null)}
-            className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors"
+            className="p-3 bg-slate-50 dark:bg-slate-800 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 text-slate-500 hover:text-indigo-600 rounded-2xl transition-all"
           >
             <ChevronRight className="w-6 h-6 rotate-180" />
           </button>
-          <div className="flex-1">
-            <h2 className="text-2xl font-display font-bold">{selectedCustomer.name} Profile</h2>
-            <p className="text-slate-500 text-sm">{selectedCustomer.shopName}</p>
+          <div className="flex-1 flex flex-col md:flex-row md:items-center gap-4">
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 rounded-2xl flex items-center justify-center font-black text-2xl shadow-inner">
+                {selectedCustomer.name.charAt(0)}
+              </div>
+              <div>
+                <h2 className="text-2xl font-display font-black tracking-tight">{selectedCustomer.name}</h2>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-indigo-500 bg-indigo-50 dark:bg-indigo-900/20 px-2 py-0.5 rounded-md">{selectedCustomer.shopName || 'Retailer'}</span>
+                  <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">ID: #{selectedCustomer.id}</span>
+                </div>
+              </div>
+            </div>
           </div>
           <div className="flex gap-2">
             <button 
               onClick={() => handleEdit(selectedCustomer)}
-              className="p-2 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 rounded-xl hover:bg-indigo-100 transition shadow-sm"
-              title={t.editCustomer}
+              className="px-4 py-3 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 rounded-2xl hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-all font-black text-[10px] uppercase tracking-widest flex items-center gap-2"
             >
-              <Edit2 className="w-5 h-5" />
-            </button>
-            <button 
-              onClick={() => handleDelete(selectedCustomer.id!)}
-              className="p-2 bg-rose-50 dark:bg-rose-900/30 text-rose-600 rounded-xl hover:bg-rose-100 transition shadow-sm"
-              title={t.deleteCustomer}
-            >
-              <Trash2 className="w-5 h-5" />
+              <Edit2 className="w-4 h-4" /> Edit
             </button>
             <button 
               onClick={() => printFullProfile(selectedCustomer)}
-              className="p-2 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-xl hover:bg-slate-200 transition shadow-sm"
-              title={t.printReport}
+              className="px-4 py-3 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-2xl hover:bg-slate-100 dark:hover:bg-slate-700 transition-all font-black text-[10px] uppercase tracking-widest flex items-center gap-2"
             >
-              <Printer className="w-5 h-5" />
+              <Printer className="w-4 h-4" /> Export
             </button>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Identity Card */}
-          <div className="lg:col-span-1 space-y-6">
-            <div className="bg-white dark:bg-slate-900 rounded-[2rem] border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden text-center p-8">
-              <div className="relative inline-block mb-6">
-                {selectedCustomer.shopImage ? (
-                  <img 
-                    src={selectedCustomer.shopImage} 
-                    alt="shop" 
-                    className="w-32 h-32 rounded-3xl object-cover ring-4 ring-indigo-50 dark:ring-indigo-900/20"
-                  />
-                ) : (
-                  <div className="w-32 h-32 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 rounded-3xl flex items-center justify-center text-4xl font-display font-black">
-                    {selectedCustomer.name.charAt(0)}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="space-y-8">
+            <motion.div 
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-soft overflow-hidden p-8"
+            >
+              <div className="text-center mb-10">
+                <div className="relative inline-block mb-6">
+                  {selectedCustomer.shopImage ? (
+                    <img 
+                      src={selectedCustomer.shopImage} 
+                      alt="shop" 
+                      className="w-40 h-40 rounded-[2.5rem] object-cover ring-8 ring-slate-50 dark:ring-slate-800/50"
+                    />
+                  ) : (
+                    <div className="w-40 h-40 bg-gradient-to-br from-indigo-500 to-purple-600 text-white rounded-[2.5rem] flex items-center justify-center text-5xl font-display font-black shadow-xl">
+                      {selectedCustomer.name.charAt(0)}
+                    </div>
+                  )}
+                  <div className="absolute -bottom-2 -right-2 w-12 h-12 bg-emerald-500 text-white rounded-2xl flex items-center justify-center border-4 border-white dark:border-slate-900 shadow-xl">
+                    <Store className="w-6 h-6" />
                   </div>
-                )}
-                <div className="absolute -bottom-2 -right-2 w-10 h-10 bg-emerald-500 text-white rounded-2xl flex items-center justify-center border-4 border-white dark:border-slate-900 shadow-lg">
-                  <Store className="w-5 h-5" />
                 </div>
+                <h3 className="text-2xl font-display font-black tracking-tight">{selectedCustomer.name}</h3>
+                <p className="text-indigo-500 font-black text-[10px] uppercase tracking-[0.2em] mt-1">{selectedCustomer.shopName || 'Store Owner'}</p>
               </div>
-              <h3 className="text-xl font-display font-bold mb-1">{selectedCustomer.name}</h3>
-              <p className="text-indigo-500 font-bold text-xs uppercase tracking-widest mb-6">{selectedCustomer.shopName || 'General Store'}</p>
               
-              <div className="grid grid-cols-2 gap-3 mb-6">
-                <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-2xl">
-                  <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">Balance</p>
-                  <p className={cn("text-lg font-black", balance > 0 ? "text-rose-600" : "text-emerald-600")}>
+              <div className="grid grid-cols-2 gap-4 mb-8">
+                <div className="bg-slate-50 dark:bg-slate-800 p-5 rounded-[1.5rem] border border-slate-100 dark:border-slate-700/50">
+                  <p className="stat-label">Balance</p>
+                  <p className={cn("text-xl font-black mt-1", balance > 0 ? "text-rose-600" : "text-emerald-600")}>
                     {formatCurrency(balance, currency)}
                   </p>
                 </div>
-                <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-2xl">
-                  <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">Area</p>
-                  <p className="text-sm font-black text-slate-900 dark:text-white truncate">
+                <div className="bg-slate-50 dark:bg-slate-800 p-5 rounded-[1.5rem] border border-slate-100 dark:border-slate-700/50">
+                  <p className="stat-label">Area</p>
+                  <p className="text-sm font-black text-slate-800 dark:text-white mt-2 truncate">
                     {area?.name || 'N/A'}
                   </p>
                 </div>
               </div>
 
-              <div className="space-y-3 text-left">
-                <div className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-800 rounded-xl">
-                  <Phone className="w-4 h-4 text-indigo-500" />
-                  <p className="text-sm font-bold text-slate-700 dark:text-slate-300">{selectedCustomer.phone}</p>
-                </div>
-                {selectedCustomer.email && (
-                  <div className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-800 rounded-xl">
-                    <Mail className="w-4 h-4 text-indigo-500" />
-                    <p className="text-sm font-bold text-slate-700 dark:text-slate-300 truncate">{selectedCustomer.email}</p>
+              <div className="space-y-3">
+                <a href={`tel:${selectedCustomer.phone}`} className="flex items-center gap-4 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800/50 hover:border-indigo-200 transition-all group">
+                  <div className="w-10 h-10 rounded-xl bg-white dark:bg-slate-800 flex items-center justify-center text-indigo-500 shadow-sm border border-slate-100 dark:border-slate-700/50 group-hover:scale-110 transition-transform">
+                    <Phone className="w-5 h-5" />
                   </div>
+                  <p className="text-sm font-black text-slate-700 dark:text-slate-300">{selectedCustomer.phone}</p>
+                </a>
+                {selectedCustomer.email && (
+                  <a href={`mailto:${selectedCustomer.email}`} className="flex items-center gap-4 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800/50 hover:border-indigo-200 transition-all group">
+                    <div className="w-10 h-10 rounded-xl bg-white dark:bg-slate-800 flex items-center justify-center text-indigo-500 shadow-sm border border-slate-100 dark:border-slate-700/50 group-hover:scale-110 transition-transform">
+                      <Mail className="w-5 h-5" />
+                    </div>
+                    <p className="text-sm font-black text-slate-700 dark:text-slate-300 truncate">{selectedCustomer.email}</p>
+                  </a>
                 )}
               </div>
-            </div>
+            </motion.div>
 
             {selectedCustomer.location && (
-              <div className="bg-white dark:bg-slate-900 rounded-[2rem] border border-slate-200 dark:border-slate-800 shadow-sm p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h4 className="text-sm font-bold uppercase tracking-widest text-slate-400 flex items-center gap-2">
+              <motion.div 
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.2 }}
+                className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-soft p-8"
+              >
+                <div className="flex items-center justify-between mb-6">
+                  <h4 className="stat-label flex items-center gap-2">
                     <MapPin className="w-4 h-4 text-rose-500" /> Location
                   </h4>
                   <a 
                     href={`https://www.google.com/maps/search/?api=1&query=${selectedCustomer.location.lat},${selectedCustomer.location.lng}`}
                     target="_blank"
                     rel="noreferrer"
-                    className="text-xs font-bold text-indigo-500 hover:underline flex items-center gap-1"
+                    className="text-[10px] font-black text-indigo-500 uppercase tracking-widest hover:underline flex items-center gap-1"
                   >
                     View Map <ExternalLink className="w-3 h-3" />
                   </a>
                 </div>
-                <div className="aspect-video bg-slate-100 dark:bg-slate-800 rounded-2xl flex flex-col items-center justify-center text-center p-4">
-                  <MapPin className="w-8 h-8 text-rose-500 mb-2 animate-bounce" />
-                  <p className="text-[10px] font-bold text-slate-500 uppercase">GPS Tagged</p>
-                  <p className="text-[9px] text-slate-400">{selectedCustomer.location.lat.toFixed(6)}, {selectedCustomer.location.lng.toFixed(6)}</p>
+                <div className="aspect-[16/10] bg-slate-50 dark:bg-slate-800/50 rounded-2xl flex flex-col items-center justify-center text-center p-6 border border-slate-100 dark:border-slate-800/50">
+                  <div className="w-16 h-16 bg-rose-50 dark:bg-rose-900/20 rounded-full flex items-center justify-center mb-4">
+                    <MapPin className="w-8 h-8 text-rose-500 animate-bounce" />
+                  </div>
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">GPS Coordinates</p>
+                  <p className="text-xs font-mono text-slate-500">{selectedCustomer.location.lat.toFixed(6)}, {selectedCustomer.location.lng.toFixed(6)}</p>
                 </div>
-              </div>
+              </motion.div>
             )}
           </div>
 
-          {/* Details & Documents */}
-          <div className="lg:col-span-2 space-y-6">
-            <div className="bg-white dark:bg-slate-900 rounded-[2rem] border border-slate-200 dark:border-slate-800 shadow-sm p-8">
-              <div className="flex items-center gap-3 mb-8">
-                <div className="p-2 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 rounded-xl">
-                  <FileText className="w-5 h-5" />
+          <div className="lg:col-span-2 space-y-8">
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-soft p-10"
+            >
+              <div className="flex items-center gap-4 mb-10">
+                <div className="p-3 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 rounded-2xl">
+                  <Info className="w-6 h-6" />
                 </div>
-                <h4 className="text-lg font-display font-bold">Profile Details</h4>
+                <h4 className="text-2xl font-display font-black tracking-tight">Personal Details</h4>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <div className="space-y-1">
-                  <h5 className="text-xs font-bold text-slate-400 uppercase tracking-widest">Shop Owner Name</h5>
-                  <p className="text-base font-bold text-slate-900 dark:text-white">{selectedCustomer.ownerName || selectedCustomer.name}</p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                <div className="space-y-1.5 p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800/30">
+                  <h5 className="stat-label">Full Legal Name</h5>
+                  <p className="text-lg font-black text-slate-800 dark:text-white uppercase">{selectedCustomer.ownerName || selectedCustomer.name}</p>
                 </div>
-                <div className="space-y-1">
-                  <h5 className="text-xs font-bold text-slate-400 uppercase tracking-widest">Shop Category</h5>
-                  <p className="text-base font-bold text-slate-900 dark:text-white">Retail Store</p>
+                <div className="space-y-1.5 p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800/30">
+                  <h5 className="stat-label">Registration Date</h5>
+                  <p className="text-lg font-black text-slate-800 dark:text-white uppercase">Dec 12, 2023</p>
                 </div>
-                <div className="md:col-span-2 space-y-1">
-                  <h5 className="text-xs font-bold text-slate-400 uppercase tracking-widest">Store Address</h5>
-                  <p className="text-base font-bold text-slate-900 dark:text-white leading-relaxed">{selectedCustomer.address || 'Address not provided'}</p>
+                <div className="md:col-span-2 space-y-1.5 p-6 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800/30 relative overflow-hidden">
+                  <h5 className="stat-label">Verified Address</h5>
+                  <p className="text-lg font-black text-slate-800 dark:text-white leading-relaxed mt-2 uppercase">{selectedCustomer.address || 'No address provided'}</p>
+                  <MapPin className="absolute -right-4 -bottom-4 w-24 h-24 text-slate-200 dark:text-slate-700 opacity-20 pointer-events-none" />
                 </div>
               </div>
 
-              <div className="mt-12 space-y-6">
-                <div className="flex items-center gap-3">
-                  <Camera className="w-5 h-5 text-indigo-500" />
-                  <h4 className="text-sm font-bold uppercase tracking-widest text-slate-400">Documents & Media</h4>
+              <div className="mt-16">
+                <div className="flex items-center justify-between mb-8">
+                  <div className="flex items-center gap-3">
+                    <Camera className="w-5 h-5 text-indigo-500" />
+                    <h4 className="text-sm font-black uppercase tracking-[0.2em] text-slate-400">Identity & Proofs</h4>
+                  </div>
                 </div>
                 
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   {selectedCustomer.licensePhoto && (
-                    <div className="group relative aspect-square rounded-2xl overflow-hidden border border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800">
-                      <img src={selectedCustomer.licensePhoto} className="w-full h-full object-cover transition duration-500 group-hover:scale-110" alt="Trade License" />
-                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
-                        <button className="p-2 bg-white rounded-lg text-slate-900"><Download className="w-4 h-4" /></button>
+                    <motion.div whileHover={{ scale: 1.05 }} className="group relative aspect-square rounded-3xl overflow-hidden shadow-lg border-2 border-white dark:border-slate-800">
+                      <img src={selectedCustomer.licensePhoto} className="w-full h-full object-cover" alt="License" />
+                      <div className="absolute inset-0 bg-indigo-600/60 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-all flex flex-col items-center justify-center">
+                        <Download className="w-6 h-6 text-white mb-2" />
+                        <span className="text-[10px] font-black text-white uppercase tracking-widest">License</span>
                       </div>
-                      <div className="absolute top-2 left-2 px-2 py-0.5 bg-indigo-600 text-[9px] font-black text-white uppercase rounded-md shadow-lg">License</div>
-                    </div>
+                    </motion.div>
                   )}
                   {selectedCustomer.documents?.map((doc, idx) => (
-                    <div key={idx} className="group relative aspect-square rounded-2xl overflow-hidden border border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800">
-                      <img src={doc} className="w-full h-full object-cover transition duration-500 group-hover:scale-110" alt={`doc-${idx}`} />
-                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
-                        <button className="p-2 bg-white rounded-lg text-slate-900"><Download className="w-4 h-4" /></button>
+                    <motion.div key={idx} whileHover={{ scale: 1.05 }} className="group relative aspect-square rounded-3xl overflow-hidden shadow-lg border-2 border-white dark:border-slate-800">
+                      <img src={doc} className="w-full h-full object-cover" alt={`doc-${idx}`} />
+                      <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-all flex flex-col items-center justify-center">
+                        <Download className="w-6 h-6 text-white mb-2" />
+                        <span className="text-[10px] font-black text-white uppercase tracking-widest">Document {idx + 1}</span>
                       </div>
-                      <div className="absolute top-2 left-2 px-2 py-0.5 bg-slate-900 text-[9px] font-black text-white uppercase rounded-md shadow-lg">Doc {idx + 1}</div>
-                    </div>
+                    </motion.div>
                   ))}
                   {(!selectedCustomer.licensePhoto && !selectedCustomer.documents?.length) && (
-                    <div className="col-span-full py-12 flex flex-col items-center justify-center text-slate-300 border-2 border-dashed border-slate-100 dark:border-slate-800 rounded-2xl">
-                      <UploadCloud className="w-12 h-12 mb-2 opacity-20" />
-                      <p className="text-xs font-bold uppercase tracking-widest opacity-50">No files uploaded</p>
+                    <div className="col-span-full py-20 flex flex-col items-center justify-center text-slate-300 border-4 border-dashed border-slate-100 dark:border-slate-800 rounded-[2rem]">
+                      <UploadCloud className="w-16 h-16 mb-4 opacity-10" />
+                      <p className="text-xs font-black uppercase tracking-[0.3em] opacity-40 italic">System storage empty</p>
                     </div>
                   )}
                 </div>
               </div>
-            </div>
+            </motion.div>
           </div>
         </div>
 
