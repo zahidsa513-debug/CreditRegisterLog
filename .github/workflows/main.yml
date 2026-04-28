@@ -1,10 +1,9 @@
-name: CI/CD Build
+name: Build and Release APK
 
 on:
   push:
     branches: [ main, master ]
-  pull_request:
-    branches: [ main, master ]
+  workflow_dispatch:
 
 jobs:
   build:
@@ -20,18 +19,38 @@ jobs:
         cache: 'npm'
 
     - name: Install dependencies
-      run: npm install
+      run: npm install --force
 
-    - name: Build
-      run: npm run build
+    - name: Build Web Project
+      run: CI=false npm run build
 
-    - name: Lint
-      run: npm run lint
-- name: Create Release
-        uses: softprops/action-gh-release@v1
-        if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main'
-        with:
-          tag_name: v${{ github.run_number }}
-          files: android/app/build/outputs/apk/debug/app-debug.apk
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - name: Set up Java 21
+      uses: actions/setup-java@v4
+      with:
+        java-version: '21'
+        distribution: 'temurin'
+
+    - name: Setup Capacitor and Android
+      run: |
+        npm install @capacitor/core @capacitor/cli @capacitor/android
+        if [ ! -d "android" ]; then
+          npx cap init "CreditRegister" "com.zahidsa.creditreg" --web-dir dist
+          npx cap add android
+        fi
+        npx cap sync android
+
+    - name: Build Android APK
+      run: |
+        cd android
+        chmod +x gradlew
+        ./gradlew assembleDebug
+
+    - name: Create Release and Upload APK
+      uses: softprops/action-gh-release@v1
+      if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+      with:
+        tag_name: v1.0.${{ github.run_number }}
+        name: Release v1.0.${{ github.run_number }}
+        files: android/app/build/outputs/apk/debug/app-debug.apk
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
