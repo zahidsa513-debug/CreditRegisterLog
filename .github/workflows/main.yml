@@ -1,4 +1,4 @@
-name: Build and Release App
+name: Build Android APK
 
 on:
   push:
@@ -8,7 +8,7 @@ on:
 
 jobs:
   build:
-    name: Build Web/Android App
+    name: Build APK
     runs-on: ubuntu-latest
 
     permissions:
@@ -21,24 +21,32 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20' # আপনার প্রোজেক্ট অনুযায়ী ভার্সন পরিবর্তন করতে পারেন
+          node-version: '20'
 
       - name: Install Dependencies
         run: npm install
 
-      - name: Build Project
-        run: npm run build # এটি আপনার dist বা build ফোল্ডার তৈরি করবে
+      - name: Build Web Project
+        run: npm run build
 
-      # যেহেতু আপনার প্রোজেক্টে gradlew নেই, 
-      # আপনি কি এটি Capacitor বা Cordova দিয়ে APK করতে চাচ্ছেন? 
-      # যদি শুধু ওয়েব বিল্ড হয় তবে নিচের অংশটি কাজ করবে:
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      # Capacitor যোগ করে অ্যান্ড্রয়েড বিল্ড করা
+      - name: Build Android with Capacitor
+        run: |
+          npx cap add android || true
+          npx cap copy android
+          npx cap sync android
+          cd android && ./gradlew assembleRelease
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/')
         with:
-          files: |
-            dist/*
-            build/*
+          files: android/app/build/outputs/apk/release/app-release-unsigned.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
