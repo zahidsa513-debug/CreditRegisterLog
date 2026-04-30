@@ -1,4 +1,4 @@
-name: Build Android APK (Auto-Config)
+name: Build Android APK (Final Fix)
 
 on:
   push:
@@ -31,18 +31,18 @@ jobs:
       - name: Build Web Project
         run: npm run build
 
-      # এই অংশটি অটোমেটিক কনফিগারেশন ফাইল তৈরি করবে
+      # এই ধাপে আমরা Java 21 সেটআপ করছি যা আপনার প্রোজেক্টের জন্য প্রয়োজন
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
       - name: Initialize Capacitor Cloud
         run: |
           npx cap init "CreditRegister" "com.creditregister.app" --web-dir dist
-          npx cap add android
+          npx cap add android || true
           npx cap sync android
-
-      - name: Set up JDK
-        uses: actions/setup-java@v4
-        with:
-          java-version: '17'
-          distribution: 'temurin'
 
       - name: Build with Gradle
         run: |
