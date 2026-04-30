@@ -1,4 +1,4 @@
-name: Build Android APK (Dependency Fix)
+name: Build Android APK (Deep Clean Fix)
 
 on:
   push:
@@ -43,18 +43,19 @@ jobs:
           npx cap add android || true
           npx cap sync android
 
-      # ডুপ্লিকেট ক্লাস এরর সমাধানের জন্য গ্র্যাডল কনফিগ পরিবর্তন
-      - name: Fix Duplicate Classes
+      # ডুপ্লিকেট ক্লাস এরর এবং ক্যাশ ক্লিয়ার করার জন্য চূড়ান্ত সমাধান
+      - name: Configure Gradle and Clean
         run: |
           echo "android.useAndroidX=true" >> android/gradle.properties
           echo "android.enableJetifier=true" >> android/gradle.properties
           echo "kotlin.stdlib.default.dependency=false" >> android/gradle.properties
+          cd android && ./gradlew clean
 
       - name: Build with Gradle
         run: |
           cd android
           chmod +x gradlew
-          ./gradlew assembleRelease
+          ./gradlew assembleRelease --no-daemon --stacktrace
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
