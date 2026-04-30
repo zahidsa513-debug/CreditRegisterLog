@@ -102,6 +102,19 @@
         "imageUrl": { "type": "string" }
       },
       "required": ["checkNumber", "bankName", "amount", "dueDate", "userId"]
+    },
+    "Feedback": {
+      "title": "Feedback",
+      "description": "User suggestions and feedback",
+      "type": "object",
+      "properties": {
+        "message": { "type": "string" },
+        "userId": { "type": "string" },
+        "userEmail": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "category": { "type": "string" }
+      },
+      "required": ["message", "userId", "createdAt"]
     }
   },
   "firestore": {
@@ -128,6 +141,10 @@
     "checks": {
       "schema": "Check",
       "description": "Collection of checks"
+    },
+    "feedback": {
+      "schema": "Feedback",
+      "description": "Collection of user feedback"
     }
   }
 }

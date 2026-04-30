@@ -21,9 +21,12 @@ import { motion } from 'motion/react';
 import { db } from '../db/db';
 import { translations } from '../translations';
 import { cn, formatCurrency } from '../lib/utils';
-import { Sale } from '../types';
+import { Sale, Language } from '../types';
 
-const Reports = ({ language, currency, setActiveTab, setEditingSale }: { language: 'en' | 'bn', currency: string, setActiveTab?: (tab: string) => void, setEditingSale?: (sale: Sale | null) => void }) => {
+import { useSettings } from '../context/SettingsContext';
+
+const Reports = ({ setActiveTab, setEditingSale, redEyeActive }: { setActiveTab?: (tab: string) => void, setEditingSale?: (sale: Sale | null) => void, redEyeActive?: boolean }) => {
+  const { language, currency } = useSettings();
   const t = translations[language];
   const areas = useLiveQuery(() => db.areas.toArray());
   const customers = useLiveQuery(() => db.customers.toArray());
@@ -45,10 +48,11 @@ const Reports = ({ language, currency, setActiveTab, setEditingSale }: { languag
 
   const filteredSales = sales?.filter(s => {
     if (s.type === 'direct') return false;
-    const customer = customers?.find(c => c.id === s.customerId);
-    const dateMatch = (!dateRange.start || s.date >= dateRange.start) && (!dateRange.end || s.date <= dateRange.end);
-    const areaMatch = selectedArea === 'all' || customer?.areaId === Number(selectedArea);
-    const customerMatch = selectedCustomer === 'all' || s.customerId === Number(selectedCustomer);
+    const customer = customers?.find(c => String(c.id) === String(s.customerId));
+    const sDate = new Date(s.date).toISOString().split('T')[0];
+    const dateMatch = (!dateRange.start || sDate >= dateRange.start) && (!dateRange.end || sDate <= dateRange.end);
+    const areaMatch = selectedArea === 'all' || String(customer?.areaId) === String(selectedArea);
+    const customerMatch = selectedCustomer === 'all' || String(s.customerId) === String(selectedCustomer);
     return dateMatch && areaMatch && customerMatch;
   });
 
@@ -60,32 +64,45 @@ const Reports = ({ language, currency, setActiveTab, setEditingSale }: { languag
       phone: '',
       email: '',
       address: '',
-      website: ''
+      website: '',
+      logo: ''
     };
 
     // Header Pad
     doc.setFillColor(248, 250, 252);
     doc.rect(0, 0, 210, 40, 'F');
     
+    let textX = 14;
+    
+    // Add Logo if exists
+    if (company.logo) {
+      try {
+        doc.addImage(company.logo, 'PNG', 14, 8, 24, 24);
+        textX = 42;
+      } catch (err) {
+        console.error('Failed to add logo to PDF:', err);
+      }
+    }
+
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(22);
     doc.setTextColor(79, 70, 229);
-    doc.text(company.companyName.toUpperCase(), 14, 15);
+    doc.text(company.companyName.toUpperCase(), textX, 15);
 
     doc.setTextColor(100, 116, 139);
     doc.setFontSize(9);
     doc.setFont('helvetica', 'normal');
     let headerY = 22;
     if (company.address) {
-      doc.text(company.address, 14, headerY);
+      doc.text(company.address, textX, headerY);
       headerY += 5;
     }
     if (company.phone || company.email) {
-      doc.text(`${company.phone ? 'Phone: ' + company.phone : ''} ${company.email ? ' | Email: ' + company.email : ''}`, 14, headerY);
+      doc.text(`${company.phone ? 'Phone: ' + company.phone : ''} ${company.email ? ' | Email: ' + company.email : ''}`, textX, headerY);
       headerY += 5;
     }
     if (company.website) {
-      doc.text(company.website, 14, headerY);
+      doc.text(company.website, textX, headerY);
     }
 
     const title = language === 'en' ? 'Customer Credit Summary' : 'কাস্টমার ক্রেডিট সংক্ষিপ্ত বিবরণ';
@@ -98,7 +115,7 @@ const Reports = ({ language, currency, setActiveTab, setEditingSale }: { languag
     doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 56);
 
     const tableData = customers?.map(c => {
-      const area = areas?.find(a => a.id === c.areaId);
+      const area = areas?.find(a => String(a.id) === String(c.areaId));
       return [
         c.name,
         area?.name || 'N/A',
@@ -117,6 +134,68 @@ const Reports = ({ language, currency, setActiveTab, setEditingSale }: { languag
     });
 
     doc.save(`Credit_Report_${new Date().toISOString().split('T')[0]}.pdf`);
+  };
+  
+  const generateMasterAreaReport = async () => {
+    const doc = new jsPDF();
+    const companySettingsList = await db.settings.toArray();
+    const company = companySettingsList[0] || { companyName: 'CREDIT REGISTRY PRO' };
+    
+    // Header
+    doc.setFillColor(15, 23, 42);
+    doc.rect(0, 0, 210, 45, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(24);
+    doc.setFont("helvetica", "bold");
+    doc.text('MASTER AREA AUDIT REPORT', 105, 25, { align: 'center' });
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    doc.text(`Official Environmental Registry | ${new Date().toLocaleString()}`, 105, 35, { align: 'center' });
+
+    let currentY = 55;
+
+    const targetAreas = ['Kapar', 'Klang', 'Shah Alam'];
+    
+    for (const areaName of targetAreas) {
+      const area = areas?.find(a => a.name === areaName);
+      if (!area) continue;
+
+      const areaCustomers = customers?.filter(c => String(c.areaId) === String(area.id)) || [];
+      const areaDebit = areaCustomers.reduce((acc, c) => acc + (c.debit || 0), 0);
+      const areaCredit = areaCustomers.reduce((acc, c) => acc + (c.credit || 0), 0);
+      const areaBalance = areaDebit - areaCredit;
+
+      doc.setTextColor(15, 23, 42);
+      doc.setFontSize(14);
+      doc.setFont("helvetica", "bold");
+      doc.text(`AREA: ${area.name.toUpperCase()}`, 14, currentY);
+      
+      const areaSummaryData = [
+        ['Metric', 'Value'],
+        ['Number of Customers', areaCustomers.length.toString()],
+        ['Total Sales Volume', formatCurrency(areaDebit, currency)],
+        ['Total Cash Receipts', formatCurrency(areaCredit, currency)],
+        ['Outstanding Balance', formatCurrency(areaBalance, currency)],
+      ];
+
+      autoTable(doc, {
+        startY: currentY + 5,
+        head: [['PERFORMANCE METRIC', 'FINANCIAL VALUE']],
+        body: areaSummaryData.slice(1),
+        theme: 'striped',
+        headStyles: { fillColor: [79, 70, 229] },
+        styles: { fontSize: 10 }
+      });
+
+      currentY = (doc as any).lastAutoTable.finalY + 20;
+      
+      if (currentY > 250) {
+        doc.addPage();
+        currentY = 20;
+      }
+    }
+
+    doc.save(`Master_Area_Report_${new Date().toISOString().split('T')[0]}.pdf`);
   };
 
   const handleEditDailySale = (sale: Sale) => {
@@ -150,7 +229,12 @@ const Reports = ({ language, currency, setActiveTab, setEditingSale }: { languag
   };
 
   const handlePrintDailySales = async () => {
-    const list = sales?.filter(s => s.type === 'direct' && (!dateRange.start || new Date(s.date) >= new Date(dateRange.start)) && (!dateRange.end || new Date(s.date) <= new Date(dateRange.end))) || [];
+    const list = sales?.filter(s => {
+      const sDate = new Date(s.date).toISOString().split('T')[0];
+      return s.type === 'direct' && 
+        (!dateRange.start || sDate >= dateRange.start) && 
+        (!dateRange.end || sDate <= dateRange.end);
+    }) || [];
     if (list.length === 0) return;
 
     const doc = new jsPDF();
@@ -160,32 +244,45 @@ const Reports = ({ language, currency, setActiveTab, setEditingSale }: { languag
       phone: '',
       email: '',
       address: '',
-      website: ''
+      website: '',
+      logo: ''
     };
 
     // Header Pad
     doc.setFillColor(248, 250, 252);
     doc.rect(0, 0, 210, 40, 'F');
     
+    let textX = 14;
+    
+    // Add Logo if exists
+    if (company.logo) {
+      try {
+        doc.addImage(company.logo, 'PNG', 14, 8, 24, 24);
+        textX = 42;
+      } catch (err) {
+        console.error('Failed to add logo to PDF:', err);
+      }
+    }
+
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(22);
     doc.setTextColor(79, 70, 229);
-    doc.text(company.companyName.toUpperCase(), 14, 15);
+    doc.text(company.companyName.toUpperCase(), textX, 15);
 
     doc.setTextColor(100, 116, 139);
     doc.setFontSize(9);
     doc.setFont('helvetica', 'normal');
     let headerY = 22;
     if (company.address) {
-      doc.text(company.address, 14, headerY);
+      doc.text(company.address, textX, headerY);
       headerY += 5;
     }
     if (company.phone || company.email) {
-      doc.text(`${company.phone ? 'Phone: ' + company.phone : ''} ${company.email ? ' | Email: ' + company.email : ''}`, 14, headerY);
+      doc.text(`${company.phone ? 'Phone: ' + company.phone : ''} ${company.email ? ' | Email: ' + company.email : ''}`, textX, headerY);
       headerY += 5;
     }
     if (company.website) {
-      doc.text(company.website, 14, headerY);
+      doc.text(company.website, textX, headerY);
     }
 
     doc.setFont('helvetica', 'bold');
@@ -259,6 +356,13 @@ const Reports = ({ language, currency, setActiveTab, setEditingSale }: { languag
           <p className="text-slate-500 dark:text-slate-400 mt-1 text-sm">{language === 'en' ? 'Export data and generate insights' : 'ডেটা রপ্তানি করুন এবং অন্তর্দৃষ্টি তৈরি করুন'}</p>
         </div>
         <div className="flex gap-3">
+          <button 
+            onClick={generateMasterAreaReport}
+            className="flex items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-600 rounded-xl font-bold hover:bg-indigo-100 transition shadow-sm active:scale-95"
+          >
+            <FileSpreadsheet className="w-3.5 h-3.5" />
+            <span className="text-xs uppercase tracking-wider">{language === 'en' ? 'Master Area Report' : 'মাস্টার এরিয়া রিপোর্ট'}</span>
+          </button>
           <button 
             onClick={printPDF}
             className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-xl font-bold hover:bg-slate-800 transition shadow-lg active:scale-95"
@@ -378,11 +482,11 @@ const Reports = ({ language, currency, setActiveTab, setEditingSale }: { languag
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                   {filteredSales?.map((s, i) => {
-                    const customer = customers?.find(c => c.id === s.customerId);
+                    const customer = customers?.find(c => String(c.id) === String(s.customerId));
                     const age = calculateAge(s.date);
                     return (
                       <tr key={i} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
-                        <td className="px-6 py-3.5 text-sm font-bold text-slate-900 dark:text-white">{customer?.name || 'Unknown'}</td>
+                        <td className={cn("px-6 py-3.5 text-sm font-bold text-slate-900 dark:text-white", redEyeActive && "blur-sm")}>{customer?.name || 'Unknown'}</td>
                         <td className="px-6 py-3.5 text-xs text-slate-500 font-mono">{s.invoiceNumber || s.receiptNumber || 'N/A'}</td>
                         <td className="px-6 py-3.5 text-xs text-slate-500">{new Date(s.date).toLocaleDateString()}</td>
                         <td className="px-6 py-3.5">
@@ -393,7 +497,7 @@ const Reports = ({ language, currency, setActiveTab, setEditingSale }: { languag
                             {age} {language === 'en' ? 'Days' : 'দিন'}
                           </span>
                         </td>
-                        <td className="px-6 py-3.5 text-sm font-bold">
+                        <td className={cn("px-6 py-3.5 text-sm font-bold", redEyeActive && "blur-sm")}>
                           {formatCurrency(s.cashSale + s.chequeSale + s.creditSale, currency)}
                         </td>
                         <td className="px-6 py-3.5">
@@ -442,12 +546,17 @@ const Reports = ({ language, currency, setActiveTab, setEditingSale }: { languag
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                  {sales?.filter(s => s.type === 'direct' && (!dateRange.start || new Date(s.date) >= new Date(dateRange.start)) && (!dateRange.end || new Date(s.date) <= new Date(dateRange.end))).map((s) => (
+                  {sales?.filter(s => {
+                    const sDate = new Date(s.date).toISOString().split('T')[0];
+                    return s.type === 'direct' && 
+                      (!dateRange.start || sDate >= dateRange.start) && 
+                      (!dateRange.end || sDate <= dateRange.end);
+                  }).map((s) => (
                     <tr key={s.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
                       <td className="px-6 py-3.5 text-xs text-slate-500">{new Date(s.date).toLocaleDateString()}</td>
                       <td className="px-6 py-3.5 text-sm font-medium text-slate-900 dark:text-white capitalize">{s.description || 'N/A'}</td>
                       <td className="px-6 py-3.5 text-xs text-slate-500 font-mono">{s.invoiceNumber || 'N/A'}</td>
-                      <td className="px-6 py-3.5 text-sm font-black text-indigo-600">
+                      <td className={cn("px-6 py-3.5 text-sm font-black text-indigo-600", redEyeActive && "blur-sm")}>
                         {formatCurrency(s.cashSale, currency)}
                       </td>
                       <td className="px-6 py-3.5">
@@ -492,8 +601,13 @@ const Reports = ({ language, currency, setActiveTab, setEditingSale }: { languag
                 <tfoot className="bg-slate-50/50 dark:bg-slate-800/50">
                   <tr>
                     <td colSpan={4} className="px-6 py-4 text-xs font-bold text-slate-500 uppercase text-right">{language === 'en' ? 'Total Daily Sales' : 'মোট দৈনিক বিক্রি'}</td>
-                    <td className="px-6 py-4 text-sm font-black text-indigo-600">
-                      {formatCurrency(sales?.filter(s => s.type === 'direct' && (!dateRange.start || new Date(s.date) >= new Date(dateRange.start)) && (!dateRange.end || new Date(s.date) <= new Date(dateRange.end))).reduce((acc, s) => acc + (s.cashSale || 0), 0) || 0, currency)}
+                    <td className={cn("px-6 py-4 text-sm font-black text-indigo-600", redEyeActive && "blur-sm")}>
+                      {formatCurrency(sales?.filter(s => {
+                        const sDate = new Date(s.date).toISOString().split('T')[0];
+                        return s.type === 'direct' && 
+                          (!dateRange.start || sDate >= dateRange.start) && 
+                          (!dateRange.end || sDate <= dateRange.end);
+                      }).reduce((acc, s) => acc + (s.cashSale || 0), 0) || 0, currency)}
                     </td>
                   </tr>
                 </tfoot>
@@ -516,20 +630,21 @@ const Reports = ({ language, currency, setActiveTab, setEditingSale }: { languag
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                  {customers?.filter(c => selectedCustomer === 'all' || c.id === Number(selectedCustomer)).map((c, i) => {
-                    const customerSales = sales?.filter(s => s.customerId === c.id) || [];
+                  {customers?.filter(c => selectedCustomer === 'all' || String(c.id) === String(selectedCustomer)).map((c, i) => {
+                    const customerSales = sales?.filter(s => String(s.customerId) === String(c.id)) || [];
                     const customerDebit = customerSales.filter(s => s.type === 'sale').reduce((acc, s) => acc + ((s.cashSale || 0) + (s.chequeSale || 0) + (s.creditSale || 0)), 0);
                     const customerCredit = customerSales.filter(s => s.type === 'payment').reduce((acc, s) => acc + ((s.cashSale || 0) + (s.chequeSale || 0) + (s.creditSale || 0)), 0);
                     
                     return (
                       <tr key={i} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
-                        <td className="px-6 py-3.5 text-sm font-bold text-slate-900 dark:text-white">{c.name}</td>
-                        <td className="px-6 py-3.5 text-xs text-slate-500">{formatCurrency(customerDebit, currency)}</td>
-                        <td className="px-6 py-3.5 text-xs text-slate-500">{formatCurrency(customerCredit, currency)}</td>
+                        <td className={cn("px-6 py-3.5 text-sm font-bold text-slate-900 dark:text-white", redEyeActive && "blur-sm")}>{c.name}</td>
+                        <td className={cn("px-6 py-3.5 text-xs text-slate-500", redEyeActive && "blur-sm")}>{formatCurrency(customerDebit, currency)}</td>
+                        <td className={cn("px-6 py-3.5 text-xs text-slate-500", redEyeActive && "blur-sm")}>{formatCurrency(customerCredit, currency)}</td>
                         <td className="px-6 py-3.5">
                           <span className={cn(
                             "px-2 py-0.5 rounded text-[11px] font-bold",
-                            (customerDebit - customerCredit) > 0 ? "bg-rose-50 text-rose-600" : "bg-emerald-50 text-emerald-600"
+                            (customerDebit - customerCredit) > 0 ? "bg-rose-50 text-rose-600" : "bg-emerald-50 text-emerald-600",
+                            redEyeActive && "blur-sm"
                           )}>
                             {formatCurrency(customerDebit - customerCredit, currency)}
                           </span>

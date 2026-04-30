@@ -30,6 +30,7 @@ export interface Customer {
   location?: { lat: number; lng: number };
   licensePhoto?: string;
   shopImage?: string;
+  customerPhoto?: string;
   documents?: string[];
 }
 
@@ -49,6 +50,14 @@ export interface Sale {
   billNumber?: string;
 }
 
+export interface Expense {
+  id?: number;
+  date: Date;
+  description: string;
+  category: string;
+  amount: number;
+}
+
 export interface CompanySettings {
   id?: number;
   companyName: string;
@@ -57,6 +66,13 @@ export interface CompanySettings {
   address: string;
   logo?: string;
   website?: string;
+  autoBackup?: boolean;
+  securityPin?: string;
+  isPinEnabled?: boolean;
+  language?: Language;
+  theme?: Theme;
+  currency?: string;
+  targetAmount?: number;
 }
 
 export interface Check {
@@ -74,7 +90,7 @@ export interface Check {
   imageUrl?: string;
 }
 
-export type Language = 'en' | 'bn';
+export type Language = 'en' | 'bn' | 'es';
 export type Theme = 'light' | 'dark';
 export type Currency = {
   code: string;

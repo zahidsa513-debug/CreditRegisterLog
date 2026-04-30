@@ -16,7 +16,8 @@ import {
   TrendingUp,
   CreditCard,
   DollarSign,
-  Eye
+  Eye,
+  Sparkles
 } from 'lucide-react';
 import { translations } from './translations';
 import { Language, Theme, UserProfile } from './types';
@@ -30,42 +31,88 @@ import Reports from './components/Reports';
 import SettingsView from './components/SettingsView';
 import AuthScreen from './components/AuthScreen';
 import RedEye from './components/RedEye';
+import MyProgress from './components/MyProgress';
+import AiCorner from './components/AiCorner';
+import PinLock from './components/PinLock';
+import SplashScreen from './components/SplashScreen';
 import { cn } from './lib/utils';
 import { db } from './db/db';
 import { useAuth } from './hooks/useAuth';
+import { syncToCloud } from './lib/sync';
+import { useSettings } from './context/SettingsContext';
+import { trackPageChange } from './lib/analytics';
 
 const App = () => {
   const { user, profile: firebaseProfile, loading: authLoading, logout: firebaseLogout } = useAuth();
-  const [language, setLanguage] = useState<Language>('en');
-  const [theme, setTheme] = useState<Theme>('light');
-  const [monthlyTarget, setMonthlyTarget] = useState<number>(50000);
-  const [currency, setCurrency] = useState('USD');
+  const { language, theme, currency, target: monthlyTarget, isLoaded: settingsLoaded } = useSettings();
+  
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [showSplash, setShowSplash] = useState(true);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowSplash(false);
+    }, 3000);
+    return () => clearTimeout(timer);
+  }, []);
+  
+  useEffect(() => {
+    trackPageChange(activeTab);
+  }, [activeTab]);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [editingSale, setEditingSale] = useState<any>(null);
+  const [redEyeActive, setRedEyeActive] = useState(false);
+  const [isLocked, setIsLocked] = useState(false);
+  const [hasCheckedLock, setHasCheckedLock] = useState(false);
 
-  const totalDebit = useLiveQuery(async () => {
-    const customers = await db.customers.toArray();
-    return customers.reduce((acc, curr) => acc + (curr.debit || 0), 0);
-  }) || 0;
+  const monthlySalesTotal = useLiveQuery(async () => {
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+    const sales = await db.sales.toArray();
+    
+    return sales
+      .filter(s => {
+        const d = new Date(s.date);
+        return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
+      })
+      .reduce((acc, s) => acc + (s.totalAmount || ((s.cashSale || 0) + (s.chequeSale || 0) + (s.creditSale || 0))), 0);
+  }, []);
 
-  const progressPercent = Math.min(Math.round((totalDebit / monthlyTarget) * 100), 100);
-  const remaining = Math.max(monthlyTarget - totalDebit, 0);
+  const progressPercent = monthlyTarget > 0 ? Math.min(Math.round((monthlySalesTotal / monthlyTarget) * 100), 100) : 0;
+  const remaining = Math.max(monthlyTarget - (monthlySalesTotal || 0), 0);
 
   const t = translations[language];
 
-  useEffect(() => {
-    // Check local storage for settings
-    const savedLang = localStorage.getItem('lang') as Language;
-    const savedTheme = localStorage.getItem('theme') as Theme;
-    const savedCurrency = localStorage.getItem('currency');
-    const savedTarget = localStorage.getItem('monthlyTarget');
-    if (savedLang) setLanguage(savedLang);
-    if (savedTheme) setTheme(savedTheme);
-    if (savedCurrency) setCurrency(savedCurrency);
-    if (savedTarget) setMonthlyTarget(Number(savedTarget));
+  // Load settings for Pin Lock and Auto Backup
+  const dexieSettings = useLiveQuery(() => db.settings.toArray());
 
-    // Initial DB seed if empty
+  useEffect(() => {
+    if (dexieSettings && dexieSettings.length > 0) {
+      const s = dexieSettings[0];
+      
+      // Only lock on initial load
+      if (!hasCheckedLock && s.isPinEnabled && s.securityPin) {
+        setIsLocked(true);
+        setHasCheckedLock(true);
+      } else if (!hasCheckedLock) {
+        setHasCheckedLock(true);
+      }
+      
+      if (s.autoBackup) {
+        const lastBackup = localStorage.getItem('last_auto_backup');
+        const today = new Date().toISOString().split('T')[0];
+        if (lastBackup !== today) {
+          syncToCloud().then(() => {
+            localStorage.setItem('last_auto_backup', today);
+          }).catch(err => console.error('Auto backup failed:', err));
+        }
+      }
+    }
+  }, [dexieSettings, hasCheckedLock]);
+
+  useEffect(() => {
+    // Initial DB seed
     const seedDB = async () => {
       const areaCount = await db.areas.count();
       if (areaCount === 0) {
@@ -74,28 +121,24 @@ const App = () => {
           { name: 'Klang', target: 75000, color: '#10b981' },
           { name: 'Shah Alam', target: 100000, color: '#f59e0b' }
         ]);
-        console.log('Seeded initial areas');
       }
     };
-
     seedDB();
   }, []);
 
   useEffect(() => {
-    localStorage.setItem('lang', language);
-    localStorage.setItem('theme', theme);
-    localStorage.setItem('currency', currency);
-    localStorage.setItem('monthlyTarget', monthlyTarget.toString());
     document.documentElement.classList.toggle('dark', theme === 'dark');
-  }, [language, theme, currency, monthlyTarget]);
+  }, [theme]);
 
   const navItems = [
     { id: 'dashboard', icon: LayoutDashboard, label: t.dashboard },
+    { id: 'myProgress', icon: TrendingUp, label: t.myProgress },
     { id: 'areas', icon: MapPin, label: t.areas },
     { id: 'customers', icon: Users, label: t.customers },
     { id: 'customerProfile', icon: User, label: t.customerProfile },
     { id: 'sales', icon: PlusCircle, label: t.salesEntry },
     { id: 'reports', icon: FileText, label: t.reports },
+    { id: 'aiCorner', icon: Sparkles, label: t.aiCorner || 'AI Corner' },
     { id: 'redeye', icon: Eye, label: t.redEye },
     { id: 'settings', icon: Settings, label: t.settings },
   ];
@@ -106,64 +149,35 @@ const App = () => {
 
   const renderContent = () => {
     switch (activeTab) {
-      case 'dashboard': return <Dashboard language={language} currency={currency} monthlyTarget={monthlyTarget} setActiveTab={setActiveTab} />;
-      case 'areas': return <Areas language={language} currency={currency} />;
-      case 'customers': return <Customers language={language} currency={currency} />;
-      case 'customerProfile': return <CustomerProfile language={language} currency={currency} />;
-      case 'sales': return <SalesEntry language={language} theme={theme} currency={currency} editingSale={editingSale} setEditingSale={setEditingSale} />;
-      case 'reports': return <Reports language={language} currency={currency} setActiveTab={setActiveTab} setEditingSale={setEditingSale} />;
-      case 'redeye': return <RedEye language={language} currency={currency} />;
+      case 'dashboard': return <Dashboard setActiveTab={setActiveTab} redEyeActive={redEyeActive} />;
+      case 'myProgress': return <MyProgress redEyeActive={redEyeActive} />;
+      case 'areas': return <Areas redEyeActive={redEyeActive} />;
+      case 'customers': return <Customers redEyeActive={redEyeActive} />;
+      case 'customerProfile': return <CustomerProfile redEyeActive={redEyeActive} />;
+      case 'sales': return <SalesEntry editingSale={editingSale} setEditingSale={setEditingSale} />;
+      case 'reports': return <Reports setActiveTab={setActiveTab} setEditingSale={setEditingSale} redEyeActive={redEyeActive} />;
+      case 'aiCorner': return <AiCorner redEyeActive={redEyeActive} />;
+      case 'redeye': return <RedEye />;
       case 'settings': return (
         <SettingsView 
-          language={language} 
-          setTheme={setTheme} 
-          setLanguage={setLanguage} 
-          theme={theme} 
-          currency={currency} 
-          setCurrency={setCurrency} 
-          monthlyTarget={monthlyTarget} 
-          setMonthlyTarget={setMonthlyTarget}
-          userProfile={firebaseProfile as any}
-          setUserProfile={() => {}} // Firebase profile is managed via hook
           onLogout={handleLogout}
+          redEyeActive={redEyeActive}
         />
       );
-      default: return <Dashboard language={language} currency={currency} monthlyTarget={monthlyTarget} setActiveTab={setActiveTab} />;
+      default: return <Dashboard setActiveTab={setActiveTab} redEyeActive={redEyeActive} />;
     }
   };
 
-  if (authLoading) {
-    return (
-      <div className="fixed inset-0 flex flex-col items-center justify-center bg-white dark:bg-slate-950 z-50">
-        <motion.div
-          initial={{ scale: 0.8, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ duration: 0.5, repeat: Infinity, repeatType: 'reverse' }}
-          className="mb-8"
-        >
-          <Logo size="xl" />
-        </motion.div>
-        <motion.h1 
-          className="text-4xl font-display font-black tracking-tight text-white"
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-        >
-          Credit <span className="text-indigo-400">Register</span>
-        </motion.h1>
-        <div className="h-1 w-48 bg-slate-800 rounded-full overflow-hidden mt-6">
-          <motion.div 
-            initial={{ width: 0 }}
-            animate={{ width: "100%" }}
-            transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-            className="h-full bg-indigo-500 rounded-full"
-          />
-        </div>
-      </div>
-    );
+  if (!settingsLoaded || authLoading || showSplash) {
+    return <SplashScreen />;
   }
 
   if (!user) {
-    return <AuthScreen onAuthSuccess={() => {}} language={language} />;
+    return <AuthScreen onAuthSuccess={() => {}} />;
+  }
+
+  if (isLocked && dexieSettings?.[0]?.securityPin) {
+    return <PinLock correctPin={dexieSettings[0].securityPin} onUnlock={() => setIsLocked(false)} />;
   }
 
   return (
@@ -174,12 +188,24 @@ const App = () => {
           <Logo size="sm" className="rounded-lg shadow-lg ring-1 ring-slate-100 dark:ring-white/10" />
           <span className="font-display font-bold text-lg">CreditRegister</span>
         </div>
-        <button 
-          onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-          className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
-        >
-          {isSidebarOpen ? <X /> : <Menu />}
-        </button>
+        <div className="flex items-center gap-3">
+          <button 
+            onClick={() => setRedEyeActive(!redEyeActive)}
+            className={cn(
+              "p-2 rounded-xl transition-all",
+              redEyeActive ? "bg-rose-500 text-white shadow-lg shadow-rose-500/20" : "bg-slate-100 dark:bg-slate-800 text-slate-500"
+            )}
+            title={redEyeActive ? "Privacy Mode ON" : "Privacy Mode OFF"}
+          >
+            <Eye className="w-5 h-5" />
+          </button>
+          <button 
+            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+            className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
+          >
+            {isSidebarOpen ? <X /> : <Menu />}
+          </button>
+        </div>
       </header>
 
       <div className="flex h-[calc(100vh-64px)] lg:h-screen">
@@ -220,10 +246,10 @@ const App = () => {
           </nav>
 
           <div className="mt-auto p-4 bg-slate-800 m-4 rounded-lg shadow-inner">
-            <p className="text-[10px] text-slate-400 mb-2 uppercase tracking-widest font-bold">{language === 'en' ? 'Monthly Target' : 'মাসিক টার্গেট'}</p>
+            <p className="text-[10px] text-slate-400 mb-2 uppercase tracking-widest font-bold">{t.monthlyTarget}</p>
             <div className="flex justify-between text-[11px] mb-1 font-medium">
-              <span>{progressPercent}% {language === 'en' ? 'Completed' : 'সম্পন্ন'}</span>
-              <span className="text-slate-500">{currency} {remaining.toLocaleString()} {language === 'en' ? 'left' : 'বাকি'}</span>
+              <span>{progressPercent}% {t.completed}</span>
+              <span className="text-slate-500">{currency} {remaining.toLocaleString()} {t.left}</span>
             </div>
             <div className="w-full bg-slate-700 h-1.5 rounded-full overflow-hidden">
               <div 

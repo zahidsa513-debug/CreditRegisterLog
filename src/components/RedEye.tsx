@@ -25,12 +25,15 @@ import {
 import { db } from '../db/db';
 import { translations } from '../translations';
 import { cn, formatCurrency } from '../lib/utils';
-import { Check } from '../types';
+import { Check, Language } from '../types';
 import { format, isTomorrow, isPast, isValid } from 'date-fns';
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
 
-const RedEye = ({ language, currency }: { language: 'en' | 'bn', currency: string }) => {
+import { useSettings } from '../context/SettingsContext';
+
+const RedEye = () => {
+  const { language, currency } = useSettings();
   const t = translations[language];
   const checks = useLiveQuery(() => db.checks.orderBy('dueDate').toArray());
   const customers = useLiveQuery(() => db.customers.toArray());
@@ -56,6 +59,7 @@ const RedEye = ({ language, currency }: { language: 'en' | 'bn', currency: strin
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [searchTop, setSearchTop] = useState('');
   const [searchOutstanding, setSearchOutstanding] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'cleared'>('all');
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const pdfRef = useRef<HTMLDivElement>(null);
@@ -434,11 +438,29 @@ const RedEye = ({ language, currency }: { language: 'en' | 'bn', currency: strin
               <p className="text-sm text-slate-500 font-medium">Unified record of all incoming and pending clearances</p>
             </div>
           </div>
+          <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
+             {(['all', 'pending', 'cleared'] as const).map((status) => (
+                <button
+                  key={status}
+                  onClick={() => setStatusFilter(status)}
+                  className={cn(
+                    "px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-widest transition-all",
+                    statusFilter === status ? "bg-white dark:bg-slate-700 text-indigo-600 shadow-sm" : "text-slate-400"
+                  )}
+                >
+                  {status}
+                </button>
+             ))}
+          </div>
         </div>
 
         <div className="px-8 pb-8">
           <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-6">
-            {checks?.map((check) => (
+            {checks?.filter(c => {
+               if (statusFilter === 'pending') return !c.isCleared;
+               if (statusFilter === 'cleared') return c.isCleared;
+               return true;
+            }).map((check) => (
               <motion.div 
                 layout
                 key={check.id}
@@ -572,7 +594,17 @@ const RedEye = ({ language, currency }: { language: 'en' | 'bn', currency: strin
                   className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-xl text-xs font-bold hover:bg-indigo-700 transition"
                  >
                    <Download className="w-4 h-4" />
-                   {language === 'en' ? 'Download PDF' : 'পিডিএফ ডাউনলোড'}
+                   {language === 'en' ? 'Download' : 'ডাউনলোড'}
+                 </button>
+                 <button 
+                  onClick={() => {
+                    deleteCheck(Number(selectedCheck.id));
+                    setIsDetailsModalOpen(false);
+                  }}
+                  className="flex items-center gap-2 px-4 py-2 bg-rose-50 text-rose-600 rounded-xl text-xs font-bold hover:bg-rose-100 transition"
+                 >
+                   <Trash2 className="w-4 h-4" />
+                   {language === 'en' ? 'Remove' : 'মুছে ফেলুন'}
                  </button>
                  <button onClick={() => setIsDetailsModalOpen(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl">
                    <X className="w-6 h-6 text-slate-300" />

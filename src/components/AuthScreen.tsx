@@ -4,7 +4,12 @@ import { LogIn, Mail, ShieldCheck, User, Lock, ArrowRight, Loader2 } from 'lucid
 import { useAuth } from '../hooks/useAuth';
 import Logo from './Logo';
 
-const AuthScreen = ({ onAuthSuccess, language }: { onAuthSuccess: () => void, language: 'en' | 'bn' }) => {
+import { Language } from '../types';
+
+import { useSettings } from '../context/SettingsContext';
+
+const AuthScreen = ({ onAuthSuccess }: { onAuthSuccess: () => void }) => {
+  const { language } = useSettings();
   const { login, loginWithEmail, registerWithEmail, resetPassword } = useAuth();
   const [isLogin, setIsLogin] = useState(true);
   const [isResetting, setIsResetting] = useState(false);

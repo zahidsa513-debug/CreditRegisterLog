@@ -20,9 +20,13 @@ import {
 import { db } from '../db/db';
 import { translations } from '../translations';
 import { cn, formatCurrency } from '../lib/utils';
-import { Sale } from '../types';
+import { Sale, Language, Theme } from '../types';
 
-const SalesEntry = ({ language, theme, currency, editingSale, setEditingSale }: { language: 'en' | 'bn', theme: 'light' | 'dark', currency: string, editingSale?: Sale | null, setEditingSale?: (sale: Sale | null) => void }) => {
+import { useSettings } from '../context/SettingsContext';
+import { trackFeatureUsage } from '../lib/analytics';
+
+const SalesEntry = ({ editingSale, setEditingSale }: { editingSale?: Sale | null, setEditingSale?: (sale: Sale | null) => void }) => {
+  const { language, theme, currency } = useSettings();
   const t = translations[language];
   const customers = useLiveQuery(() => db.customers.toArray());
   const sigPad = useRef<any>(null);
@@ -98,9 +102,7 @@ const SalesEntry = ({ language, theme, currency, editingSale, setEditingSale }: 
     const saleToDelete = await db.sales.get(id);
     if (!saleToDelete) return;
 
-    const confirmMsg = language === 'en' 
-      ? 'Are you sure you want to delete this entry?' 
-      : 'আপনি কি এই এন্ট্রিটি ডিলিট করতে নিশ্চিত?';
+    const confirmMsg = t.confirmDelete;
 
     if (window.confirm(confirmMsg)) {
       try {
@@ -303,6 +305,7 @@ const SalesEntry = ({ language, theme, currency, editingSale, setEditingSale }: 
       await generateReceipt(saleData, customer, prevBalance);
     }
 
+    trackFeatureUsage(`sale_entry_${formData.type}`);
     setIsSuccess(true);
     setTimeout(() => {
       setIsSuccess(false);
@@ -329,7 +332,7 @@ const SalesEntry = ({ language, theme, currency, editingSale, setEditingSale }: 
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-3xl font-display font-bold tracking-tight">{t.newSale}</h2>
-          <p className="text-slate-500 dark:text-slate-400 mt-1 text-sm">{language === 'en' ? 'Record daily transactions efficiently' : 'দক্ষতার সাথে দৈনিক লেনদেন রেকর্ড করুন'}</p>
+          <p className="text-slate-500 dark:text-slate-400 mt-1 text-sm">{t.monitorDescription || 'Record daily transactions efficiently'}</p>
         </div>
       </div>
 
@@ -373,7 +376,7 @@ const SalesEntry = ({ language, theme, currency, editingSale, setEditingSale }: 
               <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2 text-indigo-600">
                 {editingId && (
                   <span className="bg-indigo-100 text-indigo-600 px-2 py-0.5 rounded-full text-[8px]">
-                    {language === 'en' ? 'EDITING MODE' : 'এডিট মুড'}
+                    {t.editingMode}
                   </span>
                 )}
                 <Calendar className="w-3 h-3" /> {t.date}
@@ -409,7 +412,7 @@ const SalesEntry = ({ language, theme, currency, editingSale, setEditingSale }: 
             {formData.type === 'payment' ? (
               <div className="space-y-1">
                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                  <Hash className="w-3 h-3 text-indigo-500" /> {language === 'en' ? 'Money Receipt Number' : 'মানি রিসিট নাম্বার'}
+                  <Hash className="w-3 h-3 text-indigo-500" /> {t.moneyReceiptNumber}
                 </label>
                 <input 
                   required
@@ -417,14 +420,14 @@ const SalesEntry = ({ language, theme, currency, editingSale, setEditingSale }: 
                   value={formData.receiptNumber}
                   onChange={e => setFormData({...formData, receiptNumber: e.target.value})}
                   className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-800 border-none focus:ring-2 focus:ring-indigo-500 outline-none font-medium text-sm"
-                  placeholder={language === 'en' ? 'MR-2024-xxx' : 'রশিদ নং লিখুন'}
+                  placeholder={t.mrPlaceholder}
                 />
               </div>
             ) : (
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
                   <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                    <FileText className="w-3 h-3 text-indigo-500" /> {language === 'en' ? 'Sales Invoice #' : 'সেলস ইনভয়েস নং'}
+                    <FileText className="w-3 h-3 text-indigo-500" /> {t.salesInvoiceNumber}
                   </label>
                   <input 
                     required
@@ -437,7 +440,7 @@ const SalesEntry = ({ language, theme, currency, editingSale, setEditingSale }: 
                 </div>
                 <div className="space-y-1">
                   <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                    <Hash className="w-3 h-3 text-indigo-500" /> {language === 'en' ? 'Bill Number' : 'বিল নাম্বার'}
+                    <Hash className="w-3 h-3 text-indigo-500" /> {t.billNumber}
                   </label>
                   <input 
                     type="text"
@@ -470,7 +473,7 @@ const SalesEntry = ({ language, theme, currency, editingSale, setEditingSale }: 
             {formData.type !== 'payment' && (
               <div className="space-y-1">
                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none">
-                  {language === 'en' ? 'Total Sales Amount' : 'মোট বিক্রির পরিমাণ'}
+                  {t.totalSalesAmount}
                 </label>
                 <div className="relative">
                   <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-xs font-bold">{currency}</div>
@@ -488,7 +491,7 @@ const SalesEntry = ({ language, theme, currency, editingSale, setEditingSale }: 
 
             <div className="grid grid-cols-1 gap-4">
               <div className="space-y-1">
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none">{formData.type === 'payment' ? 'Cash Received' : t.cash}</label>
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none">{formData.type === 'payment' ? t.cashReceived : t.cash}</label>
                 <div className="relative">
                   <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-xs font-bold">{currency}</div>
                   <input 
@@ -560,7 +563,7 @@ const SalesEntry = ({ language, theme, currency, editingSale, setEditingSale }: 
               {isSuccess ? (
                 <>
                   <CheckCircle2 className="w-5 h-5" />
-                  {language === 'en' ? 'Entry Saved' : 'এন্ট্রি সংরক্ষিত'}
+                  {t.entrySaved}
                 </>
               ) : (
                 <>
@@ -577,7 +580,7 @@ const SalesEntry = ({ language, theme, currency, editingSale, setEditingSale }: 
         <div className="p-4 border-b dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-800 bg-opacity-50">
           <h3 className="font-bold text-sm uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-2">
             <TrendingUp className="w-4 h-4 text-indigo-500" />
-            {language === 'en' ? "Today's Transaction History" : 'আজকের লেনদেনের তালিকা'}
+            {t.todayTransactionHistory}
           </h3>
           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{dailySalesList?.length || 0} Entries</span>
         </div>
@@ -586,10 +589,10 @@ const SalesEntry = ({ language, theme, currency, editingSale, setEditingSale }: 
             <thead>
               <tr className="bg-slate-50/50 dark:bg-slate-800/50 text-left">
                 <th className="px-6 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">{t.date}</th>
-                <th className="px-6 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">{language === 'en' ? 'Type' : 'ধরণ'}</th>
+                <th className="px-6 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">{t.type}</th>
                 <th className="px-6 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">{t.description}</th>
-                <th className="px-6 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">{language === 'en' ? 'Amount' : 'পরিমাণ'}</th>
-                <th className="px-6 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-right">{language === 'en' ? 'Actions' : 'অ্যাকশন'}</th>
+                <th className="px-6 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">{t.amount}</th>
+                <th className="px-6 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-right">{t.actions}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -618,7 +621,7 @@ const SalesEntry = ({ language, theme, currency, editingSale, setEditingSale }: 
                           handleEdit(s);
                         }}
                         className="p-2 text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded-xl transition-all active:scale-90"
-                        title={language === 'en' ? 'Edit' : 'এডিট'}
+                        title={t.edit}
                       >
                         <Edit2 className="w-4 h-4" />
                       </button>
@@ -628,7 +631,7 @@ const SalesEntry = ({ language, theme, currency, editingSale, setEditingSale }: 
                           handleDelete(s.id!);
                         }}
                         className="p-2 text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded-xl transition-all active:scale-90"
-                        title={language === 'en' ? 'Delete' : 'ডিলিট'}
+                        title={t.delete}
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
@@ -639,7 +642,7 @@ const SalesEntry = ({ language, theme, currency, editingSale, setEditingSale }: 
               {(!dailySalesList || dailySalesList.length === 0) && (
                 <tr>
                   <td colSpan={4} className="px-6 py-8 text-center text-slate-400 text-xs italic">
-                    {language === 'en' ? 'No history found' : 'কোনো তথ্য পাওয়া যায়নি'}
+                    {t.noHistoryFound}
                   </td>
                 </tr>
               )}

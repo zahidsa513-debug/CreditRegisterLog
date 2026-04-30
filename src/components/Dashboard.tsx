@@ -32,8 +32,12 @@ import {
 import { db } from '../db/db';
 import { translations } from '../translations';
 import { cn, formatCurrency } from '../lib/utils';
+import { Language, Theme, UserProfile } from '../types';
+import { useSettings } from '../context/SettingsContext';
 
-const StatCard = ({ title, value, icon: Icon, trend, color, language, onClick, delay = 0 }: any) => (
+const StatCard = ({ title, value, icon: Icon, trend, color, language, onClick, delay = 0, redEyeActive }: { 
+  title: string, value: string | number, icon: any, trend?: number, color: string, language: Language, onClick?: () => void, delay?: number, redEyeActive?: boolean 
+}) => (
   <motion.button 
     initial={{ opacity: 0, y: 20 }}
     animate={{ opacity: 1, y: 0 }}
@@ -61,7 +65,10 @@ const StatCard = ({ title, value, icon: Icon, trend, color, language, onClick, d
     </div>
     <div className="mt-6 relative z-10">
       <p className="stat-label">{title}</p>
-      <h3 className="text-3xl font-black font-display mt-2 tracking-tight group-hover:text-indigo-600 transition-colors">{value}</h3>
+      <h3 className={cn(
+        "text-3xl font-black font-display mt-2 tracking-tight group-hover:text-indigo-600 transition-colors",
+        redEyeActive && typeof value === 'string' && (value.includes('$') || value.includes('৳') || value.includes('RM')) && "blur-md select-none"
+      )}>{value}</h3>
     </div>
     
     {/* Decorative background element */}
@@ -71,18 +78,20 @@ const StatCard = ({ title, value, icon: Icon, trend, color, language, onClick, d
 
     {onClick && (
       <div className="mt-4 pt-4 border-t border-slate-50 dark:border-slate-800 flex items-center gap-1.5 text-indigo-500 font-bold text-[10px] uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-all translate-y-2 group-hover:translate-y-0">
-        {language === 'en' ? 'Explore' : 'বিস্তারিত'} <ArrowUpRight className="w-3 h-3" />
+        {translations[language].explore} <ArrowUpRight className="w-3 h-3" />
       </div>
     )}
   </motion.button>
 );
 
-const Dashboard = ({ language, currency, monthlyTarget, setActiveTab }: { language: 'en' | 'bn', currency: string, monthlyTarget: number, setActiveTab: (tab: string) => void }) => {
+const Dashboard = ({ setActiveTab, redEyeActive }: { setActiveTab: (tab: string) => void, redEyeActive?: boolean }) => {
+  const { language, currency, target: monthlyTarget } = useSettings();
   const t = translations[language];
 
   const totalCustomers = useLiveQuery(() => db.customers.count());
   const customers = useLiveQuery(() => db.customers.toArray());
   const recentSales = useLiveQuery(() => db.sales.orderBy('date').reverse().limit(5).toArray());
+  const companySettings = useLiveQuery(() => db.settings.toArray());
   
   const totals = useLiveQuery(async () => {
     const customers = await db.customers.toArray();
@@ -107,6 +116,8 @@ const Dashboard = ({ language, currency, monthlyTarget, setActiveTab }: { langua
     });
 
     const totalCreditSaleCurrentMonth = currentMonthSales.reduce((acc, s) => acc + (s.creditSale || 0), 0);
+    const totalCashSaleCurrentMonth = currentMonthSales.reduce((acc, s) => acc + (s.cashSale || 0), 0);
+    const totalChequeSaleCurrentMonth = currentMonthSales.reduce((acc, s) => acc + (s.chequeSale || 0), 0);
     const lastMonthCreditSale = lastMonthSalesList.reduce((acc, s) => acc + (s.creditSale || 0), 0);
     
     // Month-over-month trend
@@ -127,6 +138,9 @@ const Dashboard = ({ language, currency, monthlyTarget, setActiveTab }: { langua
       salesTrend,
       creditTrend,
       monthlyTotalAchieved,
+      totalCashSaleCurrentMonth,
+      totalChequeSaleCurrentMonth,
+      totalCreditSaleCurrentMonth,
       targetRemaining: Math.max(0, monthlyTarget - monthlyTotalAchieved),
       creditCustomersCount,
       totalSales: sales.reduce((acc, s) => acc + (s.totalAmount || ((s.cashSale || 0) + (s.chequeSale || 0) + (s.creditSale || 0))), 0)
@@ -155,22 +169,33 @@ const Dashboard = ({ language, currency, monthlyTarget, setActiveTab }: { langua
   return (
     <div className="space-y-10 pb-12">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-        <div>
-          <motion.h2 
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            className="text-4xl font-display font-black tracking-tight"
-          >
-            Insights <span className="text-indigo-600">&</span> Overview
-          </motion.h2>
-          <motion.p 
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.1 }}
-            className="text-slate-400 font-medium mt-1"
-          >
-            {language === 'en' ? 'Monitor your credit flow and targets in real-time.' : 'আপনার ক্রেডিট প্রবাহ এবং টার্গেট রিয়েল-টাইমে মনিটর করুন।'}
-          </motion.p>
+        <div className="flex items-center gap-5">
+          {companySettings?.[0]?.logo && (
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="w-16 h-16 rounded-2xl overflow-hidden bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-premium shrink-0"
+            >
+              <img src={companySettings[0].logo} alt="Business Logo" className="w-full h-full object-contain" />
+            </motion.div>
+          )}
+          <div>
+            <motion.h2 
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              className="text-4xl font-display font-black tracking-tight"
+            >
+              {t.insightsOverview}
+            </motion.h2>
+            <motion.p 
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.1 }}
+              className="text-slate-400 font-medium mt-1"
+            >
+              {t.monitorDescription}
+            </motion.p>
+          </div>
         </div>
         <div className="flex items-center gap-3">
           <button 
@@ -183,41 +208,86 @@ const Dashboard = ({ language, currency, monthlyTarget, setActiveTab }: { langua
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-1 gap-6">
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-soft overflow-hidden p-8"
+        >
+          <div className="flex flex-col md:flex-row justify-between gap-8">
+            <div className="flex-1">
+              <span className="stat-label mb-2 block">{t.monthlyPerformance}</span>
+              <div className="flex items-end gap-3">
+                <h3 className="text-5xl font-black font-display tracking-tight text-indigo-600">
+                  {Math.round(Math.min(100, ((totals?.monthlyTotalAchieved || 0) / (monthlyTarget || 1)) * 100))}%
+                </h3>
+                <span className="text-slate-400 font-bold mb-2 uppercase text-[10px] tracking-widest">{t.targetReached}</span>
+              </div>
+              <div className="mt-8 grid grid-cols-2 md:grid-cols-4 gap-6">
+                <div>
+                  <p className="text-[10px] font-black uppercase text-slate-400 tracking-wider mb-1">{t.totalDebit}</p>
+                  <p className={cn("font-bold text-slate-900 dark:text-white", redEyeActive && "blur-sm")}>{formatCurrency(totals?.monthlyTotalAchieved || 0, currency)}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] font-black uppercase text-slate-400 tracking-wider mb-1">{t.cash}</p>
+                  <p className={cn("font-bold text-emerald-500", redEyeActive && "blur-sm")}>{formatCurrency(totals?.totalCashSaleCurrentMonth || 0, currency)}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] font-black uppercase text-slate-400 tracking-wider mb-1">{t.credit}</p>
+                  <p className={cn("font-bold text-rose-500", redEyeActive && "blur-sm")}>{formatCurrency(totals?.totalCreditSaleCurrentMonth || 0, currency)}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] font-black uppercase text-slate-400 tracking-wider mb-1">{t.cheque}</p>
+                  <p className={cn("font-bold text-indigo-500", redEyeActive && "blur-sm")}>{formatCurrency(totals?.totalChequeSaleCurrentMonth || 0, currency)}</p>
+                </div>
+              </div>
+            </div>
+            
+            <div className="flex flex-col justify-center items-center md:items-end gap-4">
+              <button 
+                onClick={() => setActiveTab('myProgress')}
+                className="px-8 py-4 bg-indigo-600 text-white rounded-2xl text-xs font-black uppercase tracking-widest shadow-xl shadow-indigo-500/20 hover:scale-105 active:scale-95 transition-all flex items-center gap-2"
+              >
+                <PlusCircle className="w-4 h-4" />
+                {t.dailyOperations}
+              </button>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                {t.manageSalesExpenses}
+              </p>
+            </div>
+          </div>
+        </motion.div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <StatCard 
-          title={language === 'en' ? "Monthly Revenue" : 'মাসিক আয়'} 
+          title={t.activeRevenue} 
           value={formatCurrency(totals?.monthlyTotalAchieved || 0, currency)} 
-          icon={TrendingUp} 
-          trend={totals?.salesTrend}
-          color="bg-indigo-600"
-          language={language}
-          delay={0.1}
-        />
-        <StatCard 
-          title={language === 'en' ? 'New Credit' : 'নতুন বাকি'} 
-          value={formatCurrency(totals?.creditTrend || 0, currency)} // Using trend as value placeholder if needed, but let's use actual current month credit
-          trend={totals?.creditTrend}
-          icon={CreditCard} 
-          color="bg-amber-500"
+          icon={DollarSign} 
+          color="bg-emerald-500"
           language={language}
           delay={0.2}
+          redEyeActive={redEyeActive}
         />
         <StatCard 
-          title={language === 'en' ? 'Total Outstanding' : 'মোট বকেয়া'} 
+          title={t.activeCredit} 
           value={formatCurrency(totals?.totalOutstanding || 0, currency)} 
           icon={Wallet} 
           color="bg-rose-500"
           language={language}
           delay={0.3}
+          onClick={() => setActiveTab('myProgress')}
+          redEyeActive={redEyeActive}
         />
         <StatCard 
-          title={language === 'en' ? 'Active Customers' : 'সক্রিয় ক্রেতা'} 
+          title={t.activeCustomers} 
           value={totalCustomers || 0} 
           icon={Users} 
           color="bg-slate-800 dark:bg-slate-700"
           language={language}
           onClick={() => setActiveTab('customers')}
           delay={0.4}
+          redEyeActive={false} // Count is usually okay to show
         />
       </div>
 
@@ -230,15 +300,15 @@ const Dashboard = ({ language, currency, monthlyTarget, setActiveTab }: { langua
           className="lg:col-span-2 bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-soft p-8"
         >
           <div className="flex items-center justify-between mb-8">
-            <h3 className="font-display font-bold text-xl">{language === 'en' ? 'Area Performance' : 'এরিয়া পারফরম্যান্স'}</h3>
+            <h3 className="font-display font-bold text-xl">{t.areaPerformance}</h3>
             <div className="flex gap-4">
               <div className="flex items-center gap-2">
                 <div className="w-3 h-3 rounded-full bg-indigo-500" />
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Sales</span>
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{t.creditSale || 'Sales'}</span>
               </div>
               <div className="flex items-center gap-2">
                 <div className="w-3 h-3 rounded-full bg-emerald-500" />
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Collection</span>
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{t.collection}</span>
               </div>
             </div>
           </div>
@@ -287,7 +357,7 @@ const Dashboard = ({ language, currency, monthlyTarget, setActiveTab }: { langua
         >
           <div className="relative z-10">
             <div className="flex items-center justify-between mb-10">
-              <span className="stat-label text-indigo-200">Achievement Goal</span>
+              <span className="stat-label text-indigo-200">{t.achievementGoal}</span>
               <Target className="w-5 h-5 text-indigo-300" />
             </div>
 
@@ -307,20 +377,26 @@ const Dashboard = ({ language, currency, monthlyTarget, setActiveTab }: { langua
                   <h4 className="text-4xl font-black font-display">
                     {Math.round(Math.min(100, ((totals?.monthlyTotalAchieved || 0) / (monthlyTarget || 1)) * 100))}%
                   </h4>
-                  <span className="text-[10px] font-black uppercase tracking-widest text-indigo-200 mt-1">Status</span>
+                  <span className="text-[10px] font-black uppercase tracking-widest text-indigo-200 mt-1">{t.status || 'Status'}</span>
                 </div>
+              </div>
+              <div className="mt-4 text-center">
+                <p className="text-[10px] font-black text-indigo-200 uppercase tracking-widest">{t.remainingToTarget}</p>
+                <p className={cn("text-lg font-black", redEyeActive && "blur-sm")}>
+                  {formatCurrency(totals?.targetRemaining || 0, currency)}
+                </p>
               </div>
             </div>
 
             <div className="space-y-6 pt-6 border-t border-white/10">
               <div className="flex justify-between items-end">
                 <div>
-                  <p className="text-[10px] font-bold text-indigo-200 uppercase tracking-widest mb-1">Target</p>
-                  <p className="text-xl font-black">{formatCurrency(monthlyTarget, currency)}</p>
+                  <p className="text-[10px] font-bold text-indigo-200 uppercase tracking-widest mb-1">{t.monthlyTarget}</p>
+                  <p className={cn("text-xl font-black", redEyeActive && "blur-sm")}>{formatCurrency(monthlyTarget, currency)}</p>
                 </div>
                 <div className="text-right">
-                  <p className="text-[10px] font-bold text-indigo-200 uppercase tracking-widest mb-1">Achieved</p>
-                  <p className="text-xl font-black text-emerald-300">{formatCurrency(totals?.monthlyTotalAchieved || 0, currency)}</p>
+                  <p className="text-[10px] font-bold text-indigo-200 uppercase tracking-widest mb-1">{t.achieved}</p>
+                  <p className={cn("text-xl font-black text-emerald-300", redEyeActive && "blur-sm")}>{formatCurrency(totals?.monthlyTotalAchieved || 0, currency)}</p>
                 </div>
               </div>
             </div>
@@ -341,17 +417,17 @@ const Dashboard = ({ language, currency, monthlyTarget, setActiveTab }: { langua
           className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-soft p-8"
         >
           <div className="flex items-center justify-between mb-8">
-            <h3 className="font-display font-bold text-xl">{language === 'en' ? 'Recent Transactions' : 'সাম্প্রতিক লেনদেন'}</h3>
+            <h3 className="font-display font-bold text-xl">{t.recentTransactions}</h3>
             <button 
               onClick={() => setActiveTab('reports')}
               className="text-xs font-black uppercase tracking-widest text-indigo-500 hover:underline"
             >
-              See All
+              {t.seeAll}
             </button>
           </div>
           <div className="space-y-4">
             {recentSales?.map((sale, i) => {
-              const customer = customers?.find(c => c.id === sale.customerId);
+              const customer = customers?.find(c => String(c.id) === String(sale.customerId));
               return (
                 <div key={sale.id} className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800/50 group transition-all hover:bg-white dark:hover:bg-slate-800 hover:shadow-lg">
                   <div className="flex items-center gap-4">
@@ -363,13 +439,13 @@ const Dashboard = ({ language, currency, monthlyTarget, setActiveTab }: { langua
                     </div>
                     <div>
                       <h4 className="font-bold text-sm text-slate-800 dark:text-white group-hover:text-indigo-600 transition-colors">
-                        {customer?.name || (language === 'en' ? 'Unknown Customer' : 'অজানা কাস্টমার')}
+                        {customer?.name || t.unknownCustomer}
                       </h4>
                       <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{new Date(sale.date).toLocaleDateString()}</p>
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="font-black text-slate-900 dark:text-white">
+                    <p className={cn("font-black text-slate-900 dark:text-white", redEyeActive && "blur-sm")}>
                       {formatCurrency(sale.totalAmount || ((sale.cashSale || 0) + (sale.chequeSale || 0) + (sale.creditSale || 0)), currency)}
                     </p>
                     <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">
@@ -394,16 +470,16 @@ const Dashboard = ({ language, currency, monthlyTarget, setActiveTab }: { langua
           transition={{ delay: 0.8 }}
           className="bg-emerald-50 dark:bg-emerald-900/10 rounded-[2.5rem] border border-emerald-100 dark:border-emerald-900/20 p-8"
         >
-          <h3 className="font-display font-bold text-xl text-emerald-900 dark:text-emerald-400 mb-6">Smart Insights</h3>
+          <h3 className="font-display font-bold text-xl text-emerald-900 dark:text-emerald-400 mb-6">{t.smartInsights}</h3>
           <div className="space-y-6">
             <div className="flex items-start gap-4">
               <div className="w-10 h-10 rounded-xl bg-white dark:bg-slate-800 flex items-center justify-center shrink-0 shadow-sm border border-emerald-100 dark:border-emerald-900/20">
                 <Users className="w-5 h-5 text-emerald-600" />
               </div>
               <div>
-                <h4 className="font-bold text-sm text-emerald-900 dark:text-emerald-400 uppercase tracking-tight">Customer Retention</h4>
+                <h4 className="font-bold text-sm text-emerald-900 dark:text-emerald-400 uppercase tracking-tight">{t.customerRetention}</h4>
                 <p className="text-sm text-emerald-800/70 dark:text-emerald-400/70 leading-relaxed mt-1">
-                  You have <span className="font-black text-emerald-900 dark:text-emerald-400">{totals?.creditCustomersCount}</span> customers with outstanding balances. Following up could recover up to <span className="font-black text-emerald-900 dark:text-emerald-400">{formatCurrency(totals?.totalOutstanding || 0, currency)}</span>.
+                  You have <span className="font-black text-emerald-900 dark:text-emerald-400">{totals?.creditCustomersCount}</span> customers with outstanding balances. Following up could recover up to <span className={cn("font-black text-emerald-900 dark:text-emerald-400", redEyeActive && "blur-sm")}>{formatCurrency(totals?.totalOutstanding || 0, currency)}</span>.
                 </p>
               </div>
             </div>
@@ -412,7 +488,7 @@ const Dashboard = ({ language, currency, monthlyTarget, setActiveTab }: { langua
                 <TrendingUp className="w-5 h-5 text-emerald-600" />
               </div>
               <div>
-                <h4 className="font-bold text-sm text-emerald-900 dark:text-emerald-400 uppercase tracking-tight">Sales Outlook</h4>
+                <h4 className="font-bold text-sm text-emerald-900 dark:text-emerald-400 uppercase tracking-tight">{t.salesOutlook}</h4>
                 <p className="text-sm text-emerald-800/70 dark:text-emerald-400/70 leading-relaxed mt-1">
                   Your sales performance is currently <span className="font-black text-emerald-900 dark:text-emerald-400">{totals?.salesTrend > 0 ? 'up' : 'down'} {Math.abs(totals?.salesTrend || 0)}%</span> compared to last month.
                 </p>

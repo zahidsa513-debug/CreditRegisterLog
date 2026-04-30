@@ -1,17 +1,21 @@
-name: Credit Register - Final Solution
+name: CI/CD Build
 
 on:
   push:
     branches: [ main, master ]
-  workflow_dispatch:
+  pull_request:
+    branches: [ main, master ]
+
+permissions:
+  contents: write
+  pull-requests: write
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout Source Code
-      uses: actions/checkout@v4
+    - uses: actions/checkout@v4
 
     - name: Set up Node.js
       uses: actions/setup-node@v4
@@ -20,55 +24,10 @@ jobs:
         cache: 'npm'
 
     - name: Install dependencies
-      run: npm install --force
+      run: npm install
 
-    - name: Build Web Project
-      run: CI=false npm run build
+    - name: Build
+      run: npm run build
 
-    - name: Set up Java 21
-      uses: actions/setup-java@v4
-      with:
-        java-version: '21'
-        distribution: 'temurin'
-
-    - name: Setup Capacitor and Android
-      run: |
-        npm install @capacitor/core @capacitor/cli @capacitor/android
-        if [ ! -d "android" ]; then
-          npx cap init "CreditRegister" "com.zahidsa.creditreg" --web-dir dist
-          npx cap add android
-        fi
-        npx cap sync android
-
-    - name: Force Clean Kotlin Dependencies
-      # এটি আপনার স্ক্রিনশটে দেখা 'Duplicate class' এররটি সমূলে দূর করবে
-      run: |
-        cd android
-        sed -i 's/ext.kotlin_version = .*/ext.kotlin_version = "1.8.22"/' build.gradle
-        echo "subprojects {
-            configurations.all {
-                resolutionStrategy {
-                    eachDependency { details ->
-                        if (details.requested.group == 'org.jetbrains.kotlin') {
-                            details.useVersion '1.8.22'
-                        }
-                    }
-                }
-            }
-        }" >> build.gradle
-
-    - name: Build Android APK
-      run: |
-        cd android
-        chmod +x gradlew
-        ./gradlew clean assembleDebug --no-daemon
-
-    - name: Create Release
-      uses: softprops/action-gh-release@v1
-      if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
-      with:
-        tag_name: v${{ github.run_number }}
-        name: Credit Register Stable v${{ github.run_number }}
-        files: android/app/build/outputs/apk/debug/app-debug.apk
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - name: Lint
+      run: npm run lint

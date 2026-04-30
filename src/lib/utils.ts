@@ -11,3 +11,8 @@ export function formatCurrency(amount: number, currencyCode: string = 'USD') {
     currency: currencyCode,
   }).format(amount);
 }
+
+export function getWhatsAppLink(phone: string, message: string) {
+  const cleanPhone = phone.replace(/\D/g, '');
+  return `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
+}

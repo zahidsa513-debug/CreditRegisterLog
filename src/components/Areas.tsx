@@ -4,9 +4,12 @@ import { Plus, Edit2, Trash2, MapPin, Target as TargetIcon } from 'lucide-react'
 import { db } from '../db/db';
 import { translations } from '../translations';
 import { cn, formatCurrency } from '../lib/utils';
-import { Area } from '../types';
+import { Area, Language } from '../types';
 
-const Areas = ({ language, currency }: { language: 'en' | 'bn', currency: string }) => {
+import { useSettings } from '../context/SettingsContext';
+
+const Areas = ({ redEyeActive }: { redEyeActive?: boolean }) => {
+  const { language, currency } = useSettings();
   const t = translations[language];
   const areas = useLiveQuery(() => db.areas.toArray());
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -55,8 +58,8 @@ const Areas = ({ language, currency }: { language: 'en' | 'bn', currency: string
                   <MapPin className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="font-display font-bold text-lg leading-tight">{area.name}</h3>
-                  <div className="flex items-center text-slate-400 text-[10px] font-bold uppercase tracking-wider mt-1">
+                  <h3 className={cn("font-display font-bold text-lg leading-tight", redEyeActive && "blur-sm")}>{area.name}</h3>
+                  <div className={cn("flex items-center text-slate-400 text-[10px] font-bold uppercase tracking-wider mt-1", redEyeActive && "blur-sm")}>
                     <TargetIcon className="w-3 h-3 mr-1" />
                     Target: {formatCurrency(area.target, currency)}
                   </div>

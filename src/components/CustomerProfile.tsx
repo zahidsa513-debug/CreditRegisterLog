@@ -11,14 +11,19 @@ import { motion } from 'motion/react';
 import { db } from '../db/db';
 import { translations } from '../translations';
 import { cn, formatCurrency } from '../lib/utils';
-import { Customer } from '../types';
+import { Customer, Language, Sale } from '../types';
+import { getWhatsAppLink } from '../lib/utils';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
-const CustomerProfile = ({ language, currency }: { language: 'en' | 'bn', currency: string }) => {
+import { useSettings } from '../context/SettingsContext';
+
+const CustomerProfile = ({ redEyeActive }: { redEyeActive?: boolean }) => {
+  const { language, currency } = useSettings();
   const t = translations[language];
   const customers = useLiveQuery(() => db.customers.toArray());
   const areas = useLiveQuery(() => db.areas.toArray());
+  const sales = useLiveQuery(() => db.sales.toArray());
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [isEditing, setIsEditing] = useState(false);
@@ -49,12 +54,12 @@ const CustomerProfile = ({ language, currency }: { language: 'en' | 'bn', curren
     setIsLocating(true);
     navigator.geolocation.getCurrentPosition(
       (position) => {
+        const { latitude, longitude } = position.coords;
+        const coordsStr = `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`;
         setEditFormData({
           ...editFormData,
-          location: {
-            lat: position.coords.latitude,
-            lng: position.coords.longitude
-          }
+          location: { lat: latitude, lng: longitude },
+          address: editFormData.address || `${language === 'en' ? 'Location' : 'অবস্থান'}: ${coordsStr}`
         });
         setIsLocating(false);
       },
@@ -66,7 +71,7 @@ const CustomerProfile = ({ language, currency }: { language: 'en' | 'bn', curren
     );
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>, field: 'licensePhoto' | 'shopImage' | 'documents') => {
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>, field: 'licensePhoto' | 'shopImage' | 'customerPhoto' | 'documents') => {
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
@@ -75,6 +80,8 @@ const CustomerProfile = ({ language, currency }: { language: 'en' | 'bn', curren
           setEditFormData({ ...editFormData, licensePhoto: reader.result as string });
         } else if (field === 'shopImage') {
           setEditFormData({ ...editFormData, shopImage: reader.result as string });
+        } else if (field === 'customerPhoto') {
+          setEditFormData({ ...editFormData, customerPhoto: reader.result as string });
         } else {
           setEditFormData({ 
             ...editFormData, 
@@ -84,6 +91,10 @@ const CustomerProfile = ({ language, currency }: { language: 'en' | 'bn', curren
       };
       reader.readAsDataURL(file);
     }
+  };
+
+  const removePhoto = (field: 'licensePhoto' | 'shopImage' | 'customerPhoto') => {
+    setEditFormData({ ...editFormData, [field]: '' });
   };
 
   const handleDelete = async (id: number) => {
@@ -105,7 +116,7 @@ const CustomerProfile = ({ language, currency }: { language: 'en' | 'bn', curren
       website: ''
     };
 
-    const area = areas?.find(a => a.id === customer.areaId);
+    const area = areas?.find(a => String(a.id) === String(customer.areaId));
     
     // Header Pad
     doc.setFillColor(248, 250, 252);
@@ -135,24 +146,101 @@ const CustomerProfile = ({ language, currency }: { language: 'en' | 'bn', curren
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(14);
     doc.setTextColor(0, 0, 0);
-    doc.text(language === 'en' ? 'Customer Profile Data' : 'কাস্টমার প্রোফাইল ডাটা', 105, 50, { align: 'center' });
+    doc.text(language === 'en' ? 'Verified Business Profile' : 'যাচাইকৃত ব্যবসায়িক প্রোফাইল', 105, 50, { align: 'center' });
     
-    doc.setFontSize(12);
-    doc.text(`${language === 'en' ? 'Shop Name' : 'দোকানের নাম'}: ${customer.shopName || 'N/A'}`, 20, 65);
-    doc.text(`${language === 'en' ? 'Owner Name' : 'মালিকের নাম'}: ${customer.name}`, 20, 75);
-    doc.text(`${language === 'en' ? 'Area' : 'এলাকা'}: ${area?.name || 'N/A'}`, 20, 85);
-    doc.text(`${language === 'en' ? 'Phone' : 'ফোন'}: ${customer.phone}`, 20, 95);
-    doc.text(`${language === 'en' ? 'Email' : 'ইমেইল'}: ${customer.email || 'N/A'}`, 20, 105);
-    doc.text(`${language === 'en' ? 'Address' : 'ঠিকানা'}: ${customer.address || 'N/A'}`, 20, 115);
-    
-    doc.setFont('helvetica', 'bold');
-    doc.text(`${language === 'en' ? 'Current Balance' : 'বর্তমান ব্যালেন্স'}: ${formatCurrency((customer.debit || 0) - (customer.credit || 0), currency)}`, 20, 135);
+    // Photo section
+    if (customer.customerPhoto) {
+      try {
+        doc.addImage(customer.customerPhoto, 'JPEG', 150, 55, 40, 40);
+      } catch (e) {
+        console.error("Error adding customer photo:", e);
+      }
+    }
 
-    doc.save(`${customer.name}_profile.pdf`);
+    autoTable(doc, {
+      startY: 60,
+      margin: { right: customer.customerPhoto ? 65 : 14 },
+      head: [[language === 'en' ? 'Field' : 'ধরণ', language === 'en' ? 'Details' : 'বিস্তারিত']],
+      body: [
+        [language === 'en' ? 'Owner Name' : 'মালিকের নাম', customer.name],
+        [language === 'en' ? 'Shop Name' : 'দোকানের নাম', customer.shopName || 'N/A'],
+        [language === 'en' ? 'Phone' : 'ফোন', customer.phone],
+        [language === 'en' ? 'Area' : 'এলাকা', area?.name || 'N/A'],
+        [language === 'en' ? 'Email' : 'ইমেইল', customer.email || 'N/A'],
+        [language === 'en' ? 'Address' : 'ঠিকানা', customer.address || 'N/A'],
+        [language === 'en' ? 'Current Balance' : 'বর্তমান বকেয়া', formatCurrency((customer.debit || 0) - (customer.credit || 0), currency)],
+      ],
+      theme: 'grid',
+      headStyles: { fillColor: [79, 70, 229], textColor: 255 },
+      styles: { fontSize: 10, cellPadding: 5 }
+    });
+
+    if (customer.shopImage) {
+      const finalY = (doc as any).lastAutoTable.finalY + 10;
+      doc.setFontSize(11);
+      doc.text(language === 'en' ? 'Shop Premises Photo:' : 'দোকানের ছবি:', 14, finalY);
+      try {
+        doc.addImage(customer.shopImage, 'JPEG', 14, finalY + 5, 182, 80);
+      } catch (e) {
+        console.error("Error adding shop image:", e);
+      }
+    }
+
+    doc.save(`${customer.name}_detailed_profile.pdf`);
+  };
+
+  const generateLedger = async (customer: Customer) => {
+    const doc = new jsPDF();
+    const customerSales = sales?.filter(s => String(s.customerId) === String(customer.id)).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()) || [];
+    
+    doc.setFontSize(20);
+    doc.setFont("helvetica", "bold");
+    doc.text('CUSTOMER TRANSACTION LEDGER', 105, 20, { align: 'center' });
+    
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    doc.text(`Customer: ${customer.name}`, 14, 30);
+    doc.text(`Shop: ${customer.shopName || 'N/A'}`, 14, 35);
+    doc.text(`Generated: ${new Date().toLocaleString()}`, 14, 40);
+
+    const ledgerData = customerSales.map(s => {
+      const totalAmount = s.totalAmount || ((s.cashSale || 0) + (s.chequeSale || 0) + (s.creditSale || 0));
+      return [
+        new Date(s.date).toLocaleDateString(),
+        s.description || (s.type === 'sale' ? 'Sale' : 'Payment'),
+        s.type === 'sale' ? formatCurrency(totalAmount, currency) : '',
+        s.type === 'payment' ? formatCurrency(totalAmount, currency) : '',
+        s.invoiceNumber || s.receiptNumber || '-'
+      ];
+    });
+
+    autoTable(doc, {
+      startY: 45,
+      head: [['DATE', 'DESCRIPTION', 'DEBIT (+)', 'CREDIT (-)', 'REF #']],
+      body: ledgerData,
+      theme: 'grid',
+      headStyles: { fillColor: [15, 23, 42] }
+    });
+
+    const finalBalance = (customer.debit || 0) - (customer.credit || 0);
+    doc.setFont("helvetica", "bold");
+    doc.text(`TOTAL OUTSTANDING BALANCE: ${formatCurrency(finalBalance, currency)}`, 14, (doc as any).lastAutoTable.finalY + 10);
+
+    doc.save(`${customer.name}_Ledger.pdf`);
+  };
+
+  const sendWhatsAppReminder = (customer: Customer) => {
+    const balance = (customer.debit || 0) - (customer.credit || 0);
+    const message = language === 'en'
+      ? `Hello ${customer.name}, this is a friendly reminder that your current outstanding balance at CreditRegistry is ${formatCurrency(balance, currency)}. Please arrange for payment at your earliest convenience. Thank you!`
+      : `আসসালামু আলাইকুম ${customer.name}, ক্রেডিট-রেজিস্ট্রি থেকে জানানো হচ্ছে যে আপনার বর্তমান বকেয়া পরিমাণ ${formatCurrency(balance, currency)}। অতি দ্রুত পরিশোধের জন্য অনুরোধ করা হলো। ধন্যবাদ।`;
+    
+    const link = getWhatsAppLink(customer.phone, message);
+    window.open(link, '_blank');
   };
 
   if (selectedCustomer) {
-    const area = areas?.find(a => a.id === selectedCustomer.areaId);
+    const area = areas?.find(a => String(a.id) === String(selectedCustomer.areaId));
     const balance = (selectedCustomer.debit || 0) - (selectedCustomer.credit || 0);
 
     return (
@@ -166,11 +254,13 @@ const CustomerProfile = ({ language, currency }: { language: 'en' | 'bn', curren
           </button>
           <div className="flex-1 flex flex-col md:flex-row md:items-center gap-4">
             <div className="flex items-center gap-4">
-              <div className="w-14 h-14 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 rounded-2xl flex items-center justify-center font-black text-2xl shadow-inner">
-                {selectedCustomer.name.charAt(0)}
+              <div className="w-14 h-14 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 rounded-2xl flex items-center justify-center font-black text-2xl shadow-inner overflow-hidden">
+                {selectedCustomer.customerPhoto ? (
+                  <img src={selectedCustomer.customerPhoto} alt={selectedCustomer.name} className="w-full h-full object-cover" />
+                ) : selectedCustomer.name.charAt(0)}
               </div>
               <div>
-                <h2 className="text-2xl font-display font-black tracking-tight">{selectedCustomer.name}</h2>
+                <h2 className={cn("text-2xl font-display font-black tracking-tight", redEyeActive && "blur-sm")}>{selectedCustomer.name}</h2>
                 <div className="flex items-center gap-2">
                   <span className="text-[10px] font-black uppercase tracking-widest text-indigo-500 bg-indigo-50 dark:bg-indigo-900/20 px-2 py-0.5 rounded-md">{selectedCustomer.shopName || 'Retailer'}</span>
                   <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">ID: #{selectedCustomer.id}</span>
@@ -179,6 +269,18 @@ const CustomerProfile = ({ language, currency }: { language: 'en' | 'bn', curren
             </div>
           </div>
           <div className="flex gap-2">
+            <button 
+              onClick={() => sendWhatsAppReminder(selectedCustomer)}
+              className="px-4 py-3 bg-emerald-500 text-white rounded-2xl hover:bg-emerald-600 transition-all font-black text-[10px] uppercase tracking-widest flex items-center gap-2 shadow-lg shadow-emerald-500/20"
+            >
+              <Phone className="w-4 h-4" /> WhatsApp
+            </button>
+            <button 
+              onClick={() => generateLedger(selectedCustomer)}
+              className="px-4 py-3 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 rounded-2xl hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-all font-black text-[10px] uppercase tracking-widest flex items-center gap-2"
+            >
+              <FileText className="w-4 h-4" /> Ledger
+            </button>
             <button 
               onClick={() => handleEdit(selectedCustomer)}
               className="px-4 py-3 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 rounded-2xl hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-all font-black text-[10px] uppercase tracking-widest flex items-center gap-2"
@@ -203,7 +305,13 @@ const CustomerProfile = ({ language, currency }: { language: 'en' | 'bn', curren
             >
               <div className="text-center mb-10">
                 <div className="relative inline-block mb-6">
-                  {selectedCustomer.shopImage ? (
+                  {selectedCustomer.customerPhoto ? (
+                    <img 
+                      src={selectedCustomer.customerPhoto} 
+                      alt="customer" 
+                      className="w-40 h-40 rounded-[2.5rem] object-cover ring-8 ring-slate-50 dark:ring-slate-800/50"
+                    />
+                  ) : selectedCustomer.shopImage ? (
                     <img 
                       src={selectedCustomer.shopImage} 
                       alt="shop" 
@@ -215,17 +323,17 @@ const CustomerProfile = ({ language, currency }: { language: 'en' | 'bn', curren
                     </div>
                   )}
                   <div className="absolute -bottom-2 -right-2 w-12 h-12 bg-emerald-500 text-white rounded-2xl flex items-center justify-center border-4 border-white dark:border-slate-900 shadow-xl">
-                    <Store className="w-6 h-6" />
+                    <User className="w-6 h-6" />
                   </div>
                 </div>
-                <h3 className="text-2xl font-display font-black tracking-tight">{selectedCustomer.name}</h3>
+                <h3 className={cn("text-2xl font-display font-black tracking-tight", redEyeActive && "blur-sm")}>{selectedCustomer.name}</h3>
                 <p className="text-indigo-500 font-black text-[10px] uppercase tracking-[0.2em] mt-1">{selectedCustomer.shopName || 'Store Owner'}</p>
               </div>
               
               <div className="grid grid-cols-2 gap-4 mb-8">
                 <div className="bg-slate-50 dark:bg-slate-800 p-5 rounded-[1.5rem] border border-slate-100 dark:border-slate-700/50">
                   <p className="stat-label">Balance</p>
-                  <p className={cn("text-xl font-black mt-1", balance > 0 ? "text-rose-600" : "text-emerald-600")}>
+                  <p className={cn("text-xl font-black mt-1", balance > 0 ? "text-rose-600" : "text-emerald-600", redEyeActive && "blur-sm")}>
                     {formatCurrency(balance, currency)}
                   </p>
                 </div>
@@ -302,7 +410,7 @@ const CustomerProfile = ({ language, currency }: { language: 'en' | 'bn', curren
               <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
                 <div className="space-y-1.5 p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800/30">
                   <h5 className="stat-label">Full Legal Name</h5>
-                  <p className="text-lg font-black text-slate-800 dark:text-white uppercase">{selectedCustomer.ownerName || selectedCustomer.name}</p>
+                  <p className={cn("text-lg font-black text-slate-800 dark:text-white uppercase", redEyeActive && "blur-sm")}>{selectedCustomer.ownerName || selectedCustomer.name}</p>
                 </div>
                 <div className="space-y-1.5 p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800/30">
                   <h5 className="stat-label">Registration Date</h5>
@@ -409,22 +517,33 @@ const CustomerProfile = ({ language, currency }: { language: 'en' | 'bn', curren
                     </div>
                     <div className="space-y-2">
                       <label className="text-xs font-bold text-slate-400 pl-1 uppercase tracking-tight">{language === 'en' ? 'Shop Front Picture' : 'দোকানের সামনের ছবি'}</label>
-                      <label className="flex flex-col items-center justify-center p-6 bg-white dark:bg-slate-800 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-xl hover:border-indigo-400 transition-all cursor-pointer group relative overflow-hidden h-32">
-                        {editFormData.shopImage ? (
-                          <>
-                            <img src={editFormData.shopImage} className="absolute inset-0 w-full h-full object-cover" alt="shop front" />
-                            <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                              <Camera className="w-8 h-8 text-white" />
-                            </div>
-                          </>
-                        ) : (
-                          <>
-                            <Camera className="w-8 h-8 text-slate-300 group-hover:text-indigo-500 mb-2 transition-colors" />
-                            <span className="text-[10px] font-bold text-slate-400 uppercase">{language === 'en' ? 'Upload' : 'আপলোড'}</span>
-                          </>
+                      <div className="flex items-center gap-4">
+                        <label className="flex-1 flex flex-col items-center justify-center p-6 bg-white dark:bg-slate-800 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-xl hover:border-indigo-400 transition-all cursor-pointer group relative overflow-hidden h-32">
+                          {editFormData.shopImage ? (
+                            <>
+                              <img src={editFormData.shopImage} className="absolute inset-0 w-full h-full object-cover" alt="shop front" />
+                              <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                <Camera className="w-8 h-8 text-white" />
+                              </div>
+                            </>
+                          ) : (
+                            <>
+                              <Camera className="w-8 h-8 text-slate-300 group-hover:text-indigo-500 mb-2 transition-colors" />
+                              <span className="text-[10px] font-bold text-slate-400 uppercase">{language === 'en' ? 'Upload' : 'আপলোড'}</span>
+                            </>
+                          )}
+                          <input type="file" className="hidden" accept="image/*" capture="environment" onChange={e => handleFileUpload(e, 'shopImage')} />
+                        </label>
+                        {editFormData.shopImage && (
+                          <button 
+                            type="button" 
+                            onClick={() => removePhoto('shopImage')}
+                            className="p-3 bg-rose-50 dark:bg-rose-900/20 text-rose-600 rounded-xl hover:bg-rose-100 transition-colors"
+                          >
+                            <Trash2 className="w-5 h-5" />
+                          </button>
                         )}
-                        <input type="file" className="hidden" accept="image/*" capture="environment" onChange={e => handleFileUpload(e, 'shopImage')} />
-                      </label>
+                      </div>
                     </div>
                     <button 
                       type="button"
@@ -446,6 +565,44 @@ const CustomerProfile = ({ language, currency }: { language: 'en' | 'bn', curren
                     <h4 className="text-[10px] font-bold text-indigo-500 uppercase tracking-widest flex items-center gap-2">
                       <User className="w-3 h-3" /> {language === 'en' ? 'Owner Information' : 'মালিকের তথ্য'}
                     </h4>
+
+                    {/* Customer Photo Upload */}
+                    <div className="space-y-2">
+                       <label className="text-xs font-bold text-slate-400 pl-1 uppercase tracking-tight">{language === 'en' ? 'Customer Profile Photo' : 'কাস্টমারের প্রোফাইল ছবি'}</label>
+                       <div className="flex items-center gap-4">
+                         <label className="shrink-0 w-24 h-24 bg-slate-50 dark:bg-slate-800 rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-700 hover:border-indigo-400 transition-all cursor-pointer group relative overflow-hidden">
+                           {editFormData.customerPhoto ? (
+                             <>
+                               <img src={editFormData.customerPhoto} className="absolute inset-0 w-full h-full object-cover" alt="customer" />
+                               <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                 <Camera className="w-8 h-8 text-white" />
+                               </div>
+                             </>
+                           ) : (
+                             <div className="flex flex-col items-center justify-center h-full">
+                               <Camera className="w-8 h-8 text-slate-300 group-hover:text-indigo-500 mb-1 transition-colors" />
+                               <span className="text-[8px] font-black text-slate-400 uppercase">Profile</span>
+                             </div>
+                           )}
+                           <input type="file" className="hidden" accept="image/*" capture="user" onChange={e => handleFileUpload(e, 'customerPhoto')} />
+                         </label>
+                         {editFormData.customerPhoto && (
+                           <button 
+                             type="button" 
+                             onClick={() => removePhoto('customerPhoto')}
+                             className="p-3 bg-rose-50 dark:bg-rose-900/20 text-rose-600 rounded-xl hover:bg-rose-100 transition-colors"
+                           >
+                             <Trash2 className="w-5 h-5" />
+                           </button>
+                         )}
+                         <div className="flex-1">
+                           <p className="text-[10px] text-slate-400 italic">
+                             {language === 'en' ? 'Help customers recognize you. Upload a clear profile picture.' : 'কাস্টমারদের আপনাকে চিনতে সাহায্য করুন। একটি পরিষ্কার ছবি আপলোড দিন।'}
+                           </p>
+                         </div>
+                       </div>
+                    </div>
+
                     <div className="space-y-2">
                       <label className="text-xs font-bold text-slate-400 uppercase tracking-tight">Owner Name</label>
                       <input 
@@ -477,11 +634,18 @@ const CustomerProfile = ({ language, currency }: { language: 'en' | 'bn', curren
                     <div className="space-y-3 pt-2">
                       <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">{language === 'en' ? 'License & Documents' : 'লাইসেন্স এবং ডকুমেন্টস'}</label>
                       <div className="grid grid-cols-2 gap-3">
-                        <label className="flex flex-col items-center justify-center p-4 bg-slate-50 dark:bg-slate-800 rounded-xl border-2 border-dashed border-slate-200 dark:border-slate-700 hover:border-indigo-400 transition-all cursor-pointer group">
+                        <label className="flex flex-col items-center justify-center p-4 bg-slate-50 dark:bg-slate-800 rounded-xl border-2 border-dashed border-slate-200 dark:border-slate-700 hover:border-indigo-400 transition-all cursor-pointer group relative overflow-hidden">
                           {editFormData.licensePhoto ? (
                             <div className="relative w-full h-12">
                               <img src={editFormData.licensePhoto} className="w-full h-full object-cover rounded" alt="license" />
                               <CheckCircle2 className="absolute -top-1 -right-1 w-4 h-4 text-emerald-500 bg-white rounded-full" />
+                              <button 
+                                type="button" 
+                                onClick={(e) => { e.preventDefault(); e.stopPropagation(); removePhoto('licensePhoto'); }}
+                                className="absolute -bottom-1 -right-1 p-1 bg-rose-600 text-white rounded-md shadow-sm"
+                              >
+                                <X className="w-2 h-2" />
+                              </button>
                             </div>
                           ) : (
                             <>
@@ -538,7 +702,7 @@ const CustomerProfile = ({ language, currency }: { language: 'en' | 'bn', curren
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredCustomers?.map((customer) => {
-          const area = areas?.find(a => a.id === customer.areaId);
+          const area = areas?.find(a => String(a.id) === String(customer.areaId));
           const balance = (customer.debit || 0) - (customer.credit || 0);
           
           return (
@@ -559,7 +723,7 @@ const CustomerProfile = ({ language, currency }: { language: 'en' | 'bn', curren
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h4 className="font-bold text-slate-900 dark:text-white truncate text-lg leading-tight mb-0.5">{customer.name}</h4>
+                  <h4 className={cn("font-bold text-slate-900 dark:text-white truncate text-lg leading-tight mb-0.5", redEyeActive && "blur-sm")}>{customer.name}</h4>
                   <p className="text-xs font-bold text-indigo-500 uppercase tracking-widest truncate">{customer.shopName || 'No Shop'}</p>
                 </div>
               </div>
@@ -567,7 +731,7 @@ const CustomerProfile = ({ language, currency }: { language: 'en' | 'bn', curren
               <div className="space-y-4">
                 <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800/50 rounded-2xl">
                   <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Balance</span>
-                  <span className={cn("text-sm font-black", balance > 0 ? "text-rose-600" : "text-emerald-600")}>
+                  <span className={cn("text-sm font-black", balance > 0 ? "text-rose-600" : "text-emerald-600", redEyeActive && "blur-sm")}>
                     {formatCurrency(balance, currency)}
                   </span>
                 </div>

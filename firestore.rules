@@ -64,9 +64,10 @@ service cloud.firestore {
     }
 
     function isValidSettings(data) {
-      return data.keys().hasAll(['companyName', 'email', 'userId'])
-        && data.companyName is string && data.companyName.size() > 0
-        && data.email is string && data.userId == request.auth.uid;
+      return data.keys().hasAll(['userId'])
+        && (data.keys().contains('companyName') ? data.companyName is string : true)
+        && (data.keys().contains('email') ? data.email is string : true)
+        && data.userId == request.auth.uid;
     }
 
     function isValidCheck(data) {
@@ -78,6 +79,13 @@ service cloud.firestore {
         && data.userId == request.auth.uid
         && (!data.keys().contains('customerName') || data.customerName is string)
         && (!data.keys().contains('imageUrl') || data.imageUrl is string);
+    }
+
+    function isValidFeedback(data) {
+      return data.keys().hasAll(['message', 'userId', 'createdAt'])
+        && data.message is string && data.message.size() > 0 && data.message.size() <= 2000
+        && data.userId == request.auth.uid
+        && isValidTimestamp(data.createdAt);
     }
 
     // --- Match Blocks ---
@@ -115,12 +123,12 @@ service cloud.firestore {
     }
 
     match /settings/{settingId} {
-      allow get: if isSignedIn() && isResourceOwner();
+      allow get: if isOwner(settingId);
       allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
-      allow create: if isSignedIn() && isValidId(settingId) && isValidSettings(incoming());
-      allow update: if isSignedIn() && isResourceOwner() && isValidSettings(incoming())
+      allow create: if isOwner(settingId) && isValidSettings(incoming());
+      allow update: if isOwner(settingId) && isValidSettings(incoming())
         && incoming().userId == existing().userId;
-      allow delete: if isSignedIn() && isResourceOwner();
+      allow delete: if isOwner(settingId);
     }
 
     match /checks/{checkId} {
@@ -130,6 +138,11 @@ service cloud.firestore {
       allow update: if isSignedIn() && isResourceOwner() && isValidCheck(incoming())
         && incoming().userId == existing().userId;
       allow delete: if isSignedIn() && isResourceOwner();
+    }
+
+    match /feedback/{feedbackId} {
+      allow create: if isSignedIn() && isValidId(feedbackId) && isValidFeedback(incoming());
+      allow get, list: if isSignedIn() && isResourceOwner();
     }
   }
 }

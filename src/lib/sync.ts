@@ -49,6 +49,17 @@ export async function syncToCloud() {
       });
     }
 
+    // 5. Sync Expenses
+    const expenses = await dexieDb.expenses.toArray();
+    for (const exp of expenses) {
+      await setDoc(doc(firestoreDb, 'expenses', `${user.uid}_${exp.id}`), {
+        ...exp,
+        date: exp.date instanceof Date ? exp.date.toISOString() : exp.date,
+        userId: user.uid,
+        updatedAt: new Date().toISOString()
+      });
+    }
+
     console.log("Cloud backup successful");
   } catch (error) {
     console.error("Cloud backup failed:", error);
@@ -63,7 +74,10 @@ export async function restoreFromCloud() {
   try {
     // Restore Areas
     const areasSnap = await getDocs(query(collection(firestoreDb, 'areas'), where('userId', '==', user.uid)));
-    const areas = areasSnap.docs.map(d => d.data());
+    const areas = areasSnap.docs.map(d => {
+      const { userId, updatedAt, ...rest } = d.data();
+      return rest;
+    });
     if (areas.length > 0) {
       await dexieDb.areas.clear();
       await dexieDb.areas.bulkAdd(areas as any);
@@ -71,7 +85,10 @@ export async function restoreFromCloud() {
 
     // Restore Customers
     const customersSnap = await getDocs(query(collection(firestoreDb, 'customers'), where('userId', '==', user.uid)));
-    const customers = customersSnap.docs.map(d => d.data());
+    const customers = customersSnap.docs.map(d => {
+      const { userId, updatedAt, ...rest } = d.data();
+      return rest;
+    });
     if (customers.length > 0) {
       await dexieDb.customers.clear();
       await dexieDb.customers.bulkAdd(customers as any);
@@ -81,14 +98,38 @@ export async function restoreFromCloud() {
     const salesSnap = await getDocs(query(collection(firestoreDb, 'sales'), where('userId', '==', user.uid)));
     const sales = salesSnap.docs.map(d => {
         const data = d.data();
+        const { userId, updatedAt, ...rest } = data;
         return {
-            ...data,
+            ...rest,
             date: new Date(data.date)
         };
     });
     if (sales.length > 0) {
       await dexieDb.sales.clear();
       await dexieDb.sales.bulkAdd(sales as any);
+    }
+
+    // Restore Expenses
+    const expensesSnap = await getDocs(query(collection(firestoreDb, 'expenses'), where('userId', '==', user.uid)));
+    const expenses = expensesSnap.docs.map(d => {
+        const data = d.data();
+        const { userId, updatedAt, ...rest } = data;
+        return {
+            ...rest,
+            date: new Date(data.date)
+        };
+    });
+    if (expenses.length > 0) {
+      await dexieDb.expenses.clear();
+      await dexieDb.expenses.bulkAdd(expenses as any);
+    }
+
+    // Restore Settings
+    const settingsSnap = await getDocs(query(collection(firestoreDb, 'settings'), where('userId', '==', user.uid)));
+    if (!settingsSnap.empty) {
+      const { userId, updatedAt, ...rest } = settingsSnap.docs[0].data();
+      await dexieDb.settings.clear();
+      await dexieDb.settings.add(rest as any);
     }
     
     console.log("Cloud restore successful");
