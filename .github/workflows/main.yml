@@ -3,38 +3,40 @@ name: Build and Release APK
 on:
   push:
     branches:
-      - main  # অথবা আপনার ডিফল্ট ব্রাঞ্চের নাম দিন
+      - main
+  workflow_dispatch: # ম্যানুয়ালি রান করার জন্য
 
 jobs:
   build:
     name: Build APK
     runs-on: ubuntu-latest
 
-    # ৪.৩ এরর সমাধানের জন্য প্রয়োজনীয় পারমিশন
     permissions:
       contents: write
 
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4 # লেটেস্ট ভার্সন ব্যবহার করা ভালো
 
       - name: Set up JDK
-        uses: actions/setup-java@v3
+        uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v2
+      # gradlew ফাইলে পারমিশন দেওয়া (যাতে এটি রান করতে পারে)
+      - name: Make gradlew executable
+        run: chmod +x gradlew
+        # যদি আপনার অ্যান্ড্রয়েড কোড কোনো সাব-ফোল্ডারে থাকে তবে এখানে 'working-directory' যোগ করতে হবে
 
       - name: Build with Gradle
         run: ./gradlew assembleRelease
 
       - name: Create Release
         id: create_release
-        uses: softprops/action-gh-release@v1
-        if: startsWith(github.ref, 'refs/tags/') # ট্যাগ পুশ করলে রিলিজ হবে
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/')
         with:
-          files: app/build/outputs/apk/release/app-release.apk
+          files: app/build/outputs/apk/release/app-release-unsigned.apk # পাথটি চেক করে নিন
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
