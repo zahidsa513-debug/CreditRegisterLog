@@ -4,7 +4,7 @@ on:
   push:
     branches:
       - main
-  workflow_dispatch: # ম্যানুয়ালি রান করার জন্য
+  workflow_dispatch:
 
 jobs:
   build:
@@ -16,7 +16,7 @@ jobs:
 
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v4 # লেটেস্ট ভার্সন ব্যবহার করা ভালো
+        uses: actions/checkout@v4
 
       - name: Set up JDK
         uses: actions/setup-java@v4
@@ -24,19 +24,18 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      # gradlew ফাইলে পারমিশন দেওয়া (যাতে এটি রান করতে পারে)
+      # যদি আপনার gradlew ফাইলটি CreditRegisterLog ফোল্ডারের ভেতর থাকে
       - name: Make gradlew executable
-        run: chmod +x gradlew
-        # যদি আপনার অ্যান্ড্রয়েড কোড কোনো সাব-ফোল্ডারে থাকে তবে এখানে 'working-directory' যোগ করতে হবে
+        run: chmod +x ./gradlew
+        # যদি ফাইলটি অন্য কোনো ফোল্ডারে থাকে, তবে path ঠিক করুন (যেমন: ./app/gradlew)
 
       - name: Build with Gradle
         run: ./gradlew assembleRelease
 
       - name: Create Release
-        id: create_release
         uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/')
         with:
-          files: app/build/outputs/apk/release/app-release-unsigned.apk # পাথটি চেক করে নিন
+          files: app/build/outputs/apk/release/*.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
