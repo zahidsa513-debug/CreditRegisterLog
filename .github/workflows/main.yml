@@ -1,4 +1,4 @@
-name: Build Android APK
+name: Build Android APK (Auto-Config)
 
 on:
   push:
@@ -24,10 +24,19 @@ jobs:
           node-version: '20'
 
       - name: Install Dependencies
-        run: npm install
+        run: |
+          npm install
+          npm install @capacitor/core @capacitor/cli @capacitor/android
 
       - name: Build Web Project
         run: npm run build
+
+      # এই অংশটি অটোমেটিক কনফিগারেশন ফাইল তৈরি করবে
+      - name: Initialize Capacitor Cloud
+        run: |
+          npx cap init "CreditRegister" "com.creditregister.app" --web-dir dist
+          npx cap add android
+          npx cap sync android
 
       - name: Set up JDK
         uses: actions/setup-java@v4
@@ -35,18 +44,16 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      # Capacitor যোগ করে অ্যান্ড্রয়েড বিল্ড করা
-      - name: Build Android with Capacitor
+      - name: Build with Gradle
         run: |
-          npx cap add android || true
-          npx cap copy android
-          npx cap sync android
-          cd android && ./gradlew assembleRelease
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleRelease
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/')
         with:
-          files: android/app/build/outputs/apk/release/app-release-unsigned.apk
+          files: android/app/build/outputs/apk/release/*.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
