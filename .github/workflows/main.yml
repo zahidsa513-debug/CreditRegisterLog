@@ -1,4 +1,4 @@
-name: Build Android APK (Final Error Fix)
+name: Build and Upload APK
 
 on:
   push:
@@ -37,38 +37,28 @@ jobs:
           java-version: '21'
           distribution: 'temurin'
 
-      - name: Initialize Capacitor Cloud
+      - name: Initialize Capacitor
         run: |
           npx cap init "CreditRegister" "com.creditregister.app" --web-dir dist
           npx cap add android || true
           npx cap sync android
 
-      # ডুপ্লিকেট ক্লাস এবং গ্র্যাডল এরর সমাধানের জন্য চূড়ান্ত কনফিগারেশন
-      - name: Advanced Gradle Fix
+      - name: Configure Gradle
         run: |
-          echo "org.gradle.jvmargs=-Xmx2048m -XX:MaxMetaspaceSize=512m" >> android/gradle.properties
           echo "android.useAndroidX=true" >> android/gradle.properties
           echo "android.enableJetifier=true" >> android/gradle.properties
           echo "kotlin.stdlib.default.dependency=false" >> android/gradle.properties
-          
-          # বিল্ড স্ক্রিপ্টে কাস্টম রেজোলিউশন যোগ করা যাতে ডুপ্লিকেট ক্লাস না আসে
           sed -i '/dependencies {/a \    implementation(platform("org.jetbrains.kotlin:kotlin-bom:1.9.0"))' android/app/build.gradle
 
       - name: Build with Gradle
         run: |
           cd android
           chmod +x gradlew
-          ./gradlew clean assembleRelease --no-daemon
+          ./gradlew assembleRelease
 
-      - name: Create Release
-        uses: softprops/action-gh-release@v2
-        if: startsWith(github.ref, 'refs/tags/')
-        with:
-          files: android/app/build/outputs/apk/release/*.apk
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-- name: Upload APK
+      # এটি আপনার এপিকে সরাসরি Actions ট্যাবে পাঠিয়ে দিবে
+      - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: CreditRegister-Release-APK
+          name: CreditRegister-APK
           path: android/app/build/outputs/apk/release/*.apk
