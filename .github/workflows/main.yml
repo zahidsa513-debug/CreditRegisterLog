@@ -67,3 +67,8 @@ jobs:
           files: android/app/build/outputs/apk/release/*.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+- name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: CreditRegister-Release-APK
+          path: android/app/build/outputs/apk/release/*.apk
