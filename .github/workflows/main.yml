@@ -1,4 +1,4 @@
-name: Build Android APK (Deep Clean Fix)
+name: Build Android APK (Final Error Fix)
 
 on:
   push:
@@ -43,19 +43,22 @@ jobs:
           npx cap add android || true
           npx cap sync android
 
-      # ডুপ্লিকেট ক্লাস এরর এবং ক্যাশ ক্লিয়ার করার জন্য চূড়ান্ত সমাধান
-      - name: Configure Gradle and Clean
+      # ডুপ্লিকেট ক্লাস এবং গ্র্যাডল এরর সমাধানের জন্য চূড়ান্ত কনফিগারেশন
+      - name: Advanced Gradle Fix
         run: |
+          echo "org.gradle.jvmargs=-Xmx2048m -XX:MaxMetaspaceSize=512m" >> android/gradle.properties
           echo "android.useAndroidX=true" >> android/gradle.properties
           echo "android.enableJetifier=true" >> android/gradle.properties
           echo "kotlin.stdlib.default.dependency=false" >> android/gradle.properties
-          cd android && ./gradlew clean
+          
+          # বিল্ড স্ক্রিপ্টে কাস্টম রেজোলিউশন যোগ করা যাতে ডুপ্লিকেট ক্লাস না আসে
+          sed -i '/dependencies {/a \    implementation(platform("org.jetbrains.kotlin:kotlin-bom:1.9.0"))' android/app/build.gradle
 
       - name: Build with Gradle
         run: |
           cd android
           chmod +x gradlew
-          ./gradlew assembleRelease --no-daemon --stacktrace
+          ./gradlew clean assembleRelease --no-daemon
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
