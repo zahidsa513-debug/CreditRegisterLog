@@ -26,33 +26,33 @@ jobs:
       run: |
         CI=false npm run build
 
-    - name: Set up JDK 21
+    - name: Set up JDK 17
       uses: actions/setup-java@v4
       with:
-        java-version: '21'
+        java-version: '17'
         distribution: 'temurin'
 
     - name: Android Build (APK)
       run: |
-        # কনফিগারেশন ফাইল না থাকলে তৈরি করা (image_3cbb02.png এর এরর ফিক্স)
-        if [ ! -f "capacitor.config.json" ] && [ ! -f "capacitor.config.ts" ]; then
-          echo '{"appId": "com.zahid.creditregister", "appName": "CreditRegister", "webDir": "dist", "bundledWebRuntime": false}' > capacitor.config.json
+        # কনফিগারেশন চেক
+        if [ ! -f "capacitor.config.json" ]; then
+          echo '{"appId": "com.zahid.creditregister", "appName": "CreditRegister", "webDir": "dist"}' > capacitor.config.json
         fi
 
-        # অ্যান্ড্রয়েড প্ল্যাটফর্ম সেটআপ
+        # অ্যান্ড্রয়েড প্ল্যাটফর্ম রি-ফ্রেশ
         rm -rf android
         npx cap add android
         npx cap sync android
         
         cd android
         
-        # ডুপ্লিকেট ক্লাস এবং কোটলিন কনফ্লিক্ট ফিক্স
+        # ডুপ্লিকেট ক্লাস এরর চিরতরে বন্ধ করার মাস্টার কমান্ড
         echo "android.useAndroidX=true" >> gradle.properties
         echo "android.enableJetifier=true" >> gradle.properties
-        echo "kotlin.stdlib.default.dependency=false" >> gradle.properties
         
-        # ডুপ্লিকেট ফাইল এরর ইগনোর করা
-        sed -i '/android {/a \    packagingOptions { pickFirst "META-INF/kotlin-stdlib.kotlin_module"; pickFirst "META-INF/kotlin-stdlib-jdk8.kotlin_module"; pickFirst "META-INF/kotlin-stdlib-jdk7.kotlin_module" }' app/build.gradle
+        # বিল্ড ফাইলে ফোর্স ডুপ্লিকেট রিমুভাল কনফিগারেশন যোগ করা
+        sed -i '/android {/a \    configurations.all { resolutionStrategy.force "org.jetbrains.kotlin:kotlin-stdlib:1.8.22" }' app/build.gradle
+        sed -i '/android {/a \    packagingOptions { pickFirst "**/*.kotlin_module"; pickFirst "**/*.version"; pickFirst "META-INF/AL2.0"; pickFirst "META-INF/LGPL2.1" }' app/build.gradle
 
         chmod +x gradlew
         ./gradlew assembleDebug --no-daemon -x test
@@ -60,5 +60,5 @@ jobs:
     - name: Upload Android APK
       uses: actions/upload-artifact@v4
       with:
-        name: CreditRegister-App
+        name: CreditRegister-Final-APK
         path: android/app/build/outputs/apk/debug/app-debug.apk
