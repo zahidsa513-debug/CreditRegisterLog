@@ -34,7 +34,12 @@ jobs:
 
     - name: Android Build (APK)
       run: |
-        # অ্যান্ড্রয়েড ফোল্ডার নতুন করে তৈরি করা (image_3cbb02.png এর এরর ফিক্স)
+        # কনফিগারেশন ফাইল না থাকলে তৈরি করা (image_3cbb02.png এর এরর ফিক্স)
+        if [ ! -f "capacitor.config.json" ] && [ ! -f "capacitor.config.ts" ]; then
+          echo '{"appId": "com.zahid.creditregister", "appName": "CreditRegister", "webDir": "dist", "bundledWebRuntime": false}' > capacitor.config.json
+        fi
+
+        # অ্যান্ড্রয়েড প্ল্যাটফর্ম সেটআপ
         rm -rf android
         npx cap add android
         npx cap sync android
@@ -46,7 +51,7 @@ jobs:
         echo "android.enableJetifier=true" >> gradle.properties
         echo "kotlin.stdlib.default.dependency=false" >> gradle.properties
         
-        # প্যাকেজিং অপশন যোগ করা যাতে ডুপ্লিকেট ফাইল এরর না আসে
+        # ডুপ্লিকেট ফাইল এরর ইগনোর করা
         sed -i '/android {/a \    packagingOptions { pickFirst "META-INF/kotlin-stdlib.kotlin_module"; pickFirst "META-INF/kotlin-stdlib-jdk8.kotlin_module"; pickFirst "META-INF/kotlin-stdlib-jdk7.kotlin_module" }' app/build.gradle
 
         chmod +x gradlew
