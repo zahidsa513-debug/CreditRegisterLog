@@ -100,11 +100,15 @@ const App = () => {
       }
       
       if (s.autoBackup) {
-        const lastBackup = localStorage.getItem('last_auto_backup');
+        let lastBackup: string | null = null;
+        try {
+          lastBackup = localStorage.getItem('last_auto_backup');
+        } catch (e) {}
+
         const today = new Date().toISOString().split('T')[0];
         if (lastBackup !== today) {
           syncToCloud().then(() => {
-            localStorage.setItem('last_auto_backup', today);
+            try { localStorage.setItem('last_auto_backup', today); } catch(e) {}
           }).catch(err => console.error('Auto backup failed:', err));
         }
       }

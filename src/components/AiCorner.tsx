@@ -79,11 +79,14 @@ const AiCorner = ({ redEyeActive }: { redEyeActive?: boolean }) => {
       return;
     }
 
-    setIsGenerating(true);
-    setBulkPosters([]);
-    setBulkProgress(0);
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+      alert("AI API Key is missing. Please set it in Settings/Environment.");
+      setIsGenerating(false);
+      return;
+    }
     
-    const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+    const ai = new GoogleGenAI({ apiKey });
     const results: string[] = [];
 
     // We want 10 outputs. If we have 5 inputs, we generate 2 variations for each.
@@ -165,7 +168,13 @@ const AiCorner = ({ redEyeActive }: { redEyeActive?: boolean }) => {
     if (!monthlyReportData) return;
     setIsAnalyzing(true);
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+      const apiKey = process.env.GEMINI_API_KEY;
+      if (!apiKey) {
+        setAiAnalysis("AI API Key is missing. Please check your configuration.");
+        setIsAnalyzing(false);
+        return;
+      }
+      const ai = new GoogleGenAI({ apiKey });
       const monthName = new Date(analysisYear, analysisMonth).toLocaleString(language === 'bn' ? 'bn-BD' : 'en-US', { month: 'long' });
       
       const statsSummary = `
@@ -220,7 +229,14 @@ const AiCorner = ({ redEyeActive }: { redEyeActive?: boolean }) => {
     }, 2000);
 
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+      const apiKey = process.env.GEMINI_API_KEY;
+      if (!apiKey) {
+        alert("AI API Key is missing.");
+        setIsGenerating(false);
+        setGenerationStep(0);
+        return;
+      }
+      const ai = new GoogleGenAI({ apiKey });
       
       const parts: any[] = [{ text: `Create a professional promotional poster for a business. 
       The poster should include this text: "${posterText}". 

@@ -77,10 +77,17 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
   // Load from Dexie first (Zero-lag)
   useEffect(() => {
     const loadLocalSettings = async () => {
-      // Priority: LocalStorage (Fastest) > Dexie > Default
-      const cachedLang = localStorage.getItem('app_language') as Language;
-      const cachedTheme = localStorage.getItem('app_theme') as Theme;
-      const cachedCurrency = localStorage.getItem('app_currency');
+      let cachedLang: Language | null = null;
+      let cachedTheme: Theme | null = null;
+      let cachedCurrency: string | null = null;
+      
+      try {
+        cachedLang = localStorage.getItem('app_language') as Language;
+        cachedTheme = localStorage.getItem('app_theme') as Theme;
+        cachedCurrency = localStorage.getItem('app_currency');
+      } catch (e) {
+        console.warn('LocalStorage blocked or unavailable');
+      }
       
       if (cachedLang) setLanguage(cachedLang);
       if (cachedTheme) setTheme(cachedTheme);
@@ -117,15 +124,15 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
           setSettings(remoteSettings);
           if (remoteSettings.language) {
             setLanguage(remoteSettings.language);
-            localStorage.setItem('app_language', remoteSettings.language);
+            try { localStorage.setItem('app_language', remoteSettings.language); } catch(e) {}
           }
           if (remoteSettings.theme) {
             setTheme(remoteSettings.theme);
-            localStorage.setItem('app_theme', remoteSettings.theme);
+            try { localStorage.setItem('app_theme', remoteSettings.theme); } catch(e) {}
           }
           if (remoteSettings.currency) {
             setCurrency(remoteSettings.currency);
-            localStorage.setItem('app_currency', remoteSettings.currency);
+            try { localStorage.setItem('app_currency', remoteSettings.currency); } catch(e) {}
           }
           setTarget(remoteSettings.targetAmount || 260000);
         }
@@ -156,15 +163,15 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     setSettings(updated);
     if (newSettings.language) {
       setLanguage(newSettings.language);
-      localStorage.setItem('app_language', newSettings.language);
+      try { localStorage.setItem('app_language', newSettings.language); } catch(e) {}
     }
     if (newSettings.theme) {
       setTheme(newSettings.theme);
-      localStorage.setItem('app_theme', newSettings.theme);
+      try { localStorage.setItem('app_theme', newSettings.theme); } catch(e) {}
     }
     if (newSettings.currency) {
       setCurrency(newSettings.currency);
-      localStorage.setItem('app_currency', newSettings.currency);
+      try { localStorage.setItem('app_currency', newSettings.currency); } catch(e) {}
     }
     if (newSettings.targetAmount !== undefined) setTarget(newSettings.targetAmount);
 
