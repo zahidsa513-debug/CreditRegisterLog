@@ -65,9 +65,10 @@ service cloud.firestore {
 
     function isValidSettings(data) {
       return data.keys().hasAll(['userId'])
+        && data.userId == request.auth.uid
         && (data.keys().contains('companyName') ? data.companyName is string : true)
         && (data.keys().contains('email') ? data.email is string : true)
-        && data.userId == request.auth.uid;
+        && (data.keys().contains('updatedAt') ? isValidTimestamp(data.updatedAt) : true);
     }
 
     function isValidCheck(data) {
@@ -123,12 +124,12 @@ service cloud.firestore {
     }
 
     match /settings/{settingId} {
-      allow get: if isOwner(settingId);
+      allow get: if isOwner(settingId) && isValidId(settingId);
       allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
-      allow create: if isOwner(settingId) && isValidSettings(incoming());
-      allow update: if isOwner(settingId) && isValidSettings(incoming())
-        && incoming().userId == existing().userId;
-      allow delete: if isOwner(settingId);
+      allow create: if isOwner(settingId) && isValidId(settingId) && isValidSettings(incoming());
+      allow update: if isOwner(settingId) && isValidId(settingId) && isValidSettings(incoming())
+        && (existing().keys().contains('userId') ? incoming().userId == existing().userId : true);
+      allow delete: if isOwner(settingId) && isValidId(settingId);
     }
 
     match /checks/{checkId} {

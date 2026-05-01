@@ -22,6 +22,7 @@ import { db } from '../db/db';
 import { translations } from '../translations';
 import { cn, formatCurrency } from '../lib/utils';
 import { Sale, Language } from '../types';
+import { trackFeatureUsage } from '../lib/analytics';
 
 import { useSettings } from '../context/SettingsContext';
 
@@ -134,6 +135,7 @@ const Reports = ({ setActiveTab, setEditingSale, redEyeActive }: { setActiveTab?
     });
 
     doc.save(`Credit_Report_${new Date().toISOString().split('T')[0]}.pdf`);
+    trackFeatureUsage('report_pdf_generated');
   };
   
   const generateMasterAreaReport = async () => {
@@ -196,6 +198,7 @@ const Reports = ({ setActiveTab, setEditingSale, redEyeActive }: { setActiveTab?
     }
 
     doc.save(`Master_Area_Report_${new Date().toISOString().split('T')[0]}.pdf`);
+    trackFeatureUsage('report_master_area_generated');
   };
 
   const handleEditDailySale = (sale: Sale) => {
@@ -308,6 +311,7 @@ const Reports = ({ setActiveTab, setEditingSale, redEyeActive }: { setActiveTab?
     });
 
     doc.save(`Daily_Sales_${new Date().toISOString().split('T')[0]}.pdf`);
+    trackFeatureUsage('report_daily_sales_printed');
   };
 
   const exportToExcel = () => {
@@ -327,6 +331,7 @@ const Reports = ({ setActiveTab, setEditingSale, redEyeActive }: { setActiveTab?
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Customer Report');
     XLSX.writeFile(wb, `CreditRegistry_Report_${new Date().toISOString().split('T')[0]}.xlsx`);
+    trackFeatureUsage('report_excel_exported');
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {

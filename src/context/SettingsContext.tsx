@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { db } from '../db/db';
 import { useAuth } from '../hooks/useAuth';
-import { doc, setDoc, getDoc } from 'firebase/firestore';
+import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
 import { db as firestoreDb } from '../lib/firebase';
 import { CompanySettings, Language, Theme } from '../types';
 
@@ -129,7 +129,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         await setDoc(doc(firestoreDb, 'settings', user.uid), {
           ...updated,
           userId: user.uid,
-          updatedAt: new Date().toISOString()
+          updatedAt: serverTimestamp()
         });
       } catch (error) {
         console.error("Error saving settings to Firestore:", error);
