@@ -30,7 +30,11 @@ const AuthScreen = ({ onAuthSuccess }: { onAuthSuccess: () => void }) => {
       await login();
       onAuthSuccess();
     } catch (err: any) {
-      setError(err.message || 'Login failed');
+      if (err.code === 'auth/network-request-failed' || err.message?.includes('offline')) {
+        setError(language === 'bn' ? 'ফায়ারবেজ কানেক্টেড নেই। দয়া করে আপনার ইন্টারনেট সংযোগ বা কনফিগারেশন চেক করুন।' : 'Firebase not connected. Please check your internet or configuration.');
+      } else {
+        setError(err.message || 'Login failed');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -66,7 +70,11 @@ const AuthScreen = ({ onAuthSuccess }: { onAuthSuccess: () => void }) => {
       }
       onAuthSuccess();
     } catch (err: any) {
-      setError(err.message || 'Authentication failed');
+      if (err.code === 'auth/network-request-failed' || err.message?.includes('offline')) {
+        setError(language === 'bn' ? 'ফায়ারবেজ কানেক্টেড নেই। দয়া করে আপনার ইন্টারনেট সংযোগ বা কনফিগারেশন চেক করুন।' : 'Firebase not connected. Please check your internet or configuration.');
+      } else {
+        setError(err.message || 'Authentication failed');
+      }
     } finally {
       setIsLoading(false);
     }

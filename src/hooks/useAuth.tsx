@@ -9,7 +9,7 @@ import {
   signInWithEmailAndPassword,
   updateProfile
 } from 'firebase/auth';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, getDocFromServer } from 'firebase/firestore';
 import { auth, db, googleProvider } from '../lib/firebase';
 import { UserProfile } from '../types';
 
@@ -175,10 +175,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     async function testConnection() {
       try {
-        await getDoc(doc(db, 'test', 'connection'));
+        await getDocFromServer(doc(db, 'test', 'connection'));
       } catch (error) {
         if (error instanceof Error && error.message.includes('the client is offline')) {
-          console.error("Please check your Firebase configuration.");
+          console.error("Firebase Connection Error: The client is offline or configuration is invalid.");
         }
       }
     }

@@ -261,7 +261,13 @@ const MyProgress = ({ redEyeActive }: { redEyeActive?: boolean }) => {
     if (!monthlyReportData) return;
     setIsAnalyzing(true);
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+      const apiKey = process.env.GEMINI_API_KEY;
+      if (!apiKey) {
+        setAiAnalysis("AI API Key is missing. Please check your configuration.");
+        setIsAnalyzing(false);
+        return;
+      }
+      const ai = new GoogleGenAI({ apiKey });
       const monthName = new Date(meetingYear, meetingMonth).toLocaleString(language === 'bn' ? 'bn-BD' : 'en-US', { month: 'long' });
       
       const statsSummary = `

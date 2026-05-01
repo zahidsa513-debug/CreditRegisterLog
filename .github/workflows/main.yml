@@ -1,70 +1,33 @@
-name: Build and Direct Download APK
+name: CI/CD Build
 
 on:
   push:
-    branches:
-      - main
-  workflow_dispatch:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+permissions:
+  contents: write
+  pull-requests: write
 
 jobs:
   build:
-    name: Build APK
     runs-on: ubuntu-latest
 
-    permissions:
-      contents: write
-
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
+    - uses: actions/checkout@v4
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: 20
+        cache: 'npm'
 
-      - name: Install Dependencies
-        run: |
-          npm install --legacy-peer-deps
-          npm install prop-types react-is --save --legacy-peer-deps
-          npm install @capacitor/core @capacitor/cli @capacitor/android --legacy-peer-deps
+    - name: Install dependencies
+      run: npm install
 
-      - name: Build Web Project
-        run: |
-          CI=false npm run build
-          if [ ! -f "capacitor.config.json" ]; then
-            echo '{"appId": "com.zahid.creditregister", "appName": "CreditRegister", "webDir": "dist"}' > capacitor.config.json
-          fi
-          if [ ! -d "android" ]; then
-            npx cap add android
-          fi
+    - name: Build
+      run: npm run build
 
-      - name: Set up JDK 21
-        uses: actions/setup-java@v4
-        with:
-          java-version: '21'
-          distribution: 'temurin'
-
-      - name: Capacitor Sync & Copy
-        run: |
-          npx cap sync android
-          npx cap copy android
-
-      - name: Fix Library Conflict
-        run: |
-          echo "configurations.all {
-              exclude group: 'org.jetbrains.kotlin', module: 'kotlin-stdlib-jdk7'
-              exclude group: 'org.jetbrains.kotlin', module: 'kotlin-stdlib-jdk8'
-          }" >> android/app/build.gradle
-
-      - name: Build Debug APK
-        run: |
-          cd android
-          chmod +x gradlew
-          ./gradlew clean assembleDebug --no-daemon -Pandroid.useAndroidX=true -Pandroid.enableJetifier=true
-
-      - name: Upload APK for Download
-        uses: actions/upload-artifact@v4
-        with:
-          name: CreditRegister-Final-Build
-          path: android/app/build/outputs/apk/debug/*.apk
+    - name: Lint
+      run: npm run lint
