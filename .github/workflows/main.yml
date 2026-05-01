@@ -47,13 +47,14 @@ jobs:
           npx cap add android
           npx cap sync android
 
+      # ডুপ্লিকেট ক্লাস এবং কোটলিন এরর ফিক্স করার জন্য বিশেষ কমান্ড
       - name: Build Debug APK
         run: |
           cd android
           chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon
+          ./gradlew clean
+          ./gradlew assembleDebug -Pandroid.useAndroidX=true -Pandroid.enableJetifier=true --no-daemon
 
-      # এই অংশটি এপিকে ফাইলকে Artifacts সেকশনে দৃশ্যমান করবে
       - name: Upload APK for Download
         uses: actions/upload-artifact@v4
         with:
