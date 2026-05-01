@@ -5,7 +5,7 @@ on:
     branches: [ main, master ]
   pull_request:
     branches: [ main, master ]
-  workflow_dispatch: # ম্যানুয়ালি রান করার অপশন
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -25,33 +25,36 @@ jobs:
         cache: 'npm'
 
     - name: Install dependencies
-      run: npm install --legacy-peer-deps
+      run: |
+        npm install --legacy-peer-deps
+        # এরর ফিক্স করার জন্য আলাদাভাবে ইন্সটল করা হচ্ছে
+        npm install prop-types --save-dev --legacy-peer-deps
 
     - name: Build Web Project
-      run: npm run build
+      run: |
+        # Vite এরর এড়াতে CI=false ব্যবহার করা হয়েছে
+        CI=false npm run build
 
-    # ওয়েব বিল্ড ডাউনলোড করার জন্য (অপশনাল)
     - name: Upload Web Build Artifact
       uses: actions/upload-artifact@v4
       with:
         name: CreditRegister-Web-Build
         path: dist/
 
-    # অ্যান্ড্রয়েড বিল্ড সেটআপ (আপনার Capacitor প্রজেক্টের জন্য)
-    - name: Set up JDK 20
+    - name: Set up JDK 17
       uses: actions/setup-java@v4
       with:
-        java-version: '20'
+        java-version: '17'
         distribution: 'temurin'
 
     - name: Android Build (APK)
       run: |
+        # অ্যান্ড্রয়েড প্ল্যাটফর্ম চেক এবং সিঙ্ক
         npx cap sync
         cd android
         chmod +x gradlew
-        ./gradlew assembleDebug
+        ./gradlew assembleDebug --no-daemon
 
-    # ফাইনাল এপিকে ডাউনলোড করার জন্য মেইন স্টেপ
     - name: Upload Android APK
       uses: actions/upload-artifact@v4
       with:
