@@ -3,12 +3,7 @@ name: CI/CD Build & Artifact Download
 on:
   push:
     branches: [ main, master ]
-  pull_request:
-    branches: [ main, master ]
   workflow_dispatch:
-
-permissions:
-  contents: write
 
 jobs:
   build:
@@ -21,13 +16,11 @@ jobs:
       uses: actions/setup-node@v4
       with:
         node-version: 20
-        cache: 'npm'
 
     - name: Install dependencies
       run: |
         npm install --legacy-peer-deps
-        npm install prop-types --save --legacy-peer-deps
-        npm install @capacitor/cli @capacitor/core @capacitor/android --legacy-peer-deps
+        npm install @capacitor/cli @capacitor/core @capacitor/android prop-types --legacy-peer-deps
 
     - name: Build Web Project
       run: |
@@ -41,37 +34,26 @@ jobs:
 
     - name: Android Build (APK)
       run: |
-        if [ ! -f "capacitor.config.json" ]; then
-          echo '{"appId": "com.zahid.creditregister", "appName": "CreditRegister", "webDir": "dist"}' > capacitor.config.json
-        fi
-
-        # অ্যান্ড্রয়েড প্ল্যাটফর্ম যোগ এবং সিঙ্ক করা
-        if [ ! -d "android" ]; then
-          npx cap add android
-        fi
+        # অ্যান্ড্রয়েড ফোল্ডার নতুন করে তৈরি করা (image_3cbb02.png এর এরর ফিক্স)
+        rm -rf android
+        npx cap add android
         npx cap sync android
         
-        # সরাসরি অ্যান্ড্রয়েড ডিরেক্টরিতে গিয়ে কাজ করা
         cd android
         
-        # ফাইলটি আছে কি না চেক করে পারমিশন দেওয়া
-        if [ -f "gradlew" ]; then
-          chmod +x gradlew
-          
-          # ডুপ্লিকেট ক্লাস এরর ফিক্স করার কনফিগারেশন
-          echo "android.useAndroidX=true" >> gradle.properties
-          echo "android.enableJetifier=true" >> gradle.properties
-          echo "kotlin.stdlib.default.dependency=false" >> gradle.properties
-          
-          # বিল্ড শুরু করা
-          ./gradlew assembleDebug --no-daemon -x test
-        else
-          echo "Error: gradlew not found in android directory"
-          exit 1
-        fi
+        # ডুপ্লিকেট ক্লাস এবং কোটলিন কনফ্লিক্ট ফিক্স
+        echo "android.useAndroidX=true" >> gradle.properties
+        echo "android.enableJetifier=true" >> gradle.properties
+        echo "kotlin.stdlib.default.dependency=false" >> gradle.properties
         
+        # প্যাকেজিং অপশন যোগ করা যাতে ডুপ্লিকেট ফাইল এরর না আসে
+        sed -i '/android {/a \    packagingOptions { pickFirst "META-INF/kotlin-stdlib.kotlin_module"; pickFirst "META-INF/kotlin-stdlib-jdk8.kotlin_module"; pickFirst "META-INF/kotlin-stdlib-jdk7.kotlin_module" }' app/build.gradle
+
+        chmod +x gradlew
+        ./gradlew assembleDebug --no-daemon -x test
+
     - name: Upload Android APK
       uses: actions/upload-artifact@v4
       with:
-        name: CreditRegister-Android-App
+        name: CreditRegister-App
         path: android/app/build/outputs/apk/debug/app-debug.apk
