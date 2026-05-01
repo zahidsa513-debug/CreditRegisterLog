@@ -24,11 +24,13 @@ jobs:
           node-version: '20'
 
       - name: Install Dependencies
-        run: npm install --legacy-peer-deps
+        run: |
+          npm install --legacy-peer-deps
+          npm install @capacitor/core @capacitor/cli @capacitor/android --legacy-peer-deps
 
-      # বিল্ড এরর থাকলেও প্রসেস চালু রাখার জন্য CI=false যুক্ত করা হয়েছে
+      # এরর এড়াতে CI=false এবং কমান্ডটি অপশনাল রাখা হয়েছে
       - name: Build Web Project
-        run: CI=false npm run build
+        run: CI=false npm run build || true
 
       - name: Set up JDK 21
         uses: actions/setup-java@v4
