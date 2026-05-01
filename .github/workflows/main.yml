@@ -27,12 +27,12 @@ jobs:
     - name: Install dependencies
       run: |
         npm install --legacy-peer-deps
-        # এরর ফিক্স করার জন্য আলাদাভাবে ইন্সটল করা হচ্ছে
         npm install prop-types --save-dev --legacy-peer-deps
+        # Capacitor CLI লোকালি ইনস্টল নিশ্চিত করা হচ্ছে
+        npm install @capacitor/cli @capacitor/core @capacitor/android --legacy-peer-deps
 
     - name: Build Web Project
       run: |
-        # Vite এরর এড়াতে CI=false ব্যবহার করা হয়েছে
         CI=false npm run build
 
     - name: Upload Web Build Artifact
@@ -49,8 +49,8 @@ jobs:
 
     - name: Android Build (APK)
       run: |
-        # অ্যান্ড্রয়েড প্ল্যাটফর্ম চেক এবং সিঙ্ক
-        npx cap sync
+        # npx এর বদলে সরাসরি ডিরেক্টরি থেকে কমান্ড রান করা হচ্ছে
+        node_modules/.bin/cap sync android
         cd android
         chmod +x gradlew
         ./gradlew assembleDebug --no-daemon
