@@ -1,33 +1,77 @@
 name: CI/CD Build
 
+
+
 on:
+
   push:
+
     branches: [ main, master ]
+
   pull_request:
+
     branches: [ main, master ]
+
+
 
 permissions:
+
   contents: write
+
   pull-requests: write
 
+
+
 jobs:
+
   build:
+
     runs-on: ubuntu-latest
 
+
+
     steps:
+
     - uses: actions/checkout@v4
 
+
+
     - name: Set up Node.js
+
       uses: actions/setup-node@v4
+
       with:
+
         node-version: 20
+
         cache: 'npm'
 
+
+
     - name: Install dependencies
+
       run: npm install
 
+
+
     - name: Build
+
       run: npm run build
 
+
+
     - name: Lint
+
       run: npm run lint
+
+# ফাইনাল এপিকে ডাউনলোড করার জন্য মেইন স্টেপ
+
+    - name: Upload Android APK
+
+      uses: actions/upload-artifact@v4
+
+      with:
+
+        name: CreditRegister-Android-App
+
+        path: android/app/build/outputs/apk/debug/app-debug.apk
