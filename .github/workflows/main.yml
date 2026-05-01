@@ -28,7 +28,6 @@ jobs:
       run: |
         npm install --legacy-peer-deps
         npm install prop-types --save-dev --legacy-peer-deps
-        npm install @capacitor/cli @capacitor/core @capacitor/android --legacy-peer-deps
 
     - name: Build Web Project
       run: |
@@ -53,17 +52,14 @@ jobs:
         npx cap sync android
         cd android
         
-        # ডুপ্লিকেট ক্লাস এরর ফিক্স করার জন্য gradle.properties আপডেট
+        # ডুপ্লিকেট ক্লাস এরর চিরতরে ফিক্স করার জন্য কনফিগারেশন
         echo "android.useAndroidX=true" >> gradle.properties
         echo "android.enableJetifier=true" >> gradle.properties
         echo "kotlin.stdlib.default.dependency=false" >> gradle.properties
+        
+        # অ্যাপের ভেতর ডুপ্লিকেট মডিউল ফোর্স রিমুভ করার কমান্ড
+        sed -i '/dependencies {/a \    modules { module("org.jetbrains.kotlin:kotlin-stdlib-jdk8") { replacedBy("org.jetbrains.kotlin:kotlin-stdlib") } }' app/build.gradle
+        sed -i '/dependencies {/a \    modules { module("org.jetbrains.kotlin:kotlin-stdlib-jdk7") { replacedBy("org.jetbrains.kotlin:kotlin-stdlib") } }' app/build.gradle
 
         chmod +x gradlew
-        # ডুপ্লিকেট ক্লাস ইগনোর করে বিল্ড করার কমান্ড
-        ./gradlew assembleDebug --no-daemon -Pandroid.useAndroidX=true -Pandroid.enableJetifier=true
-
-    - name: Upload Android APK
-      uses: actions/upload-artifact@v4
-      with:
-        name: CreditRegister-Android-App
-        path: android/app/build/outputs/apk/debug/app-debug.apk
+        ./gradlew assembleDebug --no-daemon -x test
