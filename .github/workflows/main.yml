@@ -25,15 +25,16 @@ jobs:
 
       - name: Install Dependencies
         run: |
-          # নিখোঁজ প্যাকেজগুলোসহ সব ডিপেন্ডেন্সি ইন্সটল করা
+          # সব প্রয়োজনীয় প্যাকেজ ইন্সটল করা
           npm install --legacy-peer-deps
-          npm install prop-types --save --legacy-peer-deps
+          npm install prop-types react-is --save --legacy-peer-deps
           npm install @capacitor/core @capacitor/cli @capacitor/android --legacy-peer-deps
 
       - name: Build Web Project
         run: |
-          # Vite বিল্ড এরর এড়াতে CI=false ব্যবহার করা
+          # বিল্ড এরর এড়াতে CI=false ব্যবহার করা হয়েছে
           CI=false npm run build
+          # আপনার অ্যাপের কোড অ্যান্ড্রয়েড ফোল্ডারে কপি করা
           npx cap copy android
 
       - name: Set up JDK 21
@@ -45,8 +46,9 @@ jobs:
       - name: Capacitor Sync
         run: npx cap sync android
 
-      - name: Resolve Kotlin Duplicate Classes
+      - name: Fix Library Conflict
         run: |
+          # কোটলিন লাইব্রেরি সংঘাত দূর করা যা অ্যাপ ক্রাশ হওয়া আটকাবে
           echo "configurations.all {
               exclude group: 'org.jetbrains.kotlin', module: 'kotlin-stdlib-jdk7'
               exclude group: 'org.jetbrains.kotlin', module: 'kotlin-stdlib-jdk8'
@@ -56,11 +58,12 @@ jobs:
         run: |
           cd android
           chmod +x gradlew
+          # ফ্রেশ বিল্ড নিশ্চিত করা
           ./gradlew clean assembleDebug --no-daemon -Pandroid.useAndroidX=true -Pandroid.enableJetifier=true
 
       - name: Upload APK for Download
         uses: actions/upload-artifact@v4
         with:
-          name: CreditRegister-Complete-APK
+          name: CreditRegister-Final-Fix
           path: "android/app/build/outputs/apk/debug/*.apk"
           if-no-files-found: error
