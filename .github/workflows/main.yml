@@ -43,13 +43,14 @@ jobs:
           npx cap add android || true
           npx cap sync android
 
+      # গ্র্যাডল এরর এড়াতে ক্লিন কমান্ড এবং পারমিশন ফিক্স
       - name: Build Debug APK
         run: |
           cd android
           chmod +x gradlew
-          ./gradlew assembleDebug
+          ./gradlew clean
+          ./gradlew assembleDebug --stacktrace
 
-      # এই অংশটি আপনার এপিকে সরাসরি সামনে নিয়ে আসবে
       - name: Upload APK for Download
         uses: actions/upload-artifact@v4
         with:
