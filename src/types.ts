@@ -60,6 +60,7 @@ export interface Expense {
 
 export interface CompanySettings {
   id?: number;
+  userId?: string;
   companyName: string;
   email: string;
   phone: string;

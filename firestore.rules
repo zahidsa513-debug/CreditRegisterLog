@@ -29,7 +29,7 @@ service cloud.firestore {
     }
     
     function isValidId(id) {
-      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_-]+$');
     }
 
     function isValidTimestamp(val) {
@@ -64,11 +64,7 @@ service cloud.firestore {
     }
 
     function isValidSettings(data) {
-      return data.keys().hasAll(['userId'])
-        && data.userId == request.auth.uid
-        && (data.keys().contains('companyName') ? data.companyName is string : true)
-        && (data.keys().contains('email') ? data.email is string : true)
-        && (data.keys().contains('updatedAt') ? isValidTimestamp(data.updatedAt) : true);
+      return data.userId == request.auth.uid;
     }
 
     function isValidCheck(data) {

@@ -153,6 +153,11 @@ export const translations = {
     feedbackSuccess: 'Feedback sent successfully! Thank you.',
     feedbackError: 'Failed to send feedback. Please try again.',
     shareSuggestions: 'Share Suggestions',
+    transactionHistory: 'Transaction History',
+    viewAllTransactions: 'View All Transactions',
+    showLess: 'Show Less',
+    last5Transactions: 'Last 5 Transactions',
+    allHistory: 'All Transactions',
   },
   bn: {
     dashboard: 'ড্যাশবোর্ড',
@@ -308,6 +313,11 @@ export const translations = {
     feedbackSuccess: 'মতামত সফলভাবে পাঠানো হয়েছে! ধন্যবাদ।',
     feedbackError: 'মতামত পাঠানো ব্যর্থ হয়েছে। আবার চেষ্টা করুন।',
     shareSuggestions: 'পরামর্শ শেয়ার করুন',
+    transactionHistory: 'লেনদেনের ইতিহাস',
+    viewAllTransactions: 'সব লেনদেন দেখুন',
+    showLess: 'কম দেখুন',
+    last5Transactions: 'শেষ ৫টি লেনদেন',
+    allHistory: 'সব লেনদেন',
   },
   es: {
     dashboard: 'Tablero',
@@ -463,5 +473,10 @@ export const translations = {
     feedbackSuccess: '¡Sugerencia enviada con éxito! Gracias.',
     feedbackError: 'Error al enviar la sugerencia. Por favor, inténtelo de nuevo.',
     shareSuggestions: 'Compartir Sugerencias',
+    transactionHistory: 'Historial de Transacciones',
+    viewAllTransactions: 'Ver Todas las Transacciones',
+    showLess: 'Ver Menos',
+    last5Transactions: 'Últimas 5 Transacciones',
+    allHistory: 'Todas las Transacciones',
   }
 };

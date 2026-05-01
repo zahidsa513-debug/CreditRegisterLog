@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { 
   Search, User, Phone, MapPin, ChevronRight, 
@@ -29,6 +29,16 @@ const CustomerProfile = ({ redEyeActive }: { redEyeActive?: boolean }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [isLocating, setIsLocating] = useState(false);
   const [editFormData, setEditFormData] = useState<Partial<Customer>>({});
+  const [showAllTransactions, setShowAllTransactions] = useState(false);
+
+  useEffect(() => {
+    setShowAllTransactions(false);
+  }, [selectedCustomer?.id]);
+
+  const customerTransactions = sales?.filter(s => String(s.customerId) === String(selectedCustomer?.id))
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()) || [];
+  
+  const displayedTransactions = showAllTransactions ? customerTransactions : customerTransactions.slice(0, 5);
 
   const filteredCustomers = customers?.filter(c => 
     c.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
@@ -395,9 +405,107 @@ const CustomerProfile = ({ redEyeActive }: { redEyeActive?: boolean }) => {
           </div>
 
           <div className="lg:col-span-2 space-y-8">
+            {/* Transaction History Section */}
             <motion.div 
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+              className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-soft overflow-hidden"
+            >
+              <div className="p-8 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="p-3 bg-amber-50 dark:bg-amber-900/30 text-amber-600 rounded-2xl">
+                    <Calendar className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h4 className="text-xl font-display font-black tracking-tight">{t.transactionHistory}</h4>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                      {showAllTransactions ? t.allHistory : t.last5Transactions}
+                    </p>
+                  </div>
+                </div>
+                {customerTransactions.length > 5 && (
+                  <button 
+                    onClick={() => setShowAllTransactions(!showAllTransactions)}
+                    className="px-4 py-2 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-xl transition-all font-black text-[10px] uppercase tracking-widest flex items-center gap-2 border border-slate-100 dark:border-slate-700"
+                  >
+                    {showAllTransactions ? t.showLess : t.viewAllTransactions}
+                  </button>
+                )}
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="bg-slate-50 dark:bg-slate-800/50">
+                      <th className="px-8 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">{t.date}</th>
+                      <th className="px-8 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">{t.description}</th>
+                      <th className="px-8 py-4 text-center text-[10px] font-black text-slate-400 uppercase tracking-widest">{t.type}</th>
+                      <th className="px-8 py-4 text-right text-[10px] font-black text-slate-400 uppercase tracking-widest">{t.amount}</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                    {displayedTransactions.length > 0 ? (
+                      displayedTransactions.map((s, idx) => {
+                        const totalAmount = s.totalAmount || ((s.cashSale || 0) + (s.chequeSale || 0) + (s.creditSale || 0));
+                        return (
+                          <motion.tr 
+                            initial={{ opacity: 0, x: -10 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: idx * 0.05 }}
+                            key={s.id || idx}
+                            className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors"
+                          >
+                            <td className="px-8 py-5 whitespace-nowrap">
+                              <span className="text-xs font-bold text-slate-600 dark:text-slate-400">
+                                {new Date(s.date).toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' })}
+                              </span>
+                            </td>
+                            <td className="px-8 py-5">
+                              <p className="text-sm font-bold text-slate-800 dark:text-white truncate max-w-[200px]">
+                                {s.description || '-'}
+                              </p>
+                              <span className="text-[9px] font-black text-slate-400 uppercase tracking-tighter">
+                                {s.invoiceNumber || s.receiptNumber || s.billNumber || '#REF-00'}
+                              </span>
+                            </td>
+                            <td className="px-8 py-5 text-center">
+                              <span className={cn(
+                                "text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full",
+                                s.type === 'sale' ? "bg-rose-50 text-rose-600 dark:bg-rose-900/20" : "bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20"
+                              )}>
+                                {s.type === 'sale' ? t.due : t.collection}
+                              </span>
+                            </td>
+                            <td className="px-8 py-5 text-right whitespace-nowrap">
+                              <span className={cn(
+                                "text-sm font-black",
+                                s.type === 'sale' ? "text-rose-600" : "text-emerald-600",
+                                redEyeActive && "blur-sm"
+                              )}>
+                                {s.type === 'sale' ? '+' : '-'}{formatCurrency(totalAmount, currency)}
+                              </span>
+                            </td>
+                          </motion.tr>
+                        );
+                      })
+                    ) : (
+                      <tr>
+                        <td colSpan={4} className="px-8 py-20 text-center">
+                          <FileText className="w-12 h-12 text-slate-200 dark:text-slate-700 mx-auto mb-4" />
+                          <p className="text-xs font-black uppercase tracking-[0.3em] text-slate-300 italic">{t.noHistoryFound}</p>
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </motion.div>
+
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
               className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-soft p-10"
             >
               <div className="flex items-center gap-4 mb-10">
