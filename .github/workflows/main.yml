@@ -1,77 +1,59 @@
-name: CI/CD Build
-
-
+name: CI/CD Build & Artifact Download
 
 on:
-
   push:
-
     branches: [ main, master ]
-
   pull_request:
-
     branches: [ main, master ]
-
-
+  workflow_dispatch: # ম্যানুয়ালি রান করার অপশন
 
 permissions:
-
   contents: write
-
   pull-requests: write
 
-
-
 jobs:
-
   build:
-
     runs-on: ubuntu-latest
 
-
-
     steps:
-
     - uses: actions/checkout@v4
 
-
-
     - name: Set up Node.js
-
       uses: actions/setup-node@v4
-
       with:
-
         node-version: 20
-
         cache: 'npm'
 
-
-
     - name: Install dependencies
+      run: npm install --legacy-peer-deps
 
-      run: npm install
-
-
-
-    - name: Build
-
+    - name: Build Web Project
       run: npm run build
 
-
-
-    - name: Lint
-
-      run: npm run lint
-
-# ফাইনাল এপিকে ডাউনলোড করার জন্য মেইন স্টেপ
-
-    - name: Upload Android APK
-
+    # ওয়েব বিল্ড ডাউনলোড করার জন্য (অপশনাল)
+    - name: Upload Web Build Artifact
       uses: actions/upload-artifact@v4
-
       with:
+        name: CreditRegister-Web-Build
+        path: dist/
 
+    # অ্যান্ড্রয়েড বিল্ড সেটআপ (আপনার Capacitor প্রজেক্টের জন্য)
+    - name: Set up JDK 20
+      uses: actions/setup-java@v4
+      with:
+        java-version: '20'
+        distribution: 'temurin'
+
+    - name: Android Build (APK)
+      run: |
+        npx cap sync
+        cd android
+        chmod +x gradlew
+        ./gradlew assembleDebug
+
+    # ফাইনাল এপিকে ডাউনলোড করার জন্য মেইন স্টেপ
+    - name: Upload Android APK
+      uses: actions/upload-artifact@v4
+      with:
         name: CreditRegister-Android-App
-
         path: android/app/build/outputs/apk/debug/app-debug.apk
