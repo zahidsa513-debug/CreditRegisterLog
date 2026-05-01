@@ -37,18 +37,18 @@ jobs:
           java-version: '21'
           distribution: 'temurin'
 
-      - name: Initialize Capacitor
+      # আগের অ্যান্ড্রয়েড ফোল্ডার মুছে নতুন করে তৈরি করা (এরর ফিক্স)
+      - name: Reset and Sync Capacitor Android
         run: |
+          rm -rf android
           npx cap init "CreditRegister" "com.creditregister.app" --web-dir dist
-          npx cap add android || true
+          npx cap add android
           npx cap sync android
 
-      # গ্র্যাডল এরর এড়াতে ক্লিন কমান্ড এবং পারমিশন ফিক্স
       - name: Build Debug APK
         run: |
           cd android
           chmod +x gradlew
-          ./gradlew clean
           ./gradlew assembleDebug --stacktrace
 
       - name: Upload APK for Download
