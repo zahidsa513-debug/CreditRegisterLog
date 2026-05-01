@@ -23,19 +23,23 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Install Dependencies
+     - name: Install Dependencies
         run: |
+          # সব প্রয়োজনীয় ডিপেন্ডেন্সি একসাথে ইনস্টল করা হচ্ছে
           npm install --legacy-peer-deps
+          npm install prop-types react-is --save --legacy-peer-deps
           npm install @capacitor/core @capacitor/cli @capacitor/android --legacy-peer-deps
 
       - name: Build Web Project
         run: |
+          # Vite যাতে এরর না দেয় সেজন্য CI=false রাখা হয়েছে
           CI=false npm run build
-          # এখানে সরাসরি কনফিগ ফাইল তৈরি করে এরর এড়ানো হয়েছে
+          
+          # কনফিগ ফাইল তৈরি এবং অ্যান্ড্রয়েড প্ল্যাটফর্ম চেক
           if [ ! -f "capacitor.config.json" ]; then
             echo '{"appId": "com.zahid.creditregister", "appName": "CreditRegister", "webDir": "dist"}' > capacitor.config.json
           fi
-          # যদি অ্যান্ড্রয়েড ফোল্ডার না থাকে তবে যোগ করা
+          
           if [ ! -d "android" ]; then
             npx cap add android
           fi
