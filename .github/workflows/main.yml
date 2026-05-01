@@ -25,12 +25,16 @@ jobs:
 
     - name: Install dependencies
       run: |
+        # ক্লান্তিহীন ডিপেন্ডেন্সি ইনস্টলেশন
         npm install --legacy-peer-deps
-        # Capacitor CLI এবং অ্যান্ড্রয়েড প্ল্যাটফর্ম লোকালি ইনস্টল নিশ্চিত করা
+        # image_3d85db.png এরর ফিক্স করার জন্য prop-types ইনস্টল
+        npm install prop-types --save --legacy-peer-deps
+        # Capacitor এবং অন্যান্য প্রয়োজনীয় টুলস
         npm install @capacitor/cli @capacitor/core @capacitor/android --legacy-peer-deps
 
     - name: Build Web Project
       run: |
+        # Vite বিল্ড প্রসেস
         CI=false npm run build
 
     - name: Set up JDK 21
@@ -41,26 +45,28 @@ jobs:
 
     - name: Android Build (APK)
       run: |
-        # কনফিগারেশন ফাইল চেক
         if [ ! -f "capacitor.config.json" ]; then
           echo '{"appId": "com.zahid.creditregister", "appName": "CreditRegister", "webDir": "dist"}' > capacitor.config.json
         fi
 
-        # অ্যান্ড্রয়েড ফোল্ডার চেক
         if [ ! -d "android" ]; then
           ./node_modules/.bin/cap add android
         fi
         
-        # সরাসরি পাথ ব্যবহার করে সিঙ্ক করা (executable error এড়াতে)
         ./node_modules/.bin/cap sync android
         
         cd android
         
-        # ডুপ্লিকেট ক্লাস এরর ফিক্স
+        # ডুপ্লিকেট ক্লাস এবং কোটলিন কনফ্লিক্ট ফিক্স
         echo "android.useAndroidX=true" >> gradle.properties
         echo "android.enableJetifier=true" >> gradle.properties
         echo "kotlin.stdlib.default.dependency=false" >> gradle.properties
         
         chmod +x gradlew
-        # এপিকে জেনারেট করা
         ./gradlew assembleDebug --no-daemon -x test
+
+    - name: Upload Android APK
+      uses: actions/upload-artifact@v4
+      with:
+        name: CreditRegister-Android-App
+        path: android/app/build/outputs/apk/debug/app-debug.apk
