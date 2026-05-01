@@ -9,7 +9,6 @@ on:
 
 permissions:
   contents: write
-  pull-requests: write
 
 jobs:
   build:
@@ -27,7 +26,8 @@ jobs:
     - name: Install dependencies
       run: |
         npm install --legacy-peer-deps
-        npm install prop-types --save-dev --legacy-peer-deps
+        # Capacitor CLI এবং অ্যান্ড্রয়েড প্ল্যাটফর্ম লোকালি ইনস্টল নিশ্চিত করা
+        npm install @capacitor/cli @capacitor/core @capacitor/android --legacy-peer-deps
 
     - name: Build Web Project
       run: |
@@ -41,25 +41,26 @@ jobs:
 
     - name: Android Build (APK)
       run: |
+        # কনফিগারেশন ফাইল চেক
         if [ ! -f "capacitor.config.json" ]; then
           echo '{"appId": "com.zahid.creditregister", "appName": "CreditRegister", "webDir": "dist"}' > capacitor.config.json
         fi
 
+        # অ্যান্ড্রয়েড ফোল্ডার চেক
         if [ ! -d "android" ]; then
-          npx cap add android
+          ./node_modules/.bin/cap add android
         fi
         
-        npx cap sync android
+        # সরাসরি পাথ ব্যবহার করে সিঙ্ক করা (executable error এড়াতে)
+        ./node_modules/.bin/cap sync android
+        
         cd android
         
-        # ডুপ্লিকেট ক্লাস এরর চিরতরে ফিক্স করার জন্য কনফিগারেশন
+        # ডুপ্লিকেট ক্লাস এরর ফিক্স
         echo "android.useAndroidX=true" >> gradle.properties
         echo "android.enableJetifier=true" >> gradle.properties
         echo "kotlin.stdlib.default.dependency=false" >> gradle.properties
         
-        # অ্যাপের ভেতর ডুপ্লিকেট মডিউল ফোর্স রিমুভ করার কমান্ড
-        sed -i '/dependencies {/a \    modules { module("org.jetbrains.kotlin:kotlin-stdlib-jdk8") { replacedBy("org.jetbrains.kotlin:kotlin-stdlib") } }' app/build.gradle
-        sed -i '/dependencies {/a \    modules { module("org.jetbrains.kotlin:kotlin-stdlib-jdk7") { replacedBy("org.jetbrains.kotlin:kotlin-stdlib") } }' app/build.gradle
-
         chmod +x gradlew
+        # এপিকে জেনারেট করা
         ./gradlew assembleDebug --no-daemon -x test
