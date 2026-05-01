@@ -32,9 +32,9 @@ jobs:
       - name: Build Web Project
         run: |
           CI=false npm run build
-          # যদি অ্যান্ড্রয়েড ফোল্ডার না থাকে তবে এটি নতুন করে তৈরি করবে
+          # যদি অ্যান্ড্রয়েড প্ল্যাটফর্ম না থাকে, তবে আইডি সহ যোগ করা
           if [ ! -d "android" ]; then
-            npx cap add android
+            npx cap add android --app-id "com.zahid.creditregister" --app-name "CreditRegister"
           fi
 
       - name: Set up JDK 21
@@ -45,12 +45,13 @@ jobs:
 
       - name: Capacitor Sync
         run: |
+          # কনফিগ ছাড়াই যাতে সিঙ্ক হয় এবং ফাইল কপি হয়
           npx cap sync android
           npx cap copy android
 
       - name: Fix Library Conflict
         run: |
-          # কোড ক্রাশ হওয়া ঠেকাতে এবং ডুপ্লিকেট ক্লাস সরাতে
+          # অ্যাপ ক্রাশ হওয়া আটকাতে
           echo "configurations.all {
               exclude group: 'org.jetbrains.kotlin', module: 'kotlin-stdlib-jdk7'
               exclude group: 'org.jetbrains.kotlin', module: 'kotlin-stdlib-jdk8'
@@ -65,6 +66,6 @@ jobs:
       - name: Upload APK for Download
         uses: actions/upload-artifact@v4
         with:
-          name: CreditRegister-Final-Build
+          name: CreditRegister-Success-Build
           path: "android/app/build/outputs/apk/debug/*.apk"
           if-no-files-found: error
