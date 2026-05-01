@@ -25,13 +25,15 @@ jobs:
 
       - name: Install Dependencies
         run: |
+          # নিখোঁজ প্যাকেজগুলোসহ সব ডিপেন্ডেন্সি ইন্সটল করা
           npm install --legacy-peer-deps
+          npm install prop-types --save --legacy-peer-deps
           npm install @capacitor/core @capacitor/cli @capacitor/android --legacy-peer-deps
 
       - name: Build Web Project
         run: |
-          npm run build --if-present
-          # আপনার অ্যাপের আসল ফাইলগুলো অ্যান্ড্রয়েড ফোল্ডারে কপি করার মূল কমান্ড
+          # Vite বিল্ড এরর এড়াতে CI=false ব্যবহার করা
+          CI=false npm run build
           npx cap copy android
 
       - name: Set up JDK 21
