@@ -40,28 +40,34 @@ jobs:
           java-version: '21'
           distribution: 'temurin'
 
-      - name: Reset Capacitor Android
+      # অ্যান্ড্রয়েড রিসোর্সগুলো একদম ক্লিন করে নতুনভাবে তৈরি করা
+      - name: Hard Reset Android Project
         run: |
           rm -rf android
           npx cap init "CreditRegister" "com.creditregister.app" --web-dir dist
           npx cap add android
           npx cap sync android
 
-      - name: Fix Duplicate Kotlin Classes
+      # ডুপ্লিকেট কোটলিন ক্লাস এবং লাইব্রেরি সংঘাত দূর করা
+      - name: Force Fix Library Conflict
         run: |
-          sed -i '/android {/a \    configurations.all {\n        resolutionStrategy {\n            force "org.jetbrains.kotlin:kotlin-stdlib:1.8.22"\n            force "org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.8.22"\n        }\n    }' android/app/build.gradle
-          sed -i '/android {/a \    packagingOptions {\n        pickFirst "META-INF/kotlin-stdlib-jdk8.kotlin_module"\n        pickFirst "META-INF/kotlin-stdlib.kotlin_module"\n        pickFirst "META-INF/kotlin-stdlib-jdk7.kotlin_module"\n    }' android/app/build.gradle
+          echo "configurations.all {
+              resolutionStrategy {
+                  force 'org.jetbrains.kotlin:kotlin-stdlib:1.8.22'
+                  force 'org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.8.22'
+              }
+          }" >> android/build.gradle
+          sed -i '/android {/a \    packagingOptions {\n        pickFirst "META-INF/kotlin-stdlib-jdk8.kotlin_module"\n        pickFirst "META-INF/kotlin-stdlib.kotlin_module"\n    }' android/app/build.gradle
 
       - name: Build Debug APK
         run: |
           cd android
           chmod +x gradlew
+          ./gradlew clean
           ./gradlew assembleDebug --no-daemon -Pandroid.useAndroidX=true -Pandroid.enableJetifier=true
 
-      # এই অংশটি এপিকে ফাইলটি খুঁজে বের করে আর্টফ্যাক্ট সেকশনে নিয়ে আসবে
       - name: Upload APK for Download
         uses: actions/upload-artifact@v4
         with:
-          name: CreditRegister-New-Update
+          name: CreditRegister-Final-Fix
           path: android/app/build/outputs/apk/debug/app-debug.apk
-          if-no-files-found: error
