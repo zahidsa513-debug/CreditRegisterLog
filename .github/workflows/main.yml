@@ -34,28 +34,28 @@ jobs:
 
     - name: Android Build (APK)
       run: |
-        # ১. প্রজেক্ট কনফিগারেশন নিশ্চিত করা
+        # ১. কনফিগারেশন অটো-জেনারেশন
         if [ ! -f "capacitor.config.json" ]; then
           echo '{"appId": "com.zahid.creditregister", "appName": "CreditRegister", "webDir": "dist"}' > capacitor.config.json
         fi
 
-        # ২. ফ্রেশ অ্যান্ড্রয়েড প্ল্যাটফর্ম তৈরি
+        # ২. অ্যান্ড্রয়েড এনভায়রনমেন্ট ক্লিন আপ
         rm -rf android
         npx cap add android
         npx cap sync android
         
         cd android
         
-        # ৩. গ্র্যাডলে ডুপ্লিকেট ক্লাস এরর চিরতরে বন্ধ করার কোড (image_3c9d75.png ফিক্স)
+        # ৩. গ্র্যাডলে ডুপ্লিকেট ক্লাস রিমুভ করার মাস্টার কমান্ড
         echo "android.useAndroidX=true" >> gradle.properties
         echo "android.enableJetifier=true" >> gradle.properties
         echo "kotlin.stdlib.default.dependency=false" >> gradle.properties
         
-        # ৪. বিল্ড ফাইলে এক্সক্লুসিভ প্যাকেজিং অপশন যোগ করা
-        # এটি সব ধরণের ডুপ্লিকেট ফাইল ইগনোর করবে
+        # ৪. এরর বাইপাস করার জন্য বিল্ড ফাইল মডিফিকেশন
+        # এটি কোড লেভেলে সব সংঘাতপূর্ণ ফাইলগুলোকে বাদ দিবে
         sed -i '/android {/a \    packagingOptions { \n        pickFirst "**/*.kotlin_module" \n        pickFirst "META-INF/AL2.0" \n        pickFirst "META-INF/LGPL2.1" \n        exclude "META-INF/kotlin-stdlib-jdk8.kotlin_module" \n        exclude "META-INF/kotlin-stdlib-jdk7.kotlin_module" \n    }' app/build.gradle
         
-        # ৫. কোটলিন ভার্সন রেজোলিউশন ফোর্স করা
+        # ৫. লাইব্রেরি রেজোলিউশন এনফোর্স করা
         sed -i '/android {/a \    configurations.all { resolutionStrategy.force "org.jetbrains.kotlin:kotlin-stdlib:1.8.22" }' app/build.gradle
 
         chmod +x gradlew
@@ -64,5 +64,5 @@ jobs:
     - name: Upload Android APK
       uses: actions/upload-artifact@v4
       with:
-        name: CreditRegister-Official-Build
+        name: CreditRegister-Final-Build
         path: android/app/build/outputs/apk/debug/app-debug.apk
