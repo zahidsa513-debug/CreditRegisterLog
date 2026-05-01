@@ -32,6 +32,10 @@ const AuthScreen = ({ onAuthSuccess }: { onAuthSuccess: () => void }) => {
     } catch (err: any) {
       if (err.code === 'auth/network-request-failed' || err.message?.includes('offline')) {
         setError(language === 'bn' ? 'ফায়ারবেজ কানেক্টেড নেই। দয়া করে আপনার ইন্টারনেট সংযোগ বা কনফিগারেশন চেক করুন।' : 'Firebase not connected. Please check your internet or configuration.');
+      } else if (err.code === 'auth/unauthorized-domain') {
+        setError(language === 'bn' ? 'এই ডোমেইনটি অথোরাইজড নয়। দয়া করে ফায়ারবেজ কনসোলে গিয়ে Authorized Domains এ localhost যুক্ত করুন।' : 'This domain is not authorized. Please add localhost to Authorized Domains in Firebase Console.');
+      } else if (err.code === 'auth/operation-not-allowed') {
+        setError(language === 'bn' ? 'গুগল লগইন এনাবল করা নেই। দয়া করে ফায়ারবেজ কনসোলে গিয়ে Google Sign-in এনাবল করুন।' : 'Google Sign-in is not enabled. Please enable it in Firebase Console.');
       } else {
         setError(err.message || 'Login failed');
       }
@@ -72,6 +76,8 @@ const AuthScreen = ({ onAuthSuccess }: { onAuthSuccess: () => void }) => {
     } catch (err: any) {
       if (err.code === 'auth/network-request-failed' || err.message?.includes('offline')) {
         setError(language === 'bn' ? 'ফায়ারবেজ কানেক্টেড নেই। দয়া করে আপনার ইন্টারনেট সংযোগ বা কনফিগারেশন চেক করুন।' : 'Firebase not connected. Please check your internet or configuration.');
+      } else if (err.code === 'auth/unauthorized-domain') {
+        setError(language === 'bn' ? 'এই ডোমেইনটি অথোরাইজড নয়। দয়া করে ফায়ারবেজ কনসোলে গিয়ে Authorized Domains এ localhost যুক্ত করুন।' : 'This domain is not authorized. Please add localhost to Authorized Domains in Firebase Console.');
       } else {
         setError(err.message || 'Authentication failed');
       }
