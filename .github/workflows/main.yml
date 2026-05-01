@@ -34,29 +34,29 @@ jobs:
 
     - name: Android Build (APK)
       run: |
-        # ১. কনফিগারেশন অটো-জেনারেশন
+        # কনফিগারেশন চেক
         if [ ! -f "capacitor.config.json" ]; then
           echo '{"appId": "com.zahid.creditregister", "appName": "CreditRegister", "webDir": "dist"}' > capacitor.config.json
         fi
 
-        # ২. অ্যান্ড্রয়েড এনভায়রনমেন্ট ক্লিন আপ
+        # অ্যান্ড্রয়েড প্ল্যাটফর্ম ফ্রেশ সেটআপ
         rm -rf android
         npx cap add android
         npx cap sync android
         
         cd android
         
-        # ৩. গ্র্যাডলে ডুপ্লিকেট ক্লাস রিমুভ করার মাস্টার কমান্ড
+        # ১. গ্র্যাডল প্রোপার্টিজ ফিক্স
         echo "android.useAndroidX=true" >> gradle.properties
         echo "android.enableJetifier=true" >> gradle.properties
         echo "kotlin.stdlib.default.dependency=false" >> gradle.properties
         
-        # ৪. এরর বাইপাস করার জন্য বিল্ড ফাইল মডিফিকেশন
-        # এটি কোড লেভেলে সব সংঘাতপূর্ণ ফাইলগুলোকে বাদ দিবে
-        sed -i '/android {/a \    packagingOptions { \n        pickFirst "**/*.kotlin_module" \n        pickFirst "META-INF/AL2.0" \n        pickFirst "META-INF/LGPL2.1" \n        exclude "META-INF/kotlin-stdlib-jdk8.kotlin_module" \n        exclude "META-INF/kotlin-stdlib-jdk7.kotlin_module" \n    }' app/build.gradle
+        # ২. ডুপ্লিকেট ক্লাস রিমুভ করার জন্য অ্যাপ লেভেল বিল্ড ফাইলে পরিবর্তন
+        # এটি image_3c3f9c.png এর এররগুলো সরাসরি বাইপাস করবে
+        sed -i '/dependencies {/i configurations.all { resolutionStrategy { force "org.jetbrains.kotlin:kotlin-stdlib:1.8.22" \n force "org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.8.22" } }' app/build.gradle
         
-        # ৫. লাইব্রেরি রেজোলিউশন এনফোর্স করা
-        sed -i '/android {/a \    configurations.all { resolutionStrategy.force "org.jetbrains.kotlin:kotlin-stdlib:1.8.22" }' app/build.gradle
+        # ৩. প্যাকেজিং অপশন যা ফাইলগুলোকে ফিল্টার করবে
+        sed -i '/android {/a \    packagingOptions { \n        resources { \n            pickFirsts.add("**/*.kotlin_module") \n            excludes.add("META-INF/kotlin-stdlib-jdk7.kotlin_module") \n            excludes.add("META-INF/kotlin-stdlib-jdk8.kotlin_module") \n            excludes.add("META-INF/kotlin-stdlib.kotlin_module") \n        } \n    }' app/build.gradle
 
         chmod +x gradlew
         ./gradlew assembleDebug --no-daemon -x test
@@ -64,5 +64,5 @@ jobs:
     - name: Upload Android APK
       uses: actions/upload-artifact@v4
       with:
-        name: CreditRegister-Final-Build
+        name: CreditRegister-Final-App
         path: android/app/build/outputs/apk/debug/app-debug.apk
