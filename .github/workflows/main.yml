@@ -1,67 +1,33 @@
-name: Build and Direct Download APK
+name: CI/CD Build
 
 on:
   push:
-    branches:
-      - main
-  workflow_dispatch:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+permissions:
+  contents: write
+  pull-requests: write
 
 jobs:
   build:
-    name: Build APK
     runs-on: ubuntu-latest
 
-    permissions:
-      contents: write
-
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
+    - uses: actions/checkout@v4
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: 20
+        cache: 'npm'
 
-      - name: Install Dependencies
-        run: |
-          npm install --legacy-peer-deps
-          npm install @capacitor/core @capacitor/cli @capacitor/android --legacy-peer-deps
+    - name: Install dependencies
+      run: npm install
 
-      - name: Build Web Project
-        run: |
-          CI=false npm run build || true
-          mkdir -p dist
-          echo "<html><body>Credit Register</body></html>" > dist/index.html
+    - name: Build
+      run: npm run build
 
-      - name: Set up JDK 21
-        uses: actions/setup-java@v4
-        with:
-          java-version: '21'
-          distribution: 'temurin'
-
-      - name: Reset Capacitor Android
-        run: |
-          rm -rf android
-          npx cap init "CreditRegister" "com.creditregister.app" --web-dir dist
-          npx cap add android
-          npx cap sync android
-
-      # ডুপ্লিকেট কোটলিন ক্লাস এরর ফিক্স করার জন্য অ্যাপ-লেভেল কনফিগারেশন সংশোধন
-      - name: Fix Duplicate Kotlin Classes
-        run: |
-          sed -i '/android {/a \    configurations.all {\n        resolutionStrategy {\n            force "org.jetbrains.kotlin:kotlin-stdlib:1.8.22"\n            force "org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.8.22"\n        }\n    }' android/app/build.gradle
-          sed -i '/android {/a \    packagingOptions {\n        pickFirst "META-INF/kotlin-stdlib-jdk8.kotlin_module"\n        pickFirst "META-INF/kotlin-stdlib.kotlin_module"\n        pickFirst "META-INF/kotlin-stdlib-jdk7.kotlin_module"\n    }' android/app/build.gradle
-
-      - name: Build Debug APK
-        run: |
-          cd android
-          chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon -Pandroid.useAndroidX=true -Pandroid.enableJetifier=true
-
-      - name: Upload APK for Download
-        uses: actions/upload-artifact@v4
-        with:
-          name: CreditRegister-Latest-APK
-          path: android/app/build/outputs/apk/debug/*.apk
-          if-no-files-found: error
+    - name: Lint
+      run: npm run lint
