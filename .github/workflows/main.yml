@@ -34,20 +34,19 @@ jobs:
       run: |
         CI=false npm run build
 
-    - name: Set up JDK 17
+    # জাভা ভার্সন ১৭ থেকে বাড়িয়ে ২১ করা হলো
+    - name: Set up JDK 21
       uses: actions/setup-java@v4
       with:
-        java-version: '17'
+        java-version: '21'
         distribution: 'temurin'
 
     - name: Android Build (APK)
       run: |
-        # যদি কনফিগারেশন ফাইল না থাকে, তবে সেটি তৈরি করা হচ্ছে
         if [ ! -f "capacitor.config.json" ]; then
           echo '{"appId": "com.zahid.creditregister", "appName": "CreditRegister", "webDir": "dist"}' > capacitor.config.json
         fi
 
-        # অ্যান্ড্রয়েড প্ল্যাটফর্ম চেক এবং যোগ করা
         if [ ! -d "android" ]; then
           npx cap add android
         fi
