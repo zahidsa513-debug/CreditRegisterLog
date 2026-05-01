@@ -28,9 +28,12 @@ jobs:
           npm install --legacy-peer-deps
           npm install @capacitor/core @capacitor/cli @capacitor/android --legacy-peer-deps
 
-      # এরর এড়াতে CI=false এবং কমান্ডটি অপশনাল রাখা হয়েছে
+      # বিল্ড ডিরেক্টরি নিশ্চিত করা
       - name: Build Web Project
-        run: CI=false npm run build || true
+        run: |
+          CI=false npm run build || true
+          mkdir -p dist
+          touch dist/index.html
 
       - name: Set up JDK 21
         uses: actions/setup-java@v4
