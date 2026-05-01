@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import SignatureCanvas from 'react-signature-canvas';
 import { jsPDF } from 'jspdf';
+import html2canvas from 'html2canvas';
 import { 
   Plus, 
   Trash2, 
@@ -48,6 +49,9 @@ const SalesEntry = ({ editingSale, setEditingSale }: { editingSale?: Sale | null
   const [isSuccess, setIsSuccess] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [originalSale, setOriginalSale] = useState<Sale | null>(null);
+  const [isPrinting, setIsPrinting] = useState(false);
+  const [printData, setPrintData] = useState<{sale: Sale, customer: any, prevBalance: number, company: any} | null>(null);
+  const receiptRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (editingSale) {
@@ -244,6 +248,73 @@ const SalesEntry = ({ editingSale, setEditingSale }: { editingSale?: Sale | null
     doc.text(t.authorizedSignature, 180, 140, { align: 'center' });
 
     doc.save(`Receipt_${sale.receiptNumber || sale.id}.pdf`);
+  };
+
+  const handlePrintReceipt = async (sale: Sale) => {
+    if (sale.type !== 'payment') return;
+    
+    setIsPrinting(true);
+    try {
+      const customer = await db.customers.get(sale.customerId!);
+      if (!customer) throw new Error("Customer not found");
+
+      const companySettingsList = await db.settings.toArray();
+      const company = companySettingsList.length > 0 ? companySettingsList[0] : {
+        companyName: 'CREDIT REGISTRY PRO',
+        phone: '',
+        email: '',
+        address: '',
+        website: ''
+      };
+
+      // Calculate previous balance for this specific sale
+      const previousSales = await db.sales
+        .where('customerId')
+        .equals(sale.customerId!)
+        .and(s => s.date < sale.date || (s.date.getTime() === sale.date.getTime() && s.id! < sale.id!))
+        .toArray();
+      
+      const prevBal = previousSales.reduce((acc, curr) => {
+        const amt = (curr.cashSale || 0) + (curr.chequeSale || 0) + (curr.creditSale || 0);
+        if (curr.type === 'sale') return acc + (curr.creditSale || 0);
+        if (curr.type === 'payment') return acc - amt;
+        return acc;
+      }, 0);
+
+      setPrintData({ sale, customer, prevBalance: prevBal, company });
+      
+      // Wait for React to render the hidden receipt
+      setTimeout(async () => {
+        if (receiptRef.current) {
+          const canvas = await html2canvas(receiptRef.current, {
+            scale: 2,
+            useCORS: true,
+            logging: false,
+            backgroundColor: '#ffffff'
+          });
+          
+          const imgData = canvas.toDataURL('image/png');
+          const pdf = new jsPDF({
+            orientation: 'landscape',
+            unit: 'mm',
+            format: 'a5'
+          });
+          
+          const imgProps = pdf.getImageProperties(imgData);
+          const pdfWidth = pdf.internal.pageSize.getWidth();
+          const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+          
+          pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+          pdf.save(`Money_Receipt_${sale.receiptNumber || sale.id}.pdf`);
+          setPrintData(null);
+          setIsPrinting(false);
+          trackFeatureUsage('receipt_printed_html2canvas');
+        }
+      }, 500);
+    } catch (error) {
+      console.error("Print error:", error);
+      setIsPrinting(false);
+    }
   };
 
   const handleSave = async (e: React.FormEvent) => {
@@ -615,6 +686,23 @@ const SalesEntry = ({ editingSale, setEditingSale }: { editingSale?: Sale | null
                   </td>
                   <td className="px-6 py-3.5 text-right">
                     <div className="flex items-center justify-end gap-1">
+                      {s.type === 'payment' && (
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handlePrintReceipt(s);
+                          }}
+                          disabled={isPrinting}
+                          className="p-2 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 rounded-xl transition-all active:scale-90"
+                          title={t.printReceipt}
+                        >
+                          {isPrinting && printData?.sale.id === s.id ? (
+                            <Printer className="w-4 h-4 animate-pulse" />
+                          ) : (
+                            <Printer className="w-4 h-4" />
+                          )}
+                        </button>
+                      )}
                       <button 
                         onClick={(e) => {
                           e.stopPropagation();
@@ -650,6 +738,105 @@ const SalesEntry = ({ editingSale, setEditingSale }: { editingSale?: Sale | null
           </table>
         </div>
       </div>
+
+      {/* Hidden Receipt Template for html2canvas */}
+      {printData && (
+        <div className="fixed left-[-9999px] top-[-9999px]">
+          <div 
+            ref={receiptRef}
+            className="w-[210mm] min-h-[148mm] bg-white text-slate-900 p-12 font-sans relative overflow-hidden"
+            style={{ width: '210mm', height: '148mm' }}
+          >
+            {/* Branding Background Accents */}
+            <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-50 rounded-full -mr-32 -mt-32 opacity-50" />
+            
+            <div className="relative z-10 flex flex-col h-full">
+              {/* Header */}
+              <div className="flex justify-between items-start border-b-2 border-indigo-600 pb-8 mb-8">
+                <div>
+                  <h1 className="text-4xl font-black tracking-tight text-indigo-600 mb-2 uppercase">
+                    {printData.company.companyName}
+                  </h1>
+                  <div className="flex flex-col text-sm text-slate-500 font-bold uppercase tracking-wider">
+                    <span>{printData.company.address || 'Business Logistics & Ledger'}</span>
+                    <span>{printData.company.phone ? `Phone: ${printData.company.phone}` : ''} {printData.company.email ? ` | Email: ${printData.company.email}` : ''}</span>
+                    {printData.company.website && <span>{printData.company.website}</span>}
+                  </div>
+                </div>
+                <div className="text-right">
+                  <h2 className="text-2xl font-black text-slate-300 uppercase tracking-[0.2em]">Money Receipt</h2>
+                  <div className="mt-4 inline-block bg-slate-900 text-white px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-widest">
+                    #{printData.sale.receiptNumber || printData.sale.id}
+                  </div>
+                </div>
+              </div>
+
+              {/* Transaction Content */}
+              <div className="flex-1 space-y-8">
+                <div className="grid grid-cols-2 gap-12">
+                  <div className="space-y-4">
+                    <div>
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{t.date}</p>
+                      <p className="text-lg font-bold text-slate-900">{new Date(printData.sale.date).toLocaleDateString(undefined, { dateStyle: 'long' })}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{t.receivedFrom}</p>
+                      <p className="text-2xl font-black text-indigo-900">{printData.customer.name}</p>
+                      <p className="text-sm text-slate-500 font-medium">{printData.customer.phone}</p>
+                    </div>
+                  </div>
+                  <div className="space-y-4">
+                    <div>
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{t.description}</p>
+                      <p className="text-lg font-bold text-slate-700">{printData.sale.description || 'Professional Payment Receipt'}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Ledger Summary */}
+                <div className="mt-12">
+                  <div className="grid grid-cols-3 gap-2 border-t border-b border-slate-100 py-6">
+                    <div className="text-center px-4">
+                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">{t.previousBalance}</p>
+                      <p className="text-xl font-bold text-slate-600">{formatCurrency(printData.prevBalance, currency)}</p>
+                    </div>
+                    <div className="text-center px-4 border-l border-r border-slate-100">
+                      <p className="text-[9px] font-black text-emerald-500 uppercase tracking-widest mb-1">{t.cashReceived}</p>
+                      <p className="text-2xl font-black text-emerald-600">{formatCurrency((printData.sale.cashSale || 0) + (printData.sale.chequeSale || 0) + (printData.sale.creditSale || 0), currency)}</p>
+                    </div>
+                    <div className="text-center px-4">
+                      <p className="text-[9px] font-black text-indigo-500 uppercase tracking-widest mb-1">{t.newBalance}</p>
+                      <p className="text-xl font-bold text-indigo-600">{formatCurrency(printData.prevBalance - ((printData.sale.cashSale || 0) + (printData.sale.chequeSale || 0) + (printData.sale.creditSale || 0)), currency)}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Amount in Words */}
+                <div className="bg-slate-50 p-6 rounded-2xl">
+                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 leading-none">{t.amountInWords}</p>
+                   <p className="text-sm font-bold text-slate-700 italic">
+                     {amountToWords((printData.sale.cashSale || 0) + (printData.sale.chequeSale || 0) + (printData.sale.creditSale || 0))}
+                   </p>
+                </div>
+              </div>
+
+              {/* Footer / Signature */}
+              <div className="mt-12 flex justify-between items-end">
+                <div className="text-[10px] text-slate-400 font-bold max-w-[250px]">
+                  * This is a computer generated document. Securely logged in Credit Registry System.
+                </div>
+                <div className="flex flex-col items-center">
+                  {printData.sale.signature && (
+                    <img src={printData.sale.signature} alt="Signature" className="h-16 mb-2" />
+                  )}
+                  <div className="w-48 h-[1px] bg-slate-900 mb-2" />
+                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-900">{t.authorizedSignature}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
