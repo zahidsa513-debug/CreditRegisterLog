@@ -34,26 +34,29 @@ jobs:
 
     - name: Android Build (APK)
       run: |
-        # কনফিগারেশন অটোমেটিক তৈরি
+        # ১. প্রজেক্ট কনফিগারেশন নিশ্চিত করা
         if [ ! -f "capacitor.config.json" ]; then
           echo '{"appId": "com.zahid.creditregister", "appName": "CreditRegister", "webDir": "dist"}' > capacitor.config.json
         fi
 
-        # অ্যান্ড্রয়েড প্ল্যাটফর্ম ক্লিন সেটআপ
+        # ২. ফ্রেশ অ্যান্ড্রয়েড প্ল্যাটফর্ম তৈরি
         rm -rf android
         npx cap add android
         npx cap sync android
         
         cd android
         
-        # ১. ডুপ্লিকেট ক্লাস এবং জাভা ২১ এর সংঘাত দূর করা
+        # ৩. গ্র্যাডলে ডুপ্লিকেট ক্লাস এরর চিরতরে বন্ধ করার কোড (image_3c9d75.png ফিক্স)
         echo "android.useAndroidX=true" >> gradle.properties
         echo "android.enableJetifier=true" >> gradle.properties
+        echo "kotlin.stdlib.default.dependency=false" >> gradle.properties
         
-        # ২. গ্র্যাডলে ডুপ্লিকেট রিমুভাল ও জাভা ভার্সন এনফোর্স করা
-        sed -i '/android {/a \    compileOptions { sourceCompatibility JavaVersion.VERSION_21; targetCompatibility JavaVersion.VERSION_21; }' app/build.gradle
+        # ৪. বিল্ড ফাইলে এক্সক্লুসিভ প্যাকেজিং অপশন যোগ করা
+        # এটি সব ধরণের ডুপ্লিকেট ফাইল ইগনোর করবে
+        sed -i '/android {/a \    packagingOptions { \n        pickFirst "**/*.kotlin_module" \n        pickFirst "META-INF/AL2.0" \n        pickFirst "META-INF/LGPL2.1" \n        exclude "META-INF/kotlin-stdlib-jdk8.kotlin_module" \n        exclude "META-INF/kotlin-stdlib-jdk7.kotlin_module" \n    }' app/build.gradle
+        
+        # ৫. কোটলিন ভার্সন রেজোলিউশন ফোর্স করা
         sed -i '/android {/a \    configurations.all { resolutionStrategy.force "org.jetbrains.kotlin:kotlin-stdlib:1.8.22" }' app/build.gradle
-        sed -i '/android {/a \    packagingOptions { pickFirst "**/*.kotlin_module"; pickFirst "**/*.version"; pickFirst "META-INF/AL2.0"; pickFirst "META-INF/LGPL2.1" }' app/build.gradle
 
         chmod +x gradlew
         ./gradlew assembleDebug --no-daemon -x test
@@ -61,5 +64,5 @@ jobs:
     - name: Upload Android APK
       uses: actions/upload-artifact@v4
       with:
-        name: CreditRegister-Official-APK
+        name: CreditRegister-Official-Build
         path: android/app/build/outputs/apk/debug/app-debug.apk
