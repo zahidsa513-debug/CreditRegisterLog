@@ -45,25 +45,30 @@ jobs:
           echo '{"appId": "com.zahid.creditregister", "appName": "CreditRegister", "webDir": "dist"}' > capacitor.config.json
         fi
 
+        # অ্যান্ড্রয়েড প্ল্যাটফর্ম যোগ এবং সিঙ্ক করা
         if [ ! -d "android" ]; then
-          ./node_modules/.bin/cap add android
+          npx cap add android
         fi
+        npx cap sync android
         
-        ./node_modules/.bin/cap sync android
-        
+        # সরাসরি অ্যান্ড্রয়েড ডিরেক্টরিতে গিয়ে কাজ করা
         cd android
         
-        # ডুপ্লিকেট ক্লাস এরর চিরতরে দূর করার কমান্ড
-        echo "android.useAndroidX=true" >> gradle.properties
-        echo "android.enableJetifier=true" >> gradle.properties
-        # এটি কোটলিন লাইব্রেরির কনফ্লিক্ট বন্ধ করবে
-        echo "kotlin.stdlib.default.dependency=false" >> gradle.properties
-        
-        # বিল্ড গ্র্যাডলে ফোর্স কনফিগারেশন যোগ করা
-        sed -i '/configurations.all {/a \        resolutionStrategy.force "org.jetbrains.kotlin:kotlin-stdlib:1.8.22"' app/build.gradle
-        
-        chmod +x gradlew
-        ./gradlew assembleDebug --no-daemon -x test
+        # ফাইলটি আছে কি না চেক করে পারমিশন দেওয়া
+        if [ -f "gradlew" ]; then
+          chmod +x gradlew
+          
+          # ডুপ্লিকেট ক্লাস এরর ফিক্স করার কনফিগারেশন
+          echo "android.useAndroidX=true" >> gradle.properties
+          echo "android.enableJetifier=true" >> gradle.properties
+          echo "kotlin.stdlib.default.dependency=false" >> gradle.properties
+          
+          # বিল্ড শুরু করা
+          ./gradlew assembleDebug --no-daemon -x test
+        else
+          echo "Error: gradlew not found in android directory"
+          exit 1
+        fi
         
     - name: Upload Android APK
       uses: actions/upload-artifact@v4
