@@ -40,6 +40,7 @@ jobs:
           java-version: '21'
           distribution: 'temurin'
 
+      # অ্যান্ড্রয়েড ফোল্ডার সম্পূর্ণ নতুন করে তৈরি করা
       - name: Reset Capacitor Android
         run: |
           rm -rf android
@@ -47,15 +48,13 @@ jobs:
           npx cap add android
           npx cap sync android
 
-      # ডুপ্লিকেট ক্লাস এরর ফিক্স করার জন্য গ্র্যাডল কনফিগারেশন ইনজেক্ট করা
+      # ক্যাশ ছাড়া একদম ফ্রেশ বিল্ড
       - name: Build Debug APK
         run: |
           cd android
           chmod +x gradlew
-          # এই কমান্ডটি সরাসরি ডুপ্লিকেট কোটলিন ক্লাস এরর ফিক্স করবে
-          ./gradlew assembleDebug -Pandroid.useAndroidX=true -Pandroid.enableJetifier=true \
-          "-Dorg.gradle.jvmargs=-Xmx2048m -Dkotlin.daemon.jvm.options=-Xmx1024m" \
-          -Pkotlin.version=1.8.22 --no-daemon
+          ./gradlew clean
+          ./gradlew assembleDebug --no-daemon --no-build-cache -Pandroid.useAndroidX=true -Pandroid.enableJetifier=true
 
       - name: Upload APK for Download
         uses: actions/upload-artifact@v4
