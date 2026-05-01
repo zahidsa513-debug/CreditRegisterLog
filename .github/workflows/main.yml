@@ -25,16 +25,12 @@ jobs:
 
     - name: Install dependencies
       run: |
-        # ক্লান্তিহীন ডিপেন্ডেন্সি ইনস্টলেশন
         npm install --legacy-peer-deps
-        # image_3d85db.png এরর ফিক্স করার জন্য prop-types ইনস্টল
         npm install prop-types --save --legacy-peer-deps
-        # Capacitor এবং অন্যান্য প্রয়োজনীয় টুলস
         npm install @capacitor/cli @capacitor/core @capacitor/android --legacy-peer-deps
 
     - name: Build Web Project
       run: |
-        # Vite বিল্ড প্রসেস
         CI=false npm run build
 
     - name: Set up JDK 21
@@ -57,14 +53,18 @@ jobs:
         
         cd android
         
-        # ডুপ্লিকেট ক্লাস এবং কোটলিন কনফ্লিক্ট ফিক্স
+        # ডুপ্লিকেট ক্লাস এরর চিরতরে দূর করার কমান্ড
         echo "android.useAndroidX=true" >> gradle.properties
         echo "android.enableJetifier=true" >> gradle.properties
+        # এটি কোটলিন লাইব্রেরির কনফ্লিক্ট বন্ধ করবে
         echo "kotlin.stdlib.default.dependency=false" >> gradle.properties
+        
+        # বিল্ড গ্র্যাডলে ফোর্স কনফিগারেশন যোগ করা
+        sed -i '/configurations.all {/a \        resolutionStrategy.force "org.jetbrains.kotlin:kotlin-stdlib:1.8.22"' app/build.gradle
         
         chmod +x gradlew
         ./gradlew assembleDebug --no-daemon -x test
-
+        
     - name: Upload Android APK
       uses: actions/upload-artifact@v4
       with:
