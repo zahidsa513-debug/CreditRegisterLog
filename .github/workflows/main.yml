@@ -28,18 +28,11 @@ jobs:
       run: |
         npm install --legacy-peer-deps
         npm install prop-types --save-dev --legacy-peer-deps
-        # Capacitor CLI লোকালি ইনস্টল নিশ্চিত করা হচ্ছে
         npm install @capacitor/cli @capacitor/core @capacitor/android --legacy-peer-deps
 
     - name: Build Web Project
       run: |
         CI=false npm run build
-
-    - name: Upload Web Build Artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: CreditRegister-Web-Build
-        path: dist/
 
     - name: Set up JDK 17
       uses: actions/setup-java@v4
@@ -49,9 +42,13 @@ jobs:
 
     - name: Android Build (APK)
       run: |
-        # npx এর বদলে সরাসরি ডিরেক্টরি থেকে কমান্ড রান করা হচ্ছে
-        node_modules/.bin/cap sync android
+        # অ্যান্ড্রয়েড প্ল্যাটফর্ম চেক এবং যোগ করা
+        if [ ! -d "android" ]; then
+          npx cap add android
+        fi
+        npx cap sync android
         cd android
+        # গ্রেডেল পারমিশন এবং বিল্ড
         chmod +x gradlew
         ./gradlew assembleDebug --no-daemon
 
