@@ -1,70 +1,18 @@
-name: Build and Direct Download APK
-
-on:
-  push:
-    branches:
-      - main
-  workflow_dispatch:
-
-jobs:
-  build:
-    name: Build APK
-    runs-on: ubuntu-latest
-
-    permissions:
-      contents: write
-
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-
-      - name: Install Dependencies
+- name: Build Web Project
         run: |
-          npm install --legacy-peer-deps
-          npm install @capacitor/core @capacitor/cli @capacitor/android --legacy-peer-deps
+          npm run build --if-present
+          # নিশ্চিত করুন যে আপনার বিল্ড ফোল্ডারটির নাম 'dist' নাকি 'build'
+          # যদি আপনার প্রোজেক্টে build ফোল্ডার তৈরি হয় তবে নিচের কমান্ডটি দিন:
+          # npx cap copy android
 
-      - name: Build Web Project
+      - name: Capacitor Sync
         run: |
-          CI=false npm run build || true
-          mkdir -p dist
-          echo "<html><body>Credit Register</body></html>" > dist/index.html
-
-      - name: Set up JDK 21
-        uses: actions/setup-java@v4
-        with:
-          java-version: '21'
-          distribution: 'temurin'
-
-      - name: Reset Capacitor Android
-        run: |
-          rm -rf android
-          npx cap init "CreditRegister" "com.creditregister.app" --web-dir dist
-          npx cap add android
+          # অ্যান্ড্রয়েড প্ল্যাটফর্ম যদি আগে থেকেই থাকে তবে সেটি আপডেট করা
           npx cap sync android
-
-      # ডুপ্লিকেট ক্লাস এরর চিরস্থায়ীভাবে সমাধান করার কমান্ড
-      - name: Resolve Kotlin Duplicate Classes
-        run: |
-          sed -i '/dependencies {/a \    implementation(platform("org.jetbrains.kotlin:kotlin-bom:1.8.22"))' android/app/build.gradle
-          echo "configurations.all {
-              exclude group: 'org.jetbrains.kotlin', module: 'kotlin-stdlib-jdk7'
-              exclude group: 'org.jetbrains.kotlin', module: 'kotlin-stdlib-jdk8'
-          }" >> android/app/build.gradle
-
+          
       - name: Build Debug APK
         run: |
           cd android
           chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon -Pandroid.useAndroidX=true -Pandroid.enableJetifier=true
-
-      - name: Upload APK for Download
-        uses: actions/upload-artifact@v4
-        with:
-          name: CreditRegister-Final-APK
-          path: "android/app/build/outputs/apk/debug/*.apk"
-          if-no-files-found: error
+          # প্রজেক্ট ক্লিন করে নতুন করে বিল্ড করা যাতে সব রিসোর্স যুক্ত হয়
+          ./gradlew clean assembleDebug --no-daemon
