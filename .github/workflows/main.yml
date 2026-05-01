@@ -34,7 +34,6 @@ jobs:
       run: |
         CI=false npm run build
 
-    # জাভা ভার্সন ১৭ থেকে বাড়িয়ে ২১ করা হলো
     - name: Set up JDK 21
       uses: actions/setup-java@v4
       with:
@@ -53,8 +52,15 @@ jobs:
         
         npx cap sync android
         cd android
+        
+        # ডুপ্লিকেট ক্লাস এরর ফিক্স করার জন্য gradle.properties আপডেট
+        echo "android.useAndroidX=true" >> gradle.properties
+        echo "android.enableJetifier=true" >> gradle.properties
+        echo "kotlin.stdlib.default.dependency=false" >> gradle.properties
+
         chmod +x gradlew
-        ./gradlew assembleDebug --no-daemon
+        # ডুপ্লিকেট ক্লাস ইগনোর করে বিল্ড করার কমান্ড
+        ./gradlew assembleDebug --no-daemon -Pandroid.useAndroidX=true -Pandroid.enableJetifier=true
 
     - name: Upload Android APK
       uses: actions/upload-artifact@v4
