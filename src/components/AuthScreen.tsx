@@ -36,6 +36,8 @@ const AuthScreen = ({ onAuthSuccess }: { onAuthSuccess: () => void }) => {
         setError(language === 'bn' ? 'এই ডোমেইনটি অথোরাইজড নয়। দয়া করে ফায়ারবেজ কনসোলে গিয়ে Authorized Domains এ localhost যুক্ত করুন।' : 'This domain is not authorized. Please add localhost to Authorized Domains in Firebase Console.');
       } else if (err.code === 'auth/operation-not-allowed') {
         setError(language === 'bn' ? 'গুগল লগইন এনাবল করা নেই। দয়া করে ফায়ারবেজ কনসোলে গিয়ে Google Sign-in এনাবল করুন।' : 'Google Sign-in is not enabled. Please enable it in Firebase Console.');
+      } else if (err.message?.includes('missing initial state')) {
+        setError(language === 'bn' ? 'ব্রাউজার সেটিংসের কারণে লগইন ব্যাহত হচ্ছে। দয়া করে আপনার ব্রাউজারে cookies/storage এনাবল করুন অথবা অন্য ব্রাউজার ব্যবহার করুন।' : 'Login interrupted due to browser settings. Please enable cookies/storage or try a different browser.');
       } else {
         setError(err.message || 'Login failed');
       }
