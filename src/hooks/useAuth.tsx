@@ -2,6 +2,7 @@ import { useState, useEffect, createContext, useContext, ReactNode } from 'react
 import { 
   onAuthStateChanged, 
   signInWithPopup, 
+  signInWithRedirect,
   sendPasswordResetEmail,
   signOut,
   User,
@@ -9,7 +10,8 @@ import {
   signInWithEmailAndPassword,
   updateProfile,
   setPersistence,
-  browserLocalPersistence
+  browserLocalPersistence,
+  getRedirectResult
 } from 'firebase/auth';
 import { doc, getDoc, setDoc, getDocFromServer } from 'firebase/firestore';
 import { auth, db, googleProvider } from '../lib/firebase';
@@ -81,14 +83,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Set persistence to local as a best practice
-    setPersistence(auth, browserLocalPersistence).catch(err => console.error("Persistence error:", err));
-
+    // 1. Attach listener immediately for fastest possible auto-login
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setUser(user);
       if (user) {
-        // Fetch or create profile
-        const path = `users/${user.uid}`;
         try {
           const profileDoc = await getDoc(doc(db, 'users', user.uid));
           if (profileDoc.exists()) {
@@ -104,8 +102,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setProfile(newProfile);
           }
         } catch (err) {
-          console.error("Profile issue:", err);
-          // Don't throw here to avoid breaking auth state management
+          console.error("Profile fetch issue (auto-login):", err);
         }
       } else {
         setProfile(null);
@@ -113,15 +110,41 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLoading(false);
     });
 
+    // 2. Specialized init for persistence and redirect checking (especially for APK/Webviews)
+    const runAsyncInit = async () => {
+      try {
+        await setPersistence(auth, browserLocalPersistence);
+        const result = await getRedirectResult(auth);
+        if (result?.user) {
+          console.log("Redirect sign-in detected and processed");
+        }
+      } catch (err: any) {
+        console.error("Auth async init error:", err);
+      }
+    };
+
+    runAsyncInit();
+
     return () => unsubscribe();
   }, []);
 
   const login = async () => {
     try {
       await signInWithPopup(auth, googleProvider);
-    } catch (error) {
-      console.error("Login failed:", error);
-      throw error;
+    } catch (error: any) {
+      console.error("Login failed with popup, trying redirect:", error);
+      // Fallback to redirect if popup is blocked or fails (common in WebViews/APKs)
+      if (error.code === 'auth/popup-blocked' || error.code === 'auth/popup-closed-by-user' || error.code === 'auth/cancelled-popup-request') {
+        // These are user-driven or browser-driven blocks, popup is still the preferred way
+        throw error;
+      }
+      
+      try {
+        await signInWithRedirect(auth, googleProvider);
+      } catch (redirectError) {
+        console.error("Redirect login also failed:", redirectError);
+        throw redirectError;
+      }
     }
   };
 
