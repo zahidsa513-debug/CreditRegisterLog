@@ -26,6 +26,7 @@ import { db } from '../db/db';
 import { translations } from '../translations';
 import { cn, formatCurrency } from '../lib/utils';
 import { Check, Language } from '../types';
+import { markForSync } from '../lib/sync';
 import { format, isTomorrow, isPast, isValid } from 'date-fns';
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
@@ -113,18 +114,20 @@ const RedEye = () => {
       const checkData = {
         ...newCheck,
         customerName: selectedCustomerObj ? selectedCustomerObj.name : (newCheck.customerName || ''),
-        updatedAt: new Date(),
+        updatedAt: new Date().toISOString(),
         userId: 'current-user'
       };
 
       if (editingCheckId) {
         await db.checks.update(editingCheckId, checkData);
+        await markForSync('checks', editingCheckId);
       } else {
-        await db.checks.add({
+        const id = await db.checks.add({
           ...checkData,
           createdAt: new Date(),
           isCleared: false
         } as Check);
+        await markForSync('checks', id as number);
       }
       
       closeModal();
@@ -170,6 +173,7 @@ const RedEye = () => {
 
   const toggleCleared = async (id: number, current: boolean) => {
     await db.checks.update(id, { isCleared: !current });
+    await markForSync('checks', id);
   };
 
   const deleteCheck = async (id: number) => {

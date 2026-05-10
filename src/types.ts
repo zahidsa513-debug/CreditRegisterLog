@@ -1,5 +1,11 @@
-export interface UserProfile {
+export interface Syncable {
+  updatedAt?: string | Date;
+  synced?: number; // 0 for unsynced, 1 for synced
+}
+
+export interface UserProfile extends Syncable {
   id?: number;
+  uid: string;
   name: string;
   email: string;
   phone?: string;
@@ -7,16 +13,17 @@ export interface UserProfile {
   designation?: string;
   location?: string;
   monthlyTarget?: number;
+  role: 'admin' | 'staff';
 }
 
-export interface Area {
+export interface Area extends Syncable {
   id?: number;
   name: string;
   target: number;
   color: string;
 }
 
-export interface Customer {
+export interface Customer extends Syncable {
   id?: number;
   name: string;
   phone: string;
@@ -34,7 +41,7 @@ export interface Customer {
   documents?: string[];
 }
 
-export interface Sale {
+export interface Sale extends Syncable {
   id?: number;
   date: Date;
   customerId?: number;
@@ -50,7 +57,7 @@ export interface Sale {
   billNumber?: string;
 }
 
-export interface Expense {
+export interface Expense extends Syncable {
   id?: number;
   date: Date;
   description: string;
@@ -58,7 +65,7 @@ export interface Expense {
   amount: number;
 }
 
-export interface CompanySettings {
+export interface CompanySettings extends Syncable {
   id?: number;
   userId?: string;
   companyName: string;
@@ -74,9 +81,10 @@ export interface CompanySettings {
   theme?: Theme;
   currency?: string;
   targetAmount?: number;
+  offlineMode?: boolean;
 }
 
-export interface Check {
+export interface Check extends Syncable {
   id?: string;
   checkNumber: string;
   bankName: string;

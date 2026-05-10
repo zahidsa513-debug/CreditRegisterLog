@@ -45,18 +45,18 @@ const StatCard = ({ title, value, icon: Icon, trend, color, language, onClick, d
     onClick={onClick}
     disabled={!onClick}
     className={cn(
-      "bg-white dark:bg-slate-900 p-6 rounded-[2rem] border border-slate-200 dark:border-slate-800 shadow-soft transition-all group text-left w-full disabled:cursor-default relative overflow-hidden",
-      onClick && "hover:shadow-premium hover:border-indigo-200 dark:hover:border-indigo-900 active:scale-[0.98]"
+      "bg-white p-6 rounded-[2rem] border border-slate-100 shadow-soft transition-all group text-left w-full disabled:cursor-default relative overflow-hidden",
+      onClick && "hover:shadow-premium hover:border-indigo-100 active:scale-[0.98]"
     )}
   >
     <div className="flex items-start justify-between relative z-10">
-      <div className={cn("p-3 rounded-2xl transition-all group-hover:scale-110", color)}>
+      <div className={cn("p-3 rounded-2xl transition-all group-hover:scale-110 shadow-lg shadow-current/20", color)}>
         <Icon className="text-white w-6 h-6" />
       </div>
       {trend && (
         <span className={cn(
           "flex items-center text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-wider",
-          trend > 0 ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-900/30" : "bg-rose-50 text-rose-600 dark:bg-rose-900/30"
+          trend > 0 ? "bg-emerald-50 text-emerald-600" : "bg-rose-50 text-rose-600"
         )}>
           {trend > 0 ? <ArrowUpRight className="w-3 h-3 mr-1" /> : <ArrowDownRight className="w-3 h-3 mr-1" />}
           {Math.abs(trend)}%
@@ -64,20 +64,20 @@ const StatCard = ({ title, value, icon: Icon, trend, color, language, onClick, d
       )}
     </div>
     <div className="mt-6 relative z-10">
-      <p className="stat-label">{title}</p>
+      <p className="stat-label text-slate-400 font-bold">{title}</p>
       <h3 className={cn(
-        "text-3xl font-black font-display mt-2 tracking-tight group-hover:text-indigo-600 transition-colors",
+        "text-3xl font-black font-display mt-2 tracking-tight group-hover:text-indigo-600 transition-colors text-slate-900",
         redEyeActive && typeof value === 'string' && (value.includes('$') || value.includes('৳') || value.includes('RM')) && "blur-md select-none"
       )}>{value}</h3>
     </div>
     
     {/* Decorative background element */}
-    <div className={cn("absolute -right-4 -bottom-4 w-24 h-24 opacity-[0.03] dark:opacity-[0.05] group-hover:opacity-[0.08] transition-opacity", color)}>
+    <div className={cn("absolute -right-4 -bottom-4 w-24 h-24 opacity-5 group-hover:opacity-10 transition-opacity", color.replace('bg-', 'text-'))}>
       <Icon className="w-full h-full" />
     </div>
 
     {onClick && (
-      <div className="mt-4 pt-4 border-t border-slate-50 dark:border-slate-800 flex items-center gap-1.5 text-indigo-500 font-bold text-[10px] uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-all translate-y-2 group-hover:translate-y-0">
+      <div className="mt-4 pt-4 border-t border-slate-50 flex items-center gap-1.5 text-indigo-500 font-bold text-[10px] uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-all translate-y-2 group-hover:translate-y-0">
         {translations[language].explore} <ArrowUpRight className="w-3 h-3" />
       </div>
     )}
@@ -85,7 +85,7 @@ const StatCard = ({ title, value, icon: Icon, trend, color, language, onClick, d
 );
 
 const Dashboard = ({ setActiveTab, redEyeActive }: { setActiveTab: (tab: string) => void, redEyeActive?: boolean }) => {
-  const { language, currency, target: monthlyTarget } = useSettings();
+  const { language, currency, target: monthlyTarget, updateSettings } = useSettings();
   const t = translations[language];
 
   const totalCustomers = useLiveQuery(() => db.customers.count());
@@ -174,7 +174,7 @@ const Dashboard = ({ setActiveTab, redEyeActive }: { setActiveTab: (tab: string)
             <motion.div 
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
-              className="w-16 h-16 rounded-2xl overflow-hidden bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-premium shrink-0"
+              className="w-16 h-16 rounded-2xl overflow-hidden bg-white border border-slate-100 shadow-premium shrink-0"
             >
               <img src={companySettings[0].logo} alt="Business Logo" className="w-full h-full object-contain" />
             </motion.div>
@@ -198,12 +198,32 @@ const Dashboard = ({ setActiveTab, redEyeActive }: { setActiveTab: (tab: string)
           </div>
         </div>
         <div className="flex items-center gap-3">
+          <div className="hidden sm:flex bg-white dark:bg-slate-900 p-1 rounded-xl border border-slate-100 dark:border-slate-800 shadow-sm">
+            <button 
+              onClick={() => updateSettings({ language: 'en' })}
+              className={cn("px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all", language === 'en' ? "bg-indigo-600 text-white shadow-md shadow-indigo-500/20" : "text-slate-400 hover:text-slate-600")}
+            >
+              EN
+            </button>
+            <button 
+              onClick={() => updateSettings({ language: 'es' })}
+              className={cn("px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all", language === 'es' ? "bg-indigo-600 text-white shadow-md shadow-indigo-500/20" : "text-slate-400 hover:text-slate-600")}
+            >
+              ES
+            </button>
+            <button 
+              onClick={() => updateSettings({ language: 'bn' })}
+              className={cn("px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all", language === 'bn' ? "bg-indigo-600 text-white shadow-md shadow-indigo-500/20" : "text-slate-400 hover:text-slate-600")}
+            >
+              BN
+            </button>
+          </div>
           <button 
             onClick={() => setActiveTab('sales')}
-            className="bg-slate-900 dark:bg-white text-white dark:text-slate-900 px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-widest flex items-center gap-2 shadow-xl hover:scale-105 transition-all active:scale-95"
+            className="bg-indigo-600 text-white px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-widest flex items-center gap-2 shadow-xl shadow-indigo-500/20 hover:scale-105 transition-all active:scale-95"
           >
             <PlusCircle className="w-4 h-4" />
-            {language === 'en' ? 'New Entry' : 'নতুন এন্ট্রি'}
+            {t.newEntry}
           </button>
         </div>
       </div>
@@ -212,7 +232,7 @@ const Dashboard = ({ setActiveTab, redEyeActive }: { setActiveTab: (tab: string)
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-soft overflow-hidden p-8"
+          className="bg-white rounded-[2.5rem] border border-slate-100 shadow-soft overflow-hidden p-8"
         >
           <div className="flex flex-col md:flex-row justify-between gap-8">
             <div className="flex-1">
@@ -226,7 +246,7 @@ const Dashboard = ({ setActiveTab, redEyeActive }: { setActiveTab: (tab: string)
               <div className="mt-8 grid grid-cols-2 md:grid-cols-4 gap-6">
                 <div>
                   <p className="text-[10px] font-black uppercase text-slate-400 tracking-wider mb-1">{t.totalDebit}</p>
-                  <p className={cn("font-bold text-slate-900 dark:text-white", redEyeActive && "blur-sm")}>{formatCurrency(totals?.monthlyTotalAchieved || 0, currency)}</p>
+                  <p className={cn("font-bold text-slate-900", redEyeActive && "blur-sm")}>{formatCurrency(totals?.monthlyTotalAchieved || 0, currency)}</p>
                 </div>
                 <div>
                   <p className="text-[10px] font-black uppercase text-slate-400 tracking-wider mb-1">{t.cash}</p>
@@ -283,7 +303,7 @@ const Dashboard = ({ setActiveTab, redEyeActive }: { setActiveTab: (tab: string)
           title={t.activeCustomers} 
           value={totalCustomers || 0} 
           icon={Users} 
-          color="bg-slate-800 dark:bg-slate-700"
+          color="bg-slate-900"
           language={language}
           onClick={() => setActiveTab('customers')}
           delay={0.4}
@@ -297,7 +317,7 @@ const Dashboard = ({ setActiveTab, redEyeActive }: { setActiveTab: (tab: string)
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: 0.5 }}
-          className="lg:col-span-2 bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-soft p-8"
+          className="lg:col-span-2 bg-white rounded-[2.5rem] border border-slate-100 shadow-soft p-8"
         >
           <div className="flex items-center justify-between mb-8">
             <h3 className="font-display font-bold text-xl">{t.areaPerformance}</h3>
@@ -344,6 +364,46 @@ const Dashboard = ({ setActiveTab, redEyeActive }: { setActiveTab: (tab: string)
                 <Bar dataKey="debit" name="Sales" fill="#6366f1" radius={[6, 6, 0, 0]} barSize={32} />
                 <Bar dataKey="credit" name="Collection" fill="#10b981" radius={[6, 6, 0, 0]} barSize={32} />
               </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </motion.div>
+
+        {/* Balance Distribution Pie Chart */}
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.55 }}
+          className="bg-white rounded-[2.5rem] border border-slate-100 shadow-soft p-8"
+        >
+          <h3 className="font-display font-bold text-xl mb-8">{t.marketDebtDistribution}</h3>
+          <div className="h-[300px] w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={areaData || []}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={60}
+                  outerRadius={100}
+                  paddingAngle={5}
+                  dataKey="balance"
+                >
+                  {(areaData || []).map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color} />
+                  ))}
+                </Pie>
+                <Tooltip 
+                  contentStyle={{ 
+                    borderRadius: '16px', 
+                    border: 'none', 
+                    boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)', 
+                    backgroundColor: '#1e293b',
+                    color: '#fff',
+                    padding: '12px'
+                  }}
+                  itemStyle={{ color: '#fff', fontSize: '12px', fontWeight: 'bold' }}
+                />
+              </PieChart>
             </ResponsiveContainer>
           </div>
         </motion.div>
@@ -414,7 +474,7 @@ const Dashboard = ({ setActiveTab, redEyeActive }: { setActiveTab: (tab: string)
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.7 }}
-          className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-soft p-8"
+          className="bg-white rounded-[2.5rem] border border-slate-100 shadow-soft p-8"
         >
           <div className="flex items-center justify-between mb-8">
             <h3 className="font-display font-bold text-xl">{t.recentTransactions}</h3>
@@ -429,7 +489,7 @@ const Dashboard = ({ setActiveTab, redEyeActive }: { setActiveTab: (tab: string)
             {recentSales?.map((sale, i) => {
               const customer = customers?.find(c => String(c.id) === String(sale.customerId));
               return (
-                <div key={sale.id} className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800/50 group transition-all hover:bg-white dark:hover:bg-slate-800 hover:shadow-lg">
+                <div key={sale.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100 group transition-all hover:bg-white hover:shadow-lg">
                   <div className="flex items-center gap-4">
                     <div className={cn(
                       "w-10 h-10 rounded-xl flex items-center justify-center shadow-sm",
@@ -438,14 +498,14 @@ const Dashboard = ({ setActiveTab, redEyeActive }: { setActiveTab: (tab: string)
                       {sale.creditSale > 0 ? <ArrowDownRight className="w-5 h-5" /> : <DollarSign className="w-5 h-5" />}
                     </div>
                     <div>
-                      <h4 className="font-bold text-sm text-slate-800 dark:text-white group-hover:text-indigo-600 transition-colors">
+                      <h4 className="font-bold text-sm text-slate-800 group-hover:text-indigo-600 transition-colors">
                         {customer?.name || t.unknownCustomer}
                       </h4>
                       <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{new Date(sale.date).toLocaleDateString()}</p>
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className={cn("font-black text-slate-900 dark:text-white", redEyeActive && "blur-sm")}>
+                    <p className={cn("font-black text-slate-900", redEyeActive && "blur-sm")}>
                       {formatCurrency(sale.totalAmount || ((sale.cashSale || 0) + (sale.chequeSale || 0) + (sale.creditSale || 0)), currency)}
                     </p>
                     <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">

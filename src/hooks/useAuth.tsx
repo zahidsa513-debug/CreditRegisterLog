@@ -15,6 +15,7 @@ import {
 } from 'firebase/auth';
 import { doc, getDoc, setDoc, getDocFromServer } from 'firebase/firestore';
 import { auth, db, googleProvider } from '../lib/firebase';
+import { db as dexieDb } from '../db/db';
 import { UserProfile } from '../types';
 
 interface AuthContextType {
@@ -85,8 +86,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     // 1. Attach listener immediately for fastest possible auto-login
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      // Data isolation: If user changes, clear local Dexie DB
+      const lastUid = localStorage.getItem('last_auth_uid');
+      if (user && lastUid !== user.uid) {
+        console.warn("User switch or initial login detected, clearing local data for isolation.");
+        try {
+          await dexieDb.delete();
+          await dexieDb.open();
+          // Clear immediate UI preferences from LS to start fresh
+          localStorage.removeItem('app_language');
+          localStorage.removeItem('app_currency');
+          localStorage.removeItem('app_theme');
+        } catch (e) {
+          console.error("Failed to clear local DB on user change:", e);
+        }
+      }
+
       setUser(user);
       if (user) {
+        localStorage.setItem('last_auth_uid', user.uid);
         try {
           const profileDoc = await getDoc(doc(db, 'users', user.uid));
           if (profileDoc.exists()) {
@@ -106,6 +124,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       } else {
         setProfile(null);
+        localStorage.removeItem('last_auth_uid');
       }
       setLoading(false);
     });
@@ -159,6 +178,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const registerWithEmail = async (email: string, pass: string, name: string) => {
     try {
+      // Ensure fresh start for new user
+      try {
+        await dexieDb.delete();
+        await dexieDb.open();
+        localStorage.removeItem('app_language');
+        localStorage.removeItem('app_currency');
+        localStorage.removeItem('app_theme');
+      } catch (e) {
+        console.error("Cleanup before registration failed:", e);
+      }
+
       const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
       await updateProfile(userCredential.user, { displayName: name });
       
@@ -194,24 +224,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = async () => {
     try {
       await signOut(auth);
+      // Clear local data on logout for multi-user security
+      try {
+        await dexieDb.delete();
+        await dexieDb.open();
+        localStorage.removeItem('last_auth_uid');
+        localStorage.removeItem('app_language');
+        localStorage.removeItem('app_currency');
+        localStorage.removeItem('app_theme');
+      } catch (e) {
+        console.error("Cleanup on logout failed:", e);
+      }
     } catch (error) {
       console.error("Logout failed:", error);
     }
   };
-
-  // Test connection as required by integration instructions
-  useEffect(() => {
-    async function testConnection() {
-      try {
-        await getDocFromServer(doc(db, 'test', 'connection'));
-      } catch (error) {
-        if (error instanceof Error && error.message.includes('the client is offline')) {
-          console.error("Firebase Connection Error: The client is offline or configuration is invalid.");
-        }
-      }
-    }
-    testConnection();
-  }, []);
 
   return (
     <AuthContext.Provider value={{ 

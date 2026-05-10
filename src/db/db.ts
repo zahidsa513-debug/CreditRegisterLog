@@ -12,14 +12,14 @@ export class CreditRegistryDB extends Dexie {
 
   constructor() {
     super('CreditRegistryDB');
-    this.version(8).stores({
-      areas: '++id, name',
-      customers: '++id, name, areaId, shopName, ownerName',
-      sales: '++id, date, customerId, invoiceNumber, receiptNumber, type',
-      expenses: '++id, date, category',
-      profiles: '++id, email',
-      settings: '++id',
-      checks: '++id, checkNumber, dueDate, userId'
+    this.version(9).stores({
+      areas: '++id, name, synced',
+      customers: '++id, name, areaId, shopName, ownerName, synced',
+      sales: '++id, date, customerId, invoiceNumber, receiptNumber, type, synced',
+      expenses: '++id, date, category, synced',
+      profiles: '++id, email, synced',
+      settings: '++id, synced',
+      checks: '++id, checkNumber, dueDate, userId, synced'
     });
   }
 }

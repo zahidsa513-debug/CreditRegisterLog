@@ -15,14 +15,18 @@ import {
   Printer,
   Edit2,
   Trash2,
-  X
+  X,
+  Sparkles,
+  Loader2
 } from 'lucide-react';
-import { motion } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
+import ReactMarkdown from 'react-markdown';
 import { db } from '../db/db';
 import { translations } from '../translations';
 import { cn, formatCurrency } from '../lib/utils';
 import { Sale, Language } from '../types';
 import { trackFeatureUsage } from '../lib/analytics';
+import { generateSmartSummary } from '../services/geminiService';
 
 import { useSettings } from '../context/SettingsContext';
 
@@ -38,6 +42,43 @@ const Reports = ({ setActiveTab, setEditingSale, redEyeActive }: { setActiveTab?
   const [selectedCustomer, setSelectedCustomer] = useState('all');
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [aiSummary, setAiSummary] = useState<string | null>(null);
+  const [isGeneratingAi, setIsGeneratingAi] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
+
+  const handleGenerateAiSummary = async () => {
+    setIsGeneratingAi(true);
+    setAiError(null);
+    try {
+      // Prepare compact data for AI analysis
+      const summaryData = {
+        totalCustomers: customers?.length || 0,
+        totalOutstanding: customers?.reduce((acc, c) => acc + (c.debit - c.credit), 0) || 0,
+        areaSummary: areas?.map(a => {
+          const areaCustomers = customers?.filter(c => String(c.areaId) === String(a.id)) || [];
+          return {
+            name: a.name,
+            customerCount: areaCustomers.length,
+            outstanding: areaCustomers.reduce((acc, c) => acc + (c.debit - c.credit), 0)
+          };
+        }),
+        recentTransactions: sales?.slice(-10).map(s => ({
+          type: s.type,
+          amount: (s.cashSale || 0) + (s.chequeSale || 0) + (s.creditSale || 0),
+          date: s.date
+        }))
+      };
+
+      const result = await generateSmartSummary(summaryData);
+      setAiSummary(result || "No summary generated.");
+      trackFeatureUsage('ai_summary_generated');
+    } catch (err) {
+      console.error(err);
+      setAiError(language === 'en' ? 'Failed to generate AI summary. Please try again.' : 'AI সারসংক্ষেপ তৈরি করতে ব্যর্থ হয়েছে। আবার চেষ্টা করুন।');
+    } finally {
+      setIsGeneratingAi(false);
+    }
+  };
 
   const calculateAge = (date: Date | string) => {
     const start = new Date(date);
@@ -358,9 +399,17 @@ const Reports = ({ setActiveTab, setEditingSale, redEyeActive }: { setActiveTab?
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h2 className="text-3xl font-display font-bold tracking-tight">{t.reports}</h2>
-          <p className="text-slate-500 dark:text-slate-400 mt-1 text-sm">{language === 'en' ? 'Export data and generate insights' : 'ডেটা রপ্তানি করুন এবং অন্তর্দৃষ্টি তৈরি করুন'}</p>
+          <p className="text-slate-500 mt-1 text-sm">{language === 'en' ? 'Export data and generate insights' : 'ডেটা রপ্তানি করুন এবং অন্তর্দৃষ্টি তৈরি করুন'}</p>
         </div>
         <div className="flex gap-3">
+          <button 
+            onClick={handleGenerateAiSummary}
+            disabled={isGeneratingAi}
+            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-indigo-600 to-violet-600 text-white rounded-xl font-bold hover:shadow-lg hover:shadow-indigo-200 transition shadow-sm active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isGeneratingAi ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+            <span className="text-xs uppercase tracking-wider">{language === 'en' ? 'Smart Summary' : 'স্মার্ট সারসংক্ষেপ'}</span>
+          </button>
           <button 
             onClick={generateMasterAreaReport}
             className="flex items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-600 rounded-xl font-bold hover:bg-indigo-100 transition shadow-sm active:scale-95"
@@ -375,7 +424,7 @@ const Reports = ({ setActiveTab, setEditingSale, redEyeActive }: { setActiveTab?
             <Printer className="w-3.5 h-3.5" />
             <span className="text-xs uppercase tracking-wider">{t.printReport}</span>
           </button>
-          <label className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl font-bold cursor-pointer hover:bg-slate-50 transition shadow-sm active:scale-95">
+          <label className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-100 rounded-xl font-bold cursor-pointer hover:bg-slate-50 transition shadow-sm active:scale-95">
             <Upload className="w-3.5 h-3.5 text-slate-500" />
             <span className="text-xs uppercase tracking-wider">{t.import}</span>
             <input type="file" className="hidden" accept=".xlsx,.xls" onChange={handleFileUpload} />
@@ -390,11 +439,56 @@ const Reports = ({ setActiveTab, setEditingSale, redEyeActive }: { setActiveTab?
         </div>
       </div>
 
+      <AnimatePresence>
+        {aiSummary && (
+          <motion.div 
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="bg-gradient-to-br from-indigo-50 to-violet-50 rounded-2xl border border-indigo-100 p-6 shadow-sm relative overflow-hidden"
+          >
+            <div className="absolute top-0 right-0 p-3">
+              <button 
+                onClick={() => setAiSummary(null)}
+                className="p-1.5 bg-white/50 hover:bg-white rounded-full text-slate-400 transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            
+            <div className="flex items-start gap-4">
+              <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center shrink-0 shadow-lg shadow-indigo-100">
+                <Sparkles className="w-5 h-5 text-white" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="text-lg font-bold text-indigo-900 mb-2 flex items-center gap-2">
+                  {language === 'en' ? 'AI Business Insights' : 'AI বিজনেস ইনসাইটস'}
+                </h3>
+                <div className="prose prose-sm prose-indigo max-w-none prose-p:leading-relaxed prose-li:my-1 text-slate-700">
+                  <ReactMarkdown>{aiSummary}</ReactMarkdown>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {aiError && (
+        <motion.div 
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-rose-50 text-rose-600 px-4 py-3 rounded-xl border border-rose-100 text-sm font-medium flex items-center gap-3"
+        >
+          <X className="w-4 h-4 cursor-pointer" onClick={() => setAiError(null)} />
+          {aiError}
+        </motion.div>
+      )}
+
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* Filters Sidebar */}
         <div className="lg:col-span-1 space-y-6">
-          <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-5">
-            <h4 className="text-xs font-bold uppercase tracking-widest flex items-center gap-2 text-slate-800 dark:text-slate-200">
+          <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-soft space-y-5">
+            <h4 className="text-xs font-bold uppercase tracking-widest flex items-center gap-2 text-slate-800">
               <Filter className="w-3.5 h-3.5 text-indigo-500" /> Filter Options
             </h4>
             
@@ -405,7 +499,7 @@ const Reports = ({ setActiveTab, setEditingSale, redEyeActive }: { setActiveTab?
                   <select 
                     value={selectedArea}
                     onChange={e => setSelectedArea(e.target.value)}
-                    className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border-none rounded-lg outline-none appearance-none font-bold text-xs"
+                    className="w-full px-4 py-2.5 bg-slate-50 border-none rounded-lg outline-none appearance-none font-bold text-xs"
                   >
                     <option value="all">All Areas</option>
                     {areas?.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
@@ -420,7 +514,7 @@ const Reports = ({ setActiveTab, setEditingSale, redEyeActive }: { setActiveTab?
                   <select 
                     value={selectedCustomer}
                     onChange={e => setSelectedCustomer(e.target.value)}
-                    className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border-none rounded-lg outline-none appearance-none font-bold text-xs"
+                    className="w-full px-4 py-2.5 bg-slate-50 border-none rounded-lg outline-none appearance-none font-bold text-xs"
                   >
                     <option value="all">All Customers</option>
                     {customers?.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
@@ -435,7 +529,7 @@ const Reports = ({ setActiveTab, setEditingSale, redEyeActive }: { setActiveTab?
                   type="date" 
                   value={dateRange.start}
                   onChange={e => setDateRange({...dateRange, start: e.target.value})}
-                  className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border-none rounded-lg outline-none font-bold text-xs" 
+                  className="w-full px-4 py-2.5 bg-slate-50 border-none rounded-lg outline-none font-bold text-xs" 
                 />
               </div>
 
@@ -445,11 +539,11 @@ const Reports = ({ setActiveTab, setEditingSale, redEyeActive }: { setActiveTab?
                   type="date" 
                   value={dateRange.end}
                   onChange={e => setDateRange({...dateRange, end: e.target.value})}
-                  className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border-none rounded-lg outline-none font-bold text-xs" 
+                  className="w-full px-4 py-2.5 bg-slate-50 border-none rounded-lg outline-none font-bold text-xs" 
                 />
               </div>
 
-              <button className="w-full py-3 bg-slate-900 dark:bg-slate-800 text-white rounded-xl font-bold text-xs mt-2 active:scale-95 transition-transform uppercase tracking-widest">
+              <button className="w-full py-3 bg-slate-900 text-white rounded-xl font-bold text-xs mt-2 active:scale-95 transition-transform uppercase tracking-widest shadow-lg shadow-slate-200">
                 Apply Filters
               </button>
             </div>
@@ -467,16 +561,16 @@ const Reports = ({ setActiveTab, setEditingSale, redEyeActive }: { setActiveTab?
 
         {/* Report Preview */}
         <div className="lg:col-span-3 space-y-6">
-          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
-            <div className="p-4 border-b dark:border-slate-800 flex items-center justify-between">
-              <h4 className="font-bold text-sm uppercase tracking-wider text-slate-700 dark:text-slate-300">
+          <div className="bg-white rounded-2xl border border-slate-100 shadow-soft overflow-hidden">
+            <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+              <h4 className="font-bold text-sm uppercase tracking-wider text-slate-700">
                 {language === 'en' ? 'Transaction Age Report' : 'বকেয়া বয়স রিপোর্ট'}
               </h4>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
-                  <tr className="bg-slate-50/50 dark:bg-slate-800/50 text-left">
+                  <tr className="bg-slate-50 text-left">
                     <th className="px-6 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">{language === 'en' ? 'Customer' : 'কাস্টমার'}</th>
                     <th className="px-6 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">{language === 'en' ? 'Bill / Receipt' : 'বিল / রিসিট'}</th>
                     <th className="px-6 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">{language === 'en' ? 'Date' : 'তারিখ'}</th>
@@ -485,13 +579,13 @@ const Reports = ({ setActiveTab, setEditingSale, redEyeActive }: { setActiveTab?
                     <th className="px-6 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">{language === 'en' ? 'Type' : 'ধরণ'}</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                <tbody className="divide-y divide-slate-100">
                   {filteredSales?.map((s, i) => {
                     const customer = customers?.find(c => String(c.id) === String(s.customerId));
                     const age = calculateAge(s.date);
                     return (
-                      <tr key={i} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
-                        <td className={cn("px-6 py-3.5 text-sm font-bold text-slate-900 dark:text-white", redEyeActive && "blur-sm")}>{customer?.name || 'Unknown'}</td>
+                      <tr key={i} className="hover:bg-slate-50 transition-colors">
+                        <td className={cn("px-6 py-3.5 text-sm font-bold text-slate-900", redEyeActive && "blur-sm")}>{customer?.name || 'Unknown'}</td>
                         <td className="px-6 py-3.5 text-xs text-slate-500 font-mono">{s.invoiceNumber || s.receiptNumber || 'N/A'}</td>
                         <td className="px-6 py-3.5 text-xs text-slate-500">{new Date(s.date).toLocaleDateString()}</td>
                         <td className="px-6 py-3.5">
@@ -527,13 +621,13 @@ const Reports = ({ setActiveTab, setEditingSale, redEyeActive }: { setActiveTab?
               </table>
             </div>
 
-            <div className="p-4 border-b dark:border-slate-800 flex items-center justify-between mt-8 bg-indigo-50/30 dark:bg-indigo-900/10">
-              <h4 className="font-bold text-sm uppercase tracking-wider text-indigo-700 dark:text-indigo-400">
+            <div className="p-4 border-b border-slate-100 flex items-center justify-between mt-8 bg-indigo-50/30">
+              <h4 className="font-bold text-sm uppercase tracking-wider text-indigo-700">
                 {language === 'en' ? 'Daily Sales Report (Non-Credit)' : 'দৈনিক বিক্রি রিপোর্ট (নন-ক্রেডিট)'}
               </h4>
               <button
                 onClick={handlePrintDailySales}
-                className="flex items-center gap-2 px-3 py-1.5 bg-indigo-100 hover:bg-indigo-200 dark:bg-indigo-900/30 dark:hover:bg-indigo-800/30 text-indigo-700 dark:text-indigo-300 rounded-lg text-xs font-bold transition-all"
+                className="flex items-center gap-2 px-3 py-1.5 bg-indigo-100 hover:bg-indigo-200 text-indigo-700 rounded-lg text-xs font-bold transition-all border border-indigo-200"
               >
                 <Printer className="w-3.5 h-3.5" />
                 {language === 'en' ? 'Print' : 'প্রিন্ট'}
@@ -542,7 +636,7 @@ const Reports = ({ setActiveTab, setEditingSale, redEyeActive }: { setActiveTab?
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
-                  <tr className="bg-slate-50/50 dark:bg-slate-800/50 text-left">
+                  <tr className="bg-slate-50 text-left">
                     <th className="px-6 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">{t.date}</th>
                     <th className="px-6 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">{t.description}</th>
                     <th className="px-6 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">{language === 'en' ? 'Invoice' : 'ইনভয়েস'}</th>
@@ -550,16 +644,16 @@ const Reports = ({ setActiveTab, setEditingSale, redEyeActive }: { setActiveTab?
                     <th className="px-6 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">{language === 'en' ? 'Actions' : 'অ্যাকশন'}</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                <tbody className="divide-y divide-slate-100">
                   {sales?.filter(s => {
                     const sDate = new Date(s.date).toISOString().split('T')[0];
                     return s.type === 'direct' && 
                       (!dateRange.start || sDate >= dateRange.start) && 
                       (!dateRange.end || sDate <= dateRange.end);
                   }).map((s) => (
-                    <tr key={s.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
+                    <tr key={s.id} className="hover:bg-slate-50 transition-colors">
                       <td className="px-6 py-3.5 text-xs text-slate-500">{new Date(s.date).toLocaleDateString()}</td>
-                      <td className="px-6 py-3.5 text-sm font-medium text-slate-900 dark:text-white capitalize">{s.description || 'N/A'}</td>
+                      <td className="px-6 py-3.5 text-sm font-medium text-slate-900 capitalize">{s.description || 'N/A'}</td>
                       <td className="px-6 py-3.5 text-xs text-slate-500 font-mono">{s.invoiceNumber || 'N/A'}</td>
                       <td className={cn("px-6 py-3.5 text-sm font-black text-indigo-600", redEyeActive && "blur-sm")}>
                         {formatCurrency(s.cashSale, currency)}
@@ -571,7 +665,7 @@ const Reports = ({ setActiveTab, setEditingSale, redEyeActive }: { setActiveTab?
                               e.stopPropagation();
                               handleEditDailySale(s);
                             }}
-                            className="p-2 text-indigo-600 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-900/30 dark:hover:bg-indigo-800/30 rounded-lg transition-all shadow-sm active:scale-95"
+                            className="p-2 text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-all shadow-sm active:scale-95 border border-indigo-100"
                             title={language === 'en' ? 'Edit' : 'এডিট'}
                           >
                             <Edit2 className="w-4 h-4" />
@@ -581,7 +675,7 @@ const Reports = ({ setActiveTab, setEditingSale, redEyeActive }: { setActiveTab?
                               e.stopPropagation();
                               handleDeleteDailySale(s.id!);
                             }}
-                            className="p-2 text-rose-600 bg-rose-50 hover:bg-rose-100 dark:bg-rose-900/30 dark:hover:bg-rose-800/30 rounded-lg transition-all shadow-sm active:scale-95"
+                            className="p-2 text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-lg transition-all shadow-sm active:scale-95 border border-rose-100"
                             title={language === 'en' ? 'Delete' : 'ডিলিট'}
                           >
                             <Trash2 className="w-4 h-4" />
@@ -594,7 +688,7 @@ const Reports = ({ setActiveTab, setEditingSale, redEyeActive }: { setActiveTab?
                     <tr>
                       <td colSpan={5} className="px-6 py-12 text-center text-slate-400 text-xs italic">
                         <div className="flex flex-col items-center justify-center gap-2">
-                          <div className="w-10 h-10 bg-slate-50 dark:bg-slate-800 rounded-full flex items-center justify-center">
+                          <div className="w-10 h-10 bg-slate-50 rounded-full flex items-center justify-center border border-slate-100">
                             <TableIcon className="w-5 h-5 text-slate-300" />
                           </div>
                           {language === 'en' ? 'No daily sales entries found for this period' : 'এই সময়ের জন্য কোনো দৈনিক বিক্রির তথ্য পাওয়া যায়নি'}
@@ -603,7 +697,7 @@ const Reports = ({ setActiveTab, setEditingSale, redEyeActive }: { setActiveTab?
                     </tr>
                   )}
                 </tbody>
-                <tfoot className="bg-slate-50/50 dark:bg-slate-800/50">
+                <tfoot className="bg-slate-50/50">
                   <tr>
                     <td colSpan={4} className="px-6 py-4 text-xs font-bold text-slate-500 uppercase text-right">{language === 'en' ? 'Total Daily Sales' : 'মোট দৈনিক বিক্রি'}</td>
                     <td className={cn("px-6 py-4 text-sm font-black text-indigo-600", redEyeActive && "blur-sm")}>
@@ -619,30 +713,30 @@ const Reports = ({ setActiveTab, setEditingSale, redEyeActive }: { setActiveTab?
               </table>
             </div>
 
-            <div className="p-4 border-b dark:border-slate-800 flex items-center justify-between mt-8">
-              <h4 className="font-bold text-sm uppercase tracking-wider text-slate-700 dark:text-slate-300">
+            <div className="p-4 border-b border-slate-100 flex items-center justify-between mt-8">
+              <h4 className="font-bold text-sm uppercase tracking-wider text-slate-700">
                 {language === 'en' ? 'Monthly Customer Summary' : 'মাসিক কাস্টমার সংক্ষিপ্ত বিবরণ'}
               </h4>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
-                  <tr className="bg-slate-50/50 dark:bg-slate-800/50 text-left">
+                  <tr className="bg-slate-50 text-left">
                     <th className="px-6 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">{language === 'en' ? 'Customer' : 'কাস্টমার'}</th>
                     <th className="px-6 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">{language === 'en' ? 'Total Sales' : 'মোট বিক্রি'}</th>
                     <th className="px-6 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">{language === 'en' ? 'Total Collection' : 'মোট কালেকশন'}</th>
                     <th className="px-6 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">{language === 'en' ? 'Balance' : 'বাকি'}</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                <tbody className="divide-y divide-slate-100">
                   {customers?.filter(c => selectedCustomer === 'all' || String(c.id) === String(selectedCustomer)).map((c, i) => {
                     const customerSales = sales?.filter(s => String(s.customerId) === String(c.id)) || [];
                     const customerDebit = customerSales.filter(s => s.type === 'sale').reduce((acc, s) => acc + ((s.cashSale || 0) + (s.chequeSale || 0) + (s.creditSale || 0)), 0);
                     const customerCredit = customerSales.filter(s => s.type === 'payment').reduce((acc, s) => acc + ((s.cashSale || 0) + (s.chequeSale || 0) + (s.creditSale || 0)), 0);
                     
                     return (
-                      <tr key={i} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
-                        <td className={cn("px-6 py-3.5 text-sm font-bold text-slate-900 dark:text-white", redEyeActive && "blur-sm")}>{c.name}</td>
+                      <tr key={i} className="hover:bg-slate-50 transition-colors">
+                        <td className={cn("px-6 py-3.5 text-sm font-bold text-slate-900", redEyeActive && "blur-sm")}>{c.name}</td>
                         <td className={cn("px-6 py-3.5 text-xs text-slate-500", redEyeActive && "blur-sm")}>{formatCurrency(customerDebit, currency)}</td>
                         <td className={cn("px-6 py-3.5 text-xs text-slate-500", redEyeActive && "blur-sm")}>{formatCurrency(customerCredit, currency)}</td>
                         <td className="px-6 py-3.5">
@@ -666,19 +760,19 @@ const Reports = ({ setActiveTab, setEditingSale, redEyeActive }: { setActiveTab?
 
       {/* Delete Confirmation Modal */}
       {isDeleting && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
           <motion.div 
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-[2rem] p-8 shadow-2xl text-center"
+            className="bg-white w-full max-w-sm rounded-[2rem] p-8 shadow-2xl text-center"
           >
-            <div className="w-16 h-16 bg-rose-50 dark:bg-rose-900/30 text-rose-600 rounded-full flex items-center justify-center mx-auto mb-6">
+            <div className="w-16 h-16 bg-rose-50 text-rose-600 rounded-full flex items-center justify-center mx-auto mb-6">
               <Trash2 className="w-8 h-8" />
             </div>
-            <h3 className="text-xl font-display font-bold text-slate-900 dark:text-white mb-2">
+            <h3 className="text-xl font-display font-bold text-slate-900 mb-2">
               {language === 'en' ? 'Confirm Deletion' : 'ডিলিট নিশ্চিত করুন'}
             </h3>
-            <p className="text-sm text-slate-500 dark:text-slate-400 mb-8 leading-relaxed">
+            <p className="text-sm text-slate-500 mb-8 leading-relaxed">
               {language === 'en' 
                 ? 'Are you sure you want to remove this record? This action cannot be undone.' 
                 : 'আপনি কি এই রেকর্ডটি মুছে ফেলতে নিশ্চিত? এই কাজটি আর ফিরিয়ে আনা যাবে না।'}
@@ -686,13 +780,13 @@ const Reports = ({ setActiveTab, setEditingSale, redEyeActive }: { setActiveTab?
             <div className="flex gap-3">
               <button 
                 onClick={() => setIsDeleting(false)}
-                className="flex-1 py-3 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-xl font-bold transition active:scale-95"
+                className="flex-1 py-3 bg-slate-100 text-slate-600 rounded-xl font-bold transition active:scale-95"
               >
                 {t.cancel}
               </button>
               <button 
                 onClick={confirmDelete}
-                className="flex-1 py-3 bg-rose-600 text-white rounded-xl font-bold shadow-lg shadow-rose-100 dark:shadow-none active:scale-95 transition-all"
+                className="flex-1 py-3 bg-rose-600 text-white rounded-xl font-bold shadow-lg shadow-rose-200 active:scale-95 transition-all"
               >
                 {language === 'en' ? 'Delete Now' : 'ডিলিট করুন'}
               </button>

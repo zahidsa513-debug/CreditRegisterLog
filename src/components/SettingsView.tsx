@@ -2,8 +2,6 @@ import React from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
-  Sun, 
-  Moon, 
   Languages, 
   Shield, 
   Database, 
@@ -35,8 +33,9 @@ import { translations } from '../translations';
 import { cn } from '../lib/utils';
 import { db } from '../db/db';
 import { Area, CompanySettings, Language, Theme, UserProfile } from '../types';
-import { syncToCloud, restoreFromCloud } from '../lib/sync';
+import { syncToCloud, restoreFromCloud, markForSync } from '../lib/sync';
 import { useSettings } from '../context/SettingsContext';
+import { useSync } from '../hooks/useSync';
 import { db as firestoreDb, auth } from '../lib/firebase';
 import { collection, addDoc, serverTimestamp, setDoc, doc } from 'firebase/firestore';
 import { trackFeatureUsage } from '../lib/analytics';
@@ -56,6 +55,7 @@ const SettingsView = ({
     updateSettings 
   } = useSettings();
   
+  const { isSyncing: globalIsSyncing, performSync } = useSync();
   const t = translations[language];
   const areas = useLiveQuery(() => db.areas.toArray());
   const companySettings = useLiveQuery(() => db.settings.toArray());
@@ -80,7 +80,8 @@ const SettingsView = ({
     avatar: '',
     designation: '',
     location: '',
-    monthlyTarget: 100000
+    monthlyTarget: 100000,
+    role: 'staff' as 'admin' | 'staff'
   });
 
   const [localTarget, setLocalTarget] = React.useState(monthlyTarget);
@@ -113,7 +114,8 @@ const SettingsView = ({
         avatar: userProfile.avatar || '',
         designation: userProfile.designation || '',
         location: userProfile.location || '',
-        monthlyTarget: userProfile.monthlyTarget || 100000
+        monthlyTarget: userProfile.monthlyTarget || 100000,
+        role: userProfile.role || 'staff'
       });
     }
   }, [userProfile]);
@@ -133,7 +135,7 @@ const SettingsView = ({
     setIsSyncing(true);
     setSyncStatus({msg: '', type: null});
     try {
-      await syncToCloud();
+      await performSync(true);
       setSyncStatus({
         msg: t.backupSuccess,
         type: 'success'
@@ -186,8 +188,10 @@ const SettingsView = ({
     if (newArea.name) {
       if (editingArea) {
         await db.areas.update(editingArea.id!, newArea as Area);
+        await markForSync('areas', editingArea.id!);
       } else {
-        await db.areas.add(newArea as Area);
+        const id = await db.areas.add(newArea as Area);
+        await markForSync('areas', id as number);
       }
       setEditingArea(null);
       setIsAddingArea(false);
@@ -274,6 +278,10 @@ const SettingsView = ({
   const saveCompanySettings = async (e: React.FormEvent) => {
     e.preventDefault();
     await updateSettings(companyForm);
+    const settings = await db.settings.toArray();
+    if (settings.length > 0) {
+      await markForSync('settings', settings[0].id!);
+    }
     setIsEditingCompany(false);
     triggerToast();
   };
@@ -334,6 +342,7 @@ const SettingsView = ({
     const profiles = await db.profiles.toArray();
     if (profiles.length > 0) {
       await db.profiles.update(profiles[0].id!, profileForm);
+      await markForSync('profiles', profiles[0].id!);
       await updateSettings({ targetAmount: profileForm.monthlyTarget });
       setIsEditing(false);
       triggerToast();
@@ -341,8 +350,9 @@ const SettingsView = ({
   };
 
   const currencies = [
+    { code: 'SGD', symbol: 'S$', name: 'Singapore Dollar' },
+    { code: 'MYR', symbol: 'RM', name: 'Malaysian Ringgit' },
     { code: 'BDT', symbol: '৳', name: 'Bangladeshi Taka (টাকা)' },
-    { code: 'MYR', symbol: 'RM', name: 'Malaysian Ringgit (রিঙ্গিত)' },
     { code: 'INR', symbol: '₹', name: 'Indian Rupee (রুপি)' },
     { code: 'USD', symbol: '$', name: 'US Dollar (ডলার)' },
     { code: 'EUR', symbol: '€', name: 'Euro' },
@@ -369,15 +379,15 @@ const SettingsView = ({
 
       <div className="flex items-center justify-between">
         <div className="space-y-1">
-          <h2 className="text-4xl font-black tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-500 dark:from-white dark:to-slate-500">{t.settings}</h2>
+          <h2 className="text-4xl font-black tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-500">{t.settings}</h2>
           <div className="flex items-center gap-2">
              <div className="h-0.5 w-8 bg-indigo-600 rounded-full" />
-             <p className="text-slate-500 dark:text-slate-500 font-bold text-xs uppercase tracking-widest leading-none">System Architecture & Intelligence</p>
+             <p className="text-slate-500 font-bold text-xs uppercase tracking-widest leading-none">System Architecture & Intelligence</p>
           </div>
         </div>
         <button 
           onClick={onLogout}
-          className="p-3 bg-rose-50 text-rose-600 dark:bg-rose-900/30 dark:text-rose-400 rounded-2xl hover:bg-rose-100 transition-colors"
+          className="p-3 bg-rose-50 text-rose-600 rounded-2xl hover:bg-rose-100 transition-colors"
           title={t.logout}
         >
           <LogOut className="w-5 h-5" />
@@ -385,194 +395,7 @@ const SettingsView = ({
       </div>
 
       <div className="space-y-6">
-        {/* Company Settings Section */}
-        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
-          <div className="p-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="p-2.5 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-xl">
-                <Database className="w-5 h-5" />
-              </div>
-              <div>
-                <p className="font-bold text-sm tracking-tight">{(t as any).companySettings}</p>
-                <p className="text-xs text-slate-500">{(t as any).companySettingsDesc}</p>
-              </div>
-            </div>
-            <button 
-              onClick={() => setIsEditingCompany(!isEditingCompany)}
-              className="p-2 bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400 rounded-lg hover:bg-indigo-200 transition-colors"
-            >
-              {isEditingCompany ? <X className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
-            </button>
-          </div>
-          
-          {isEditingCompany ? (
-            <form onSubmit={saveCompanySettings} className="p-6 space-y-4">
-              <div className="flex flex-col items-center mb-6">
-                <div className="relative group">
-                  <div className="w-24 h-24 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center overflow-hidden border-2 border-indigo-100 dark:border-slate-700">
-                    {companyForm.logo ? (
-                      <img src={companyForm.logo} className="w-full h-full object-contain" alt="logo" />
-                    ) : (
-                      <Camera className="w-8 h-8 text-slate-300" />
-                    )}
-                  </div>
-                  <label className="absolute -bottom-2 -right-2 bg-indigo-500 text-white p-2 rounded-xl cursor-pointer shadow-lg active:scale-95 transition-transform">
-                    <Edit2 className="w-4 h-4" />
-                    <input type="file" className="hidden" accept="image/*" onChange={handleLogoChange} />
-                  </label>
-                </div>
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-2">{t.businessLogo}</p>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">{(t as any).companyName}</label>
-                  <input 
-                    type="text" 
-                    value={companyForm.companyName}
-                    onChange={e => setCompanyForm({...companyForm, companyName: e.target.value})}
-                    className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 text-sm font-bold"
-                    required
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">{(t as any).phone}</label>
-                  <input 
-                    type="tel" 
-                    value={companyForm.phone}
-                    onChange={e => setCompanyForm({...companyForm, phone: e.target.value})}
-                    className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 text-sm font-bold"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">Email</label>
-                  <input 
-                    type="email" 
-                    value={companyForm.email}
-                    onChange={e => setCompanyForm({...companyForm, email: e.target.value})}
-                    className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 text-sm font-bold"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">{(t as any).website}</label>
-                  <input 
-                    type="text" 
-                    value={companyForm.website}
-                    onChange={e => setCompanyForm({...companyForm, website: e.target.value})}
-                    className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 text-sm font-bold"
-                  />
-                </div>
-                <div className="md:col-span-2 space-y-1">
-                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">{(t as any).address}</label>
-                  <textarea 
-                    value={companyForm.address}
-                    onChange={e => setCompanyForm({...companyForm, address: e.target.value})}
-                    className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 text-sm font-bold min-h-[80px]"
-                  />
-                </div>
-              </div>
-
-              <div className="pt-4 border-t border-slate-100 dark:border-slate-800 space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-bold">{t.dailyAutoBackup}</p>
-                    <p className="text-xs text-slate-500">{t.syncDataAuto}</p>
-                  </div>
-                  <button 
-                    type="button"
-                    onClick={() => setCompanyForm({...companyForm, autoBackup: !companyForm.autoBackup})}
-                    className={cn(
-                      "w-12 h-6 rounded-full transition-colors relative",
-                      companyForm.autoBackup ? "bg-indigo-600" : "bg-slate-200 dark:bg-slate-800"
-                    )}
-                  >
-                    <div className={cn(
-                      "absolute top-1 w-4 h-4 rounded-full bg-white transition-all",
-                      companyForm.autoBackup ? "right-1" : "left-1"
-                    )} />
-                  </button>
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-bold">{t.screenLock}</p>
-                    <p className="text-xs text-slate-500">{t.requirePin}</p>
-                  </div>
-                  <button 
-                    type="button"
-                    onClick={() => setCompanyForm({...companyForm, isPinEnabled: !companyForm.isPinEnabled})}
-                    className={cn(
-                      "w-12 h-6 rounded-full transition-colors relative",
-                      companyForm.isPinEnabled ? "bg-indigo-600" : "bg-slate-200 dark:bg-slate-800"
-                    )}
-                  >
-                    <div className={cn(
-                      "absolute top-1 w-4 h-4 rounded-full bg-white transition-all",
-                      companyForm.isPinEnabled ? "right-1" : "left-1"
-                    )} />
-                  </button>
-                </div>
-
-                {companyForm.isPinEnabled && (
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">{t.setPin}</label>
-                    <input 
-                      type="text" 
-                      maxLength={4}
-                      pattern="\d{4}"
-                      value={companyForm.securityPin}
-                      onChange={e => setCompanyForm({...companyForm, securityPin: e.target.value.replace(/\D/g, '')})}
-                      className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 text-sm font-bold tracking-[0.5em]"
-                      placeholder="XXXX"
-                      required
-                    />
-                  </div>
-                )}
-              </div>
-
-              <button 
-                type="submit"
-                className="w-full py-3 bg-indigo-600 text-white rounded-xl font-bold shadow-lg active:scale-95 transition-transform"
-              >
-                {t.save}
-              </button>
-            </form>
-          ) : (
-            <div className="p-6">
-              {companySettings && companySettings.length > 0 ? (
-                <div className="flex flex-col sm:flex-row gap-6">
-                  {companySettings[0].logo && (
-                    <div className="w-16 h-16 rounded-xl overflow-hidden shrink-0 border border-slate-100 dark:border-slate-800">
-                      <img src={companySettings[0].logo} alt="logo" className="w-full h-full object-contain" />
-                    </div>
-                  )}
-                  <div className="space-y-3 flex-1">
-                    <p className="text-lg font-bold text-indigo-600">{companySettings[0].companyName}</p>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2">
-                      <p className="text-xs text-slate-500 flex items-center gap-2 font-medium"><Phone className="w-3.5 h-3.5 text-indigo-500" /> {companySettings[0].phone}</p>
-                      <p className="text-xs text-slate-500 flex items-center gap-2 font-medium"><Mail className="w-3.5 h-3.5 text-indigo-500" /> {companySettings[0].email}</p>
-                      <p className="text-xs text-slate-500 flex items-center gap-2 font-medium col-span-full"><MapPin className="w-3.5 h-3.5 text-indigo-500" /> {companySettings[0].address}</p>
-                    </div>
-                    {(companySettings[0].isPinEnabled || companySettings[0].autoBackup) && (
-                      <div className="flex gap-2 pt-2">
-                        {companySettings[0].autoBackup && (
-                          <span className="px-2 py-0.5 bg-emerald-50 text-emerald-600 text-[9px] font-black uppercase tracking-widest rounded-md">Auto-Backup ON</span>
-                        )}
-                        {companySettings[0].isPinEnabled && (
-                          <span className="px-2 py-0.5 bg-indigo-50 text-indigo-600 text-[9px] font-black uppercase tracking-widest rounded-md">PIN Armed</span>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ) : (
-                <p className="text-xs text-slate-400 italic">No company settings found. Click + to add.</p>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* Profile Card */}
+        {/* 1. User Profile Card */}
         <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-8 border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden">
           <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 rounded-full -mr-16 -mt-16 blur-2xl" />
           
@@ -624,11 +447,33 @@ const SettingsView = ({
                     placeholder={language === 'en' ? 'Monthly Sales Target' : 'মাসিক বিক্রির লক্ষ্যমাত্রা'}
                     className="w-full text-sm bg-slate-50 dark:bg-slate-800 rounded-xl px-4 py-2 border-none focus:ring-2 focus:ring-indigo-500 outline-none"
                   />
+                  
+                  <div className="flex gap-2 p-1 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
+                    <button 
+                      type="button"
+                      onClick={() => setProfileForm({...profileForm, role: 'staff'})}
+                      className={cn("flex-1 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all", profileForm.role === 'staff' ? "bg-white dark:bg-slate-700 shadow-sm text-indigo-600" : "text-slate-400")}
+                    >
+                      Staff Member
+                    </button>
+                    <button 
+                      type="button"
+                      onClick={() => setProfileForm({...profileForm, role: 'admin'})}
+                      className={cn("flex-1 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all", profileForm.role === 'admin' ? "bg-indigo-600 shadow-sm text-white" : "text-slate-400")}
+                    >
+                      Administrator
+                    </button>
+                  </div>
                 </div>
               ) : (
                 <>
                   <h3 className="text-2xl font-display font-bold text-slate-900 dark:text-white truncate max-w-xs">{userProfile?.name}</h3>
-                  <p className="text-indigo-600 dark:text-indigo-400 font-bold text-xs uppercase tracking-wider">{userProfile?.designation || 'No Designation'}</p>
+                  <div className="flex items-center gap-2">
+                    <p className="text-indigo-600 dark:text-indigo-400 font-bold text-xs uppercase tracking-wider">{userProfile?.designation || 'No Designation'}</p>
+                    <span className={cn("px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest", userProfile?.role === 'admin' ? "bg-amber-100 text-amber-700" : "bg-slate-100 text-slate-600")}>
+                      {userProfile?.role || 'Staff'}
+                    </span>
+                  </div>
                   <p className="text-slate-500 font-medium flex items-center justify-center sm:justify-start gap-2">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                     {userProfile?.email}
@@ -665,32 +510,410 @@ const SettingsView = ({
           </div>
         </div>
 
-        {/* Area Management Section */}
+        {/* 2. Company Information Section */}
         <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
           <div className="p-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
             <div className="flex items-center gap-4">
               <div className="p-2.5 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-xl">
+                <Database className="w-5 h-5" />
+              </div>
+              <div>
+                <p className="font-bold text-sm tracking-tight">{t.companyInformation}</p>
+                <p className="text-xs text-slate-500">Business identity & contact details</p>
+              </div>
+            </div>
+            <button 
+              onClick={() => setIsEditingCompany(!isEditingCompany)}
+              className="p-2 bg-indigo-50 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 rounded-lg hover:bg-indigo-100 transition-colors"
+            >
+              {isEditingCompany ? <X className="w-4 h-4" /> : <Edit2 className="w-4 h-4" />}
+            </button>
+          </div>
+          
+          {isEditingCompany ? (
+            <form onSubmit={saveCompanySettings} className="p-6 space-y-4">
+              <div className="flex flex-col items-center mb-6">
+                <div className="relative group">
+                  <div className="w-24 h-24 rounded-2xl bg-slate-50 dark:bg-slate-800 flex items-center justify-center overflow-hidden border-2 border-indigo-50 dark:border-slate-700">
+                    {companyForm.logo ? (
+                      <img src={companyForm.logo} className="w-full h-full object-contain" alt="logo" />
+                    ) : (
+                      <Camera className="w-8 h-8 text-slate-300 dark:text-slate-600" />
+                    )}
+                  </div>
+                  <label className="absolute -bottom-2 -right-2 bg-indigo-500 text-white p-2 rounded-xl cursor-pointer shadow-lg active:scale-95 transition-transform">
+                    <Edit2 className="w-4 h-4" />
+                    <input type="file" className="hidden" accept="image/*" onChange={handleLogoChange} />
+                  </label>
+                </div>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-2">{t.businessLogo}</p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">{(t as any).companyName}</label>
+                  <input 
+                    type="text" 
+                    value={companyForm.companyName}
+                    onChange={e => setCompanyForm({...companyForm, companyName: e.target.value})}
+                    className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 text-sm font-bold border border-transparent dark:border-slate-700"
+                    required
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">{(t as any).phone}</label>
+                  <input 
+                    type="tel" 
+                    value={companyForm.phone}
+                    onChange={e => setCompanyForm({...companyForm, phone: e.target.value})}
+                    className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 text-sm font-bold border border-transparent dark:border-slate-700"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">Email</label>
+                  <input 
+                    type="email" 
+                    value={companyForm.email}
+                    onChange={e => setCompanyForm({...companyForm, email: e.target.value})}
+                    className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 text-sm font-bold border border-transparent dark:border-slate-700"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">{(t as any).website}</label>
+                  <input 
+                    type="text" 
+                    value={companyForm.website}
+                    onChange={e => setCompanyForm({...companyForm, website: e.target.value})}
+                    className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 text-sm font-bold border border-transparent dark:border-slate-700"
+                  />
+                </div>
+                <div className="md:col-span-2 space-y-1">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">{(t as any).address}</label>
+                  <textarea 
+                    value={companyForm.address}
+                    onChange={e => setCompanyForm({...companyForm, address: e.target.value})}
+                    className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 text-sm font-bold border border-transparent dark:border-slate-700 min-h-[80px]"
+                  />
+                </div>
+              </div>
+
+              <button 
+                type="submit"
+                className="w-full py-3 bg-indigo-600 text-white rounded-xl font-bold shadow-lg shadow-indigo-100 dark:shadow-none active:scale-95 transition-transform"
+              >
+                {t.save}
+              </button>
+            </form>
+          ) : (
+            <div className="p-6">
+              {companySettings && companySettings.length > 0 ? (
+                <div className="flex flex-col sm:flex-row gap-6">
+                  {companySettings[0].logo && (
+                    <div className="w-16 h-16 rounded-xl overflow-hidden shrink-0 border border-slate-100 dark:border-slate-800">
+                      <img src={companySettings[0].logo} alt="logo" className="w-full h-full object-contain" />
+                    </div>
+                  )}
+                  <div className="space-y-3 flex-1">
+                    <p className="text-lg font-bold text-indigo-600 dark:text-indigo-400">{companySettings[0].companyName}</p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2">
+                      <p className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-2 font-medium"><Phone className="w-3.5 h-3.5 text-indigo-500" /> {companySettings[0].phone}</p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-2 font-medium"><Mail className="w-3.5 h-3.5 text-indigo-500" /> {companySettings[0].email}</p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-2 font-medium col-span-full"><MapPin className="w-3.5 h-3.5 text-indigo-500" /> {companySettings[0].address}</p>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-xs text-slate-400 italic">No company settings found. Click edit to add.</p>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* 3. Appearance & Preferences Section */}
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 divide-y dark:divide-slate-800 shadow-sm overflow-hidden">
+          <div className="p-5 flex items-center gap-4">
+            <div className="p-2.5 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-xl">
+              <Sparkles className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="font-bold text-sm tracking-tight">{t.appearance}</p>
+              <p className="text-xs text-slate-500">Theme, Language & Defaults</p>
+            </div>
+          </div>
+
+          {/* Theme */}
+          <div className="p-5 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Smartphone className="w-4 h-4 text-slate-400" />
+              <p className="text-sm font-bold text-slate-700 dark:text-slate-300">Theme Mode</p>
+            </div>
+            <div className="flex bg-slate-50 dark:bg-slate-950 p-1 rounded-lg border border-slate-200 dark:border-slate-800">
+              <button 
+                onClick={() => updateSettings({ theme: 'light' })}
+                className={cn("px-3 py-1.5 rounded-md text-[10px] font-black uppercase tracking-widest transition-all", theme === 'light' ? "bg-white dark:bg-slate-700 shadow-sm text-indigo-600" : "text-slate-400 hover:text-slate-600")}
+              >
+                Light
+              </button>
+              <button 
+                onClick={() => updateSettings({ theme: 'dark' })}
+                className={cn("px-3 py-1.5 rounded-md text-[10px] font-black uppercase tracking-widest transition-all", theme === 'dark' ? "bg-white dark:bg-slate-700 shadow-sm text-indigo-600 dark:text-white" : "text-slate-400 hover:text-slate-200")}
+              >
+                Dark
+              </button>
+            </div>
+          </div>
+
+          {/* Language */}
+          <div className="p-5 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Languages className="w-4 h-4 text-slate-400" />
+              <p className="text-sm font-bold text-slate-700 dark:text-slate-300">{t.language}</p>
+            </div>
+            <div className="flex bg-slate-50 dark:bg-slate-950 p-1 rounded-lg border border-slate-200 dark:border-slate-800">
+              {(['en', 'bn', 'es'] as Language[]).map(lang => (
+                <button 
+                  key={lang}
+                  onClick={() => updateSettings({ language: lang })}
+                  className={cn("px-3 py-1.5 rounded-md text-[10px] font-black uppercase tracking-widest transition-all", language === lang ? "bg-white dark:bg-slate-700 shadow-sm text-indigo-600" : "text-slate-400 hover:text-slate-600")}
+                >
+                  {lang.toUpperCase()}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Currency */}
+          <div className="p-5 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <DollarSign className="w-4 h-4 text-slate-400" />
+              <p className="text-sm font-bold text-slate-700 dark:text-slate-300">Currency</p>
+            </div>
+            <select 
+              value={currency}
+              onChange={(e) => updateSettings({ currency: e.target.value })}
+              className="bg-slate-50 dark:bg-slate-950 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 text-xs font-bold focus:ring-2 focus:ring-indigo-500 outline-none"
+            >
+              {currencies.map(c => (
+                <option key={c.code} value={c.code}>{c.code} ({c.symbol})</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Monthly Target */}
+          <div className="p-5 space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Target className="w-4 h-4 text-slate-400" />
+                <p className="text-sm font-bold text-slate-700 dark:text-slate-300">Monthly Target</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[10px] font-bold">{currency}</span>
+                  <input 
+                    type="number"
+                    value={localTarget}
+                    onChange={(e) => setLocalTarget(Number(e.target.value))}
+                    className="w-28 bg-slate-50 dark:bg-slate-950 pl-10 pr-3 py-2 rounded-xl text-xs font-bold border border-transparent dark:border-slate-800 focus:border-indigo-500 outline-none transition-all"
+                  />
+                </div>
+                <button 
+                  onClick={async () => {
+                    await updateSettings({ targetAmount: localTarget });
+                    triggerToast();
+                  }}
+                  className="p-2 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 rounded-lg hover:bg-emerald-100 transition-colors"
+                >
+                  <Save className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* 4. Security & Cloud Management Section */}
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 divide-y dark:divide-slate-800 shadow-sm overflow-hidden">
+          <div className="p-5 flex items-center gap-4">
+            <div className="p-2.5 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 rounded-xl">
+              <Shield className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="font-bold text-sm tracking-tight">{t.security}</p>
+              <p className="text-xs text-slate-500">PIN, Backup & Data Integrity</p>
+            </div>
+          </div>
+
+          {/* PIN Lock */}
+          <div className="p-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-bold">{t.screenLock}</p>
+                <p className="text-xs text-slate-500">Require 4-digit PIN to access app</p>
+              </div>
+              <button 
+                type="button"
+                onClick={async () => {
+                  const newState = !companyForm.isPinEnabled;
+                  setCompanyForm({...companyForm, isPinEnabled: newState});
+                  await updateSettings({ isPinEnabled: newState });
+                  triggerToast();
+                }}
+                className={cn(
+                  "w-12 h-6 rounded-full transition-colors relative",
+                  companyForm.isPinEnabled ? "bg-indigo-600" : "bg-slate-200 dark:bg-slate-800"
+                )}
+              >
+                <div className={cn(
+                  "absolute top-1 w-4 h-4 rounded-full bg-white transition-all",
+                  companyForm.isPinEnabled ? "right-1" : "left-1"
+                )} />
+              </button>
+            </div>
+
+            {companyForm.isPinEnabled && (
+              <div className="flex items-center gap-4 pt-2">
+                <div className="flex-1 space-y-1">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">{t.setPin}</label>
+                  <input 
+                    type="text" 
+                    maxLength={4}
+                    pattern="\d{4}"
+                    value={companyForm.securityPin}
+                    onChange={e => setCompanyForm({...companyForm, securityPin: e.target.value.replace(/\D/g, '')})}
+                    className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 text-sm font-bold tracking-[0.5em] border border-transparent dark:border-slate-700"
+                    placeholder="XXXX"
+                  />
+                </div>
+                <button 
+                  onClick={async () => {
+                    await updateSettings({ securityPin: companyForm.securityPin });
+                    triggerToast();
+                  }}
+                  className="mt-5 p-3 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 rounded-xl"
+                >
+                  <Save className="w-5 h-5" />
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Offline Mode Toggle */}
+          <div className="p-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Smartphone className="w-5 h-5 text-indigo-600" />
+                <div>
+                  <p className="text-sm font-bold">Offline Mode Only</p>
+                  <p className="text-xs text-slate-500">Disable automatic cloud syncing</p>
+                </div>
+              </div>
+              <button 
+                type="button"
+                onClick={async () => {
+                  const newState = !companyForm.offlineMode;
+                  setCompanyForm({...companyForm, offlineMode: newState});
+                  await updateSettings({ offlineMode: newState });
+                  triggerToast();
+                }}
+                className={cn(
+                  "w-12 h-6 rounded-full transition-colors relative",
+                  companyForm.offlineMode ? "bg-rose-500" : "bg-slate-200 dark:bg-slate-800"
+                )}
+              >
+                <div className={cn(
+                  "absolute top-1 w-4 h-4 rounded-full bg-white transition-all",
+                  companyForm.offlineMode ? "right-1" : "left-1"
+                )} />
+              </button>
+            </div>
+          </div>
+
+          {/* Cloud Sync */}
+          <div className="p-6 space-y-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="p-3 bg-indigo-600 text-white rounded-2xl shadow-lg shadow-indigo-500/20">
+                  <CloudUpload className="w-5 h-5" />
+                </div>
+                <div>
+                  <p className="font-bold text-sm tracking-tight">Cloud Ecosystem</p>
+                  <p className="text-xs text-slate-500">Sync data to your secure Google Cloud</p>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <button 
+                  onClick={handleCloudRestore}
+                  disabled={isRestoring || isSyncing}
+                  className="px-4 py-2 bg-slate-100 dark:bg-slate-800 rounded-xl text-[10px] font-bold uppercase tracking-widest text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all disabled:opacity-50 flex items-center gap-2"
+                >
+                  {isRestoring ? <RefreshCw className="w-3 h-3 animate-spin" /> : <CloudDownload className="w-3 h-3" />}
+                  Restore
+                </button>
+                <button 
+                  onClick={handleCloudBackup}
+                  disabled={isSyncing || isRestoring}
+                  className="px-4 py-2 bg-indigo-600 text-white rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-indigo-700 transition-all shadow-sm active:scale-95 disabled:opacity-50 flex items-center gap-2"
+                >
+                  {isSyncing ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />}
+                  Backup
+                </button>
+              </div>
+            </div>
+
+            {/* Local Sync/Export */}
+            <div className="pt-6 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="p-2.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-xl">
+                  <RefreshCw className="w-5 h-5" />
+                </div>
+                <div>
+                  <p className="font-bold text-sm tracking-tight">Direct Data Portability</p>
+                  <p className="text-xs text-slate-500">Import/Export via JSON files</p>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <label className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 rounded-lg text-[10px] font-bold uppercase tracking-widest text-slate-600 dark:text-slate-400 hover:bg-slate-200 transition-all cursor-pointer flex items-center gap-2">
+                  <CloudDownload className="w-3 h-3" />
+                  Import
+                  <input type="file" accept=".json" className="hidden" onChange={importData} />
+                </label>
+                <button 
+                  onClick={exportData}
+                  className="px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-[10px] font-bold uppercase tracking-widest hover:bg-indigo-700 transition-all flex items-center gap-2"
+                >
+                  <CloudUpload className="w-3 h-3" />
+                  Export
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* 5. Area Management Section */}
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+          <div className="p-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="p-2.5 bg-rose-50 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 rounded-xl">
                 <MapPin className="w-5 h-5" />
               </div>
               <div>
-                <p className="font-bold text-sm tracking-tight">{language === 'en' ? 'Manage Areas' : 'এলাকা পরিচালনা'}</p>
-                <p className="text-xs text-slate-500">{language === 'en' ? 'Configure default areas' : 'এলাকাগুলো সেট করুন'}</p>
+                <p className="font-bold text-sm tracking-tight">{language === 'en' ? 'Operational Areas' : 'পরিচালনা অঞ্চল'}</p>
+                <p className="text-xs text-slate-500">Configure regions for logistics</p>
               </div>
             </div>
             <button 
               onClick={() => setIsAddingArea(true)}
-              className="p-2 bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400 rounded-lg hover:bg-indigo-200 transition-colors"
+              className="p-2 bg-rose-50 dark:bg-rose-900/40 text-rose-600 rounded-lg hover:bg-rose-100 transition-colors"
             >
               <Plus className="w-4 h-4" />
             </button>
           </div>
           
-          <div className="divide-y dark:divide-slate-800">
+          <div className="divide-y dark:divide-slate-800 max-h-60 overflow-y-auto">
             {areas?.map(area => (
               <div key={area.id} className="p-4 flex items-center justify-between group hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
                 <div className="flex items-center gap-3">
-                  <div className="w-2 h-2 rounded-full" style={{ backgroundColor: area.color }} />
-                  <span className="text-sm font-bold">{area.name}</span>
+                  <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: area.color }} />
+                  <span className="text-sm font-bold text-slate-700 dark:text-slate-300">{area.name}</span>
                 </div>
                 <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                   <button 
@@ -709,8 +932,8 @@ const SettingsView = ({
               </div>
             ))}
             {(!areas || areas.length === 0) && (
-              <div className="p-8 text-center text-slate-400 text-xs font-medium">
-                No areas found. Add one to get started.
+              <div className="p-8 text-center text-slate-400 text-xs font-medium italic">
+                No active regions. Assign zones to get started.
               </div>
             )}
           </div>
@@ -802,26 +1025,27 @@ const SettingsView = ({
               </div>
             </div>
           </div>
+
           <div className="p-5 flex items-center justify-between">
             <div className="flex items-center gap-4">
               <div className="p-2.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-xl">
-                {theme === 'light' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+                <Smartphone className="w-5 h-5" />
               </div>
               <div>
-                <p className="font-bold text-sm tracking-tight">{t.theme}</p>
-                <p className="text-xs text-slate-500">{language === 'en' ? 'Dark mode toggle' : 'থিম পরিবর্তন'}</p>
+                <p className="font-bold text-sm tracking-tight">{language === 'en' ? 'Appearance' : 'চেহারা'}</p>
+                <p className="text-xs text-slate-500">{language === 'en' ? 'Toggle dark/light mode' : 'ডার্ক/লাইট মোড'}</p>
               </div>
             </div>
             <div className="flex bg-slate-50 dark:bg-slate-950 p-1 rounded-lg border border-slate-200 dark:border-slate-800">
               <button 
                 onClick={() => updateSettings({ theme: 'light' })}
-                className={cn("px-4 py-1.5 rounded-md text-xs font-bold transition-all", theme === 'light' ? "bg-white dark:bg-slate-800 shadow-sm text-indigo-600" : "text-slate-400 hover:text-slate-600")}
+                className={cn("px-3 py-1.5 rounded-md text-[10px] font-black uppercase tracking-widest transition-all", theme === 'light' ? "bg-white shadow-sm text-indigo-600" : "text-slate-400 hover:text-slate-600")}
               >
                 Light
               </button>
               <button 
                 onClick={() => updateSettings({ theme: 'dark' })}
-                className={cn("px-4 py-1.5 rounded-md text-xs font-bold transition-all", theme === 'dark' ? "bg-white dark:bg-slate-800 shadow-sm text-indigo-600" : "text-slate-400 hover:text-slate-600")}
+                className={cn("px-3 py-1.5 rounded-md text-[10px] font-black uppercase tracking-widest transition-all", theme === 'dark' ? "bg-slate-800 shadow-sm text-white" : "text-slate-400 hover:text-slate-200")}
               >
                 Dark
               </button>
@@ -830,7 +1054,7 @@ const SettingsView = ({
 
           <div className="p-5 flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <div className="p-2.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-xl">
+              <div className="p-2.5 bg-slate-100 text-slate-600 rounded-xl">
                 <Languages className="w-5 h-5" />
               </div>
               <div>
@@ -838,22 +1062,22 @@ const SettingsView = ({
                 <p className="text-xs text-slate-500">{t.interfaceLanguage}</p>
               </div>
             </div>
-            <div className="flex bg-slate-50 dark:bg-slate-950 p-1 rounded-lg border border-slate-200 dark:border-slate-800">
+            <div className="flex bg-slate-50 p-1 rounded-lg border border-slate-200">
               <button 
                 onClick={() => updateSettings({ language: 'en' })}
-                className={cn("px-3 py-1.5 rounded-md text-[10px] font-black uppercase tracking-widest transition-all", language === 'en' ? "bg-white dark:bg-slate-800 shadow-sm text-indigo-600" : "text-slate-400 hover:text-slate-600")}
+                className={cn("px-3 py-1.5 rounded-md text-[10px] font-black uppercase tracking-widest transition-all", language === 'en' ? "bg-white shadow-sm text-indigo-600" : "text-slate-400 hover:text-slate-600")}
               >
                 EN
               </button>
               <button 
                 onClick={() => updateSettings({ language: 'bn' })}
-                className={cn("px-3 py-1.5 rounded-md text-[10px] font-black uppercase tracking-widest transition-all", language === 'bn' ? "bg-white dark:bg-slate-800 shadow-sm text-indigo-600" : "text-slate-400 hover:text-slate-600")}
+                className={cn("px-3 py-1.5 rounded-md text-[10px] font-black uppercase tracking-widest transition-all", language === 'bn' ? "bg-white shadow-sm text-indigo-600" : "text-slate-400 hover:text-slate-600")}
               >
                 BN
               </button>
               <button 
                 onClick={() => updateSettings({ language: 'es' })}
-                className={cn("px-3 py-1.5 rounded-md text-[10px] font-black uppercase tracking-widest transition-all", language === 'es' ? "bg-white dark:bg-slate-800 shadow-sm text-indigo-600" : "text-slate-400 hover:text-slate-600")}
+                className={cn("px-3 py-1.5 rounded-md text-[10px] font-black uppercase tracking-widest transition-all", language === 'es' ? "bg-white shadow-sm text-indigo-600" : "text-slate-400 hover:text-slate-600")}
               >
                 ES
               </button>
@@ -897,107 +1121,22 @@ const SettingsView = ({
         </AnimatePresence>
 
         {/* Security & DataSection */}
-        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 divide-y dark:divide-slate-800 shadow-sm overflow-hidden">
-          <div className="p-5 flex items-center justify-between group cursor-pointer hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
-            <div className="flex items-center gap-4">
-              <div className="p-2.5 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 rounded-xl">
-                <Shield className="w-5 h-5" />
-              </div>
-              <div>
-                <p className="font-bold text-sm tracking-tight">Security Check</p>
-                <p className="text-xs text-emerald-600 font-bold uppercase tracking-widest mt-0.5">Admin Verified</p>
-              </div>
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 divide-y dark:divide-slate-800 shadow-sm overflow-hidden p-5 bg-rose-50/30 dark:bg-rose-950/20 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div className="p-2.5 bg-rose-100 dark:bg-rose-900/30 text-rose-600 rounded-xl">
+              <Database className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="font-bold text-sm text-rose-600 tracking-tight">Reset Local Data</p>
+              <p className="text-[10px] text-rose-400 font-bold uppercase tracking-wider">Permanent Action</p>
             </div>
           </div>
-
-          <div className="p-5 space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className="p-2.5 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 rounded-xl">
-                  <RefreshCw className="w-5 h-5" />
-                </div>
-                <div>
-                  <p className="font-bold text-sm tracking-tight">{language === 'en' ? 'Data Export/Import' : 'ডাটা এক্সপোর্ট/ইমপোর্ট'}</p>
-                  <p className="text-xs text-slate-500">{language === 'en' ? 'Transfer data via JSON files' : 'JSON ফাইল দিয়ে ডাটা ট্রান্সফার করুন'}</p>
-                </div>
-              </div>
-              <div className="flex gap-2">
-                <label className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 rounded-lg text-[10px] font-bold uppercase tracking-widest text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all cursor-pointer flex items-center gap-2">
-                  <CloudDownload className="w-3 h-3" />
-                  Import
-                  <input type="file" accept=".json" className="hidden" onChange={importData} />
-                </label>
-                <button 
-                  onClick={exportData}
-                  className="px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-[10px] font-bold uppercase tracking-widest hover:bg-indigo-700 transition-all shadow-sm active:scale-95 flex items-center gap-2"
-                >
-                  <CloudUpload className="w-3 h-3" />
-                  Export
-                </button>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className="p-2.5 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 rounded-xl">
-                  <CloudUpload className="w-5 h-5" />
-                </div>
-                <div>
-                  <p className="font-bold text-sm tracking-tight">Cloud Backup</p>
-                  <p className="text-xs text-slate-500">Securely sync data to Google Cloud</p>
-                </div>
-              </div>
-              <div className="flex gap-2">
-                <button 
-                  onClick={handleCloudRestore}
-                  disabled={isRestoring || isSyncing}
-                  className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 rounded-lg text-[10px] font-bold uppercase tracking-widest text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all disabled:opacity-50 flex items-center gap-2"
-                >
-                  {isRestoring ? <RefreshCw className="w-3 h-3 animate-spin" /> : <CloudDownload className="w-3 h-3" />}
-                  Restore
-                </button>
-                <button 
-                  onClick={handleCloudBackup}
-                  disabled={isSyncing || isRestoring}
-                  className="px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-[10px] font-bold uppercase tracking-widest hover:bg-indigo-700 transition-all shadow-sm active:scale-95 disabled:opacity-50 flex items-center gap-2"
-                >
-                  {isSyncing ? <RefreshCw className="w-3 h-3 animate-spin" /> : <CloudUpload className="w-3 h-3" />}
-                  Backup
-                </button>
-              </div>
-            </div>
-
-            {syncStatus.msg && (
-              <motion.div 
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                className={cn(
-                  "px-4 py-2 rounded-xl text-xs font-bold text-center",
-                  syncStatus.type === 'success' ? "bg-emerald-50 text-emerald-600" : "bg-rose-50 text-rose-600"
-                )}
-              >
-                {syncStatus.msg}
-              </motion.div>
-            )}
-          </div>
-
-          <div className="p-5 bg-rose-50/30 dark:bg-rose-950/20 flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="p-2.5 bg-rose-100 dark:bg-rose-900/30 text-rose-600 rounded-xl">
-                <Database className="w-5 h-5" />
-              </div>
-              <div>
-                <p className="font-bold text-sm text-rose-600 tracking-tight">Reset Local Data</p>
-                <p className="text-[10px] text-rose-400 font-bold uppercase tracking-wider">Permanent Action</p>
-              </div>
-            </div>
-            <button 
-              onClick={clearDatabase}
-              className="px-4 py-2 bg-rose-600 text-white rounded-xl text-xs font-bold uppercase tracking-widest shadow-lg shadow-rose-100 dark:shadow-none transition-all active:scale-95"
-            >
-              Reset
-            </button>
-          </div>
+          <button 
+            onClick={clearDatabase}
+            className="px-4 py-2 bg-rose-600 text-white rounded-xl text-xs font-bold uppercase tracking-widest shadow-lg shadow-rose-100 dark:shadow-none transition-all active:scale-95"
+          >
+            Reset
+          </button>
         </div>
 
         {/* Info Section */}

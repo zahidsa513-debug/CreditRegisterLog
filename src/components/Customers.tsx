@@ -11,6 +11,7 @@ import { cn, formatCurrency, getWhatsAppLink } from '../lib/utils';
 import { Customer, Sale, Language } from '../types';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { markForSync } from '../lib/sync';
 
 import { useSettings } from '../context/SettingsContext';
 
@@ -67,8 +68,10 @@ const Customers = ({ redEyeActive }: { redEyeActive?: boolean }) => {
     if (newCustomer.name && newCustomer.areaId) {
       if (editingCustomer) {
         await db.customers.update(editingCustomer.id!, newCustomer);
+        await markForSync('customers', editingCustomer.id!);
       } else {
-        await db.customers.add(newCustomer as Customer);
+        const id = await db.customers.add(newCustomer as Customer);
+        await markForSync('customers', id as number);
       }
       setNewCustomer(initialCustomerState);
       setEditingCustomer(null);
@@ -289,64 +292,63 @@ const Customers = ({ redEyeActive }: { redEyeActive?: boolean }) => {
         </button>
       </div>
 
-      {/* Search Bar */}
-      <div className="relative group">
+    <div className="relative group">
         <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4 group-focus-within:text-indigo-500 transition-colors" />
         <input 
           type="text"
           placeholder={t.search}
           value={searchQuery}
           onChange={e => setSearchQuery(e.target.value)}
-          className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 pl-11 pr-5 py-3 rounded-xl shadow-sm outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all font-medium text-sm"
+          className="w-full bg-white border border-slate-100 pl-11 pr-5 py-3 rounded-xl shadow-sm outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all font-medium text-sm"
         />
       </div>
 
-      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+      <div className="bg-white rounded-2xl border border-slate-100 shadow-soft overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left">
             <thead>
-              <tr className="bg-slate-50/50 dark:bg-slate-800/50">
+              <tr className="bg-slate-50/50">
                 <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">{t.customers}</th>
                 <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">{t.areas}</th>
                 <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">{t.balance}</th>
                 <th className="px-6 py-4"></th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+            <tbody className="divide-y divide-slate-100">
               {filteredCustomers?.map((customer) => {
                 const area = areas?.find(a => a.id === customer.areaId);
                 const balance = (customer.debit || 0) - (customer.credit || 0);
                 return (
-                  <tr key={customer.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/30 transition-colors cursor-pointer group">
+                  <tr key={customer.id} className="hover:bg-slate-50/80 transition-colors cursor-pointer group">
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
                         {customer.customerPhoto ? (
                           <img 
                             src={customer.customerPhoto} 
                             alt={customer.name} 
-                            className="w-9 h-9 rounded-full object-cover border border-slate-100 dark:border-slate-800"
+                            className="w-9 h-9 rounded-full object-cover border border-slate-100"
                           />
                         ) : customer.shopImage ? (
                           <img 
                             src={customer.shopImage} 
                             alt={customer.shopName} 
-                            className="w-9 h-9 rounded-lg object-cover border border-slate-100 dark:border-slate-800"
+                            className="w-9 h-9 rounded-lg object-cover border border-slate-100"
                           />
                         ) : (
-                          <div className="w-9 h-9 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-lg flex items-center justify-center font-bold font-display text-sm">
+                          <div className="w-9 h-9 bg-indigo-50 text-indigo-600 rounded-lg flex items-center justify-center font-bold font-display text-sm">
                             {customer.name.charAt(0)}
                           </div>
                         )}
                         <div>
-                          <p className={cn("font-bold text-slate-900 dark:text-white leading-tight", redEyeActive && "blur-sm")}>{customer.name} <span className="text-[10px] text-slate-400 font-normal">({customer.shopName || 'No Shop'})</span></p>
-                          <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5 flex items-center">
+                          <p className={cn("font-bold text-slate-900 leading-tight", redEyeActive && "blur-sm")}>{customer.name} <span className="text-[10px] text-slate-400 font-normal">({customer.shopName || 'No Shop'})</span></p>
+                          <p className="text-[11px] text-slate-400 mt-0.5 flex items-center">
                             <Phone className="w-3 h-3 mr-1 opacity-70" /> {customer.phone}
                           </p>
                         </div>
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <span className="inline-flex items-center px-2 py-0.5 bg-slate-100 dark:bg-slate-800 rounded text-[11px] font-bold uppercase tracking-tight text-slate-600 dark:text-slate-400">
+                      <span className="inline-flex items-center px-2 py-0.5 bg-slate-100 rounded text-[11px] font-bold uppercase tracking-tight text-slate-600">
                         <MapPin className="w-3 h-3 mr-1 text-indigo-500 opacity-70" />
                         {area?.name || 'N/A'}
                       </span>
@@ -354,7 +356,7 @@ const Customers = ({ redEyeActive }: { redEyeActive?: boolean }) => {
                     <td className="px-6 py-4">
                       <span className={cn(
                         "px-2 py-0.5 rounded text-[11px] font-bold",
-                        balance > 0 ? "bg-rose-50 text-rose-600 dark:bg-rose-900/30 dark:text-rose-400" : "bg-emerald-50 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400",
+                        balance > 0 ? "bg-rose-50 text-rose-600" : "bg-emerald-50 text-emerald-600",
                         redEyeActive && "blur-sm"
                       )}>
                         {formatCurrency(balance, currency)}
@@ -367,7 +369,7 @@ const Customers = ({ redEyeActive }: { redEyeActive?: boolean }) => {
                           target="_blank"
                           rel="noreferrer"
                           onClick={(e) => e.stopPropagation()}
-                          className="p-2 text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-lg transition-colors"
+                          className="p-2 text-emerald-500 hover:bg-emerald-50 rounded-lg transition-colors"
                           title="Send WhatsApp Reminder"
                         >
                           <MessageCircle className="w-4 h-4" />
@@ -377,7 +379,7 @@ const Customers = ({ redEyeActive }: { redEyeActive?: boolean }) => {
                             e.stopPropagation();
                             openEditModal(customer);
                           }}
-                          className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+                          className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-slate-100 rounded-lg transition-colors"
                           title={t.editCustomer}
                         >
                           <Edit2 className="w-4 h-4" />
@@ -387,7 +389,7 @@ const Customers = ({ redEyeActive }: { redEyeActive?: boolean }) => {
                             e.stopPropagation();
                             setDeleteId(customer.id!);
                           }}
-                          className="p-2 text-slate-400 hover:text-rose-600 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+                          className="p-2 text-slate-400 hover:text-rose-600 hover:bg-slate-100 rounded-lg transition-colors"
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
@@ -396,7 +398,7 @@ const Customers = ({ redEyeActive }: { redEyeActive?: boolean }) => {
                             e.stopPropagation();
                             printCustomerStatement(customer.id!);
                           }}
-                          className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+                          className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-slate-100 rounded-lg transition-colors"
                         >
                           <Printer className="w-4 h-4" />
                         </button>

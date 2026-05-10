@@ -22,15 +22,18 @@ import { db } from '../db/db';
 import { translations } from '../translations';
 import { cn, formatCurrency } from '../lib/utils';
 import { Sale, Language, Theme } from '../types';
+import { markForSync } from '../lib/sync';
 
 import { useSettings } from '../context/SettingsContext';
 import { trackFeatureUsage } from '../lib/analytics';
 
+import SignaturePad from './SignaturePad';
+
 const SalesEntry = ({ editingSale, setEditingSale }: { editingSale?: Sale | null, setEditingSale?: (sale: Sale | null) => void }) => {
-  const { language, theme, currency } = useSettings();
+  const { language, theme, currency, settings } = useSettings();
   const t = translations[language];
   const customers = useLiveQuery(() => db.customers.toArray());
-  const sigPad = useRef<any>(null);
+  const [signature, setSignature] = useState<string | null>(null);
 
   const [formData, setFormData] = useState<Partial<Sale>>({
     date: new Date(),
@@ -119,9 +122,14 @@ const SalesEntry = ({ editingSale, setEditingSale }: { editingSale?: Sale | null
               debit: (customer.debit || 0) - (saleToDelete.type === 'sale' ? (saleToDelete.creditSale || 0) : 0),
               credit: (customer.credit || 0) - (saleToDelete.type === 'payment' ? amountDelta : 0)
             });
+            await markForSync('customers', customer.id!);
           }
         }
         await db.sales.delete(id);
+        // Deletion sync is harder without a 'deleted' flag, 
+        // usually we'd add isDeleted: true instead of actual delete for sync.
+        // For now, we'll just delete locally and the cloud won't know unless we use a tombstone.
+        // I'll skip markForSync for delete for now as our sync logic doesn't handle deletions yet.
       } catch (error) {
         console.error("Failed to delete sale:", error);
       }
@@ -320,12 +328,10 @@ const SalesEntry = ({ editingSale, setEditingSale }: { editingSale?: Sale | null
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (formData.type !== 'direct' && !formData.customerId) {
-      alert(language === 'en' ? 'Please select a customer' : 'অনুগ্রহ করে একজন কাস্টমার নির্বাচন করুন');
+      alert(t.selectCustomer);
       return;
     }
 
-    const signature = sigPad.current?.isEmpty() ? undefined : sigPad.current?.getTrimmedCanvas().toDataURL('image/png');
-    
     // Get customer for balance before update
     let customer = null;
     if (formData.customerId) {
@@ -333,11 +339,11 @@ const SalesEntry = ({ editingSale, setEditingSale }: { editingSale?: Sale | null
     }
     
     const prevBalance = customer ? customer.debit - customer.credit : 0;
-    
+
     const saleData = {
       ...formData,
       date: new Date(formData.date || new Date()),
-      signature
+      signature: signature || undefined
     } as Sale;
 
     if (editingId) {
@@ -350,14 +356,17 @@ const SalesEntry = ({ editingSale, setEditingSale }: { editingSale?: Sale | null
                 debit: (oldCustomer.debit || 0) - (originalSale.type === 'sale' ? (originalSale.creditSale || 0) : 0),
                 credit: (oldCustomer.credit || 0) - (originalSale.type === 'payment' ? oldAmount : 0)
             });
+            await markForSync('customers', oldCustomer.id!);
         }
       }
       await db.sales.update(editingId, saleData);
+      await markForSync('sales', editingId);
       setEditingId(null);
       setOriginalSale(null);
     } else {
       const id = await db.sales.add(saleData);
       saleData.id = id as number;
+      await markForSync('sales', id as number);
     }
 
     // Apply new values to customer totals
@@ -369,6 +378,7 @@ const SalesEntry = ({ editingSale, setEditingSale }: { editingSale?: Sale | null
           debit: (customerForNewValues.debit || 0) + (formData.type === 'sale' ? (formData.creditSale || 0) : 0),
           credit: (customerForNewValues.credit || 0) + (formData.type === 'payment' ? debitIncr : 0)
         });
+        await markForSync('customers', customerForNewValues.id!);
       }
     }
 
@@ -394,7 +404,7 @@ const SalesEntry = ({ editingSale, setEditingSale }: { editingSale?: Sale | null
         billNumber: ''
       });
       setEditingId(null);
-      sigPad.current?.clear();
+      setSignature(null);
     }, 2000);
   };
 
@@ -403,20 +413,20 @@ const SalesEntry = ({ editingSale, setEditingSale }: { editingSale?: Sale | null
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-3xl font-display font-bold tracking-tight">{t.newSale}</h2>
-          <p className="text-slate-500 dark:text-slate-400 mt-1 text-sm">{t.monitorDescription || 'Record daily transactions efficiently'}</p>
+          <p className="text-slate-500 mt-1 text-sm">{t.monitorDescription || 'Record daily transactions efficiently'}</p>
         </div>
       </div>
 
       <form onSubmit={handleSave} className="grid grid-cols-1 md:grid-cols-2 gap-8">
         <div className="space-y-6">
-          <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-5">
-            <div className="grid grid-cols-3 gap-2 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl">
+          <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-soft space-y-5">
+            <div className="grid grid-cols-3 gap-2 p-1 bg-slate-100 rounded-xl">
               <button
                 type="button"
                 onClick={() => setFormData({ ...formData, type: 'sale' })}
                 className={cn(
                   "py-2.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all",
-                  formData.type === 'sale' ? "bg-white dark:bg-slate-700 text-rose-600 shadow-sm" : "text-slate-500"
+                  formData.type === 'sale' ? "bg-white text-rose-600 shadow-sm" : "text-slate-500"
                 )}
               >
                 {t.due}
@@ -426,7 +436,7 @@ const SalesEntry = ({ editingSale, setEditingSale }: { editingSale?: Sale | null
                 onClick={() => setFormData({ ...formData, type: 'direct' })}
                 className={cn(
                   "py-2.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all",
-                  formData.type === 'direct' ? "bg-white dark:bg-slate-700 text-indigo-600 shadow-sm" : "text-slate-500"
+                  formData.type === 'direct' ? "bg-white text-indigo-600 shadow-sm" : "text-slate-500"
                 )}
               >
                 {t.todaySales}
@@ -436,7 +446,7 @@ const SalesEntry = ({ editingSale, setEditingSale }: { editingSale?: Sale | null
                 onClick={() => setFormData({ ...formData, type: 'payment' })}
                 className={cn(
                   "py-2.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all",
-                  formData.type === 'payment' ? "bg-white dark:bg-slate-700 text-emerald-600 shadow-sm" : "text-slate-500"
+                  formData.type === 'payment' ? "bg-white text-emerald-600 shadow-sm" : "text-slate-500"
                 )}
               >
                 {t.collection}
@@ -457,7 +467,7 @@ const SalesEntry = ({ editingSale, setEditingSale }: { editingSale?: Sale | null
                 type="date"
                 value={formData.date instanceof Date && !isNaN(formData.date.getTime()) ? formData.date.toISOString().split('T')[0] : ''}
                 onChange={e => setFormData({...formData, date: new Date(e.target.value)})}
-                className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-800 border-none focus:ring-2 focus:ring-indigo-500 outline-none font-medium text-sm"
+                className="w-full px-4 py-3 rounded-xl bg-slate-50 border-none focus:ring-2 focus:ring-indigo-500 outline-none font-medium text-sm"
               />
             </div>
 
@@ -470,9 +480,9 @@ const SalesEntry = ({ editingSale, setEditingSale }: { editingSale?: Sale | null
                   required
                   value={formData.customerId}
                   onChange={e => setFormData({...formData, customerId: Number(e.target.value)})}
-                  className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-800 border-none focus:ring-2 focus:ring-indigo-500 outline-none font-medium appearance-none text-sm"
+                  className="w-full px-4 py-3 rounded-xl bg-slate-50 border-none focus:ring-2 focus:ring-indigo-500 outline-none font-medium appearance-none text-sm"
                 >
-                  <option value={0}>Select Customer</option>
+                  <option value={0}>{t.selectCustomer}</option>
                   {customers?.map(c => (
                     <option key={c.id} value={c.id}>{c.name}</option>
                   ))}
@@ -490,7 +500,7 @@ const SalesEntry = ({ editingSale, setEditingSale }: { editingSale?: Sale | null
                   type="text"
                   value={formData.receiptNumber}
                   onChange={e => setFormData({...formData, receiptNumber: e.target.value})}
-                  className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-800 border-none focus:ring-2 focus:ring-indigo-500 outline-none font-medium text-sm"
+                  className="w-full px-4 py-3 rounded-xl bg-slate-50 border-none focus:ring-2 focus:ring-indigo-500 outline-none font-medium text-sm"
                   placeholder={t.mrPlaceholder}
                 />
               </div>
@@ -505,7 +515,7 @@ const SalesEntry = ({ editingSale, setEditingSale }: { editingSale?: Sale | null
                     type="text"
                     value={formData.invoiceNumber}
                     onChange={e => setFormData({...formData, invoiceNumber: e.target.value})}
-                    className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-800 border-none focus:ring-2 focus:ring-indigo-500 outline-none font-medium text-sm"
+                    className="w-full px-4 py-3 rounded-xl bg-slate-50 border-none focus:ring-2 focus:ring-indigo-500 outline-none font-medium text-sm"
                     placeholder="INV-..."
                   />
                 </div>
@@ -517,7 +527,7 @@ const SalesEntry = ({ editingSale, setEditingSale }: { editingSale?: Sale | null
                     type="text"
                     value={formData.billNumber}
                     onChange={e => setFormData({...formData, billNumber: e.target.value})}
-                    className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-800 border-none focus:ring-2 focus:ring-indigo-500 outline-none font-medium text-sm"
+                    className="w-full px-4 py-3 rounded-xl bg-slate-50 border-none focus:ring-2 focus:ring-indigo-500 outline-none font-medium text-sm"
                     placeholder="B-..."
                   />
                 </div>
@@ -531,16 +541,16 @@ const SalesEntry = ({ editingSale, setEditingSale }: { editingSale?: Sale | null
               <textarea 
                 value={formData.description}
                 onChange={e => setFormData({...formData, description: e.target.value})}
-                className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-800 border-none focus:ring-2 focus:ring-indigo-500 outline-none font-medium resize-none text-sm"
+                className="w-full px-4 py-3 rounded-xl bg-slate-50 border-none focus:ring-2 focus:ring-indigo-500 outline-none font-medium resize-none text-sm"
                 rows={3}
-                placeholder="Details of the sale..."
+                placeholder={t.detailsPlaceholder || 'Details...'}
               />
             </div>
           </div>
         </div>
 
         <div className="space-y-6">
-          <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-6">
+          <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-soft space-y-6">
             {formData.type !== 'payment' && (
               <div className="space-y-1">
                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none">
@@ -553,7 +563,7 @@ const SalesEntry = ({ editingSale, setEditingSale }: { editingSale?: Sale | null
                     type="number"
                     value={formData.totalAmount || ''}
                     onChange={e => setFormData({...formData, totalAmount: Number(e.target.value)})}
-                    className="w-full pl-12 pr-4 py-3 rounded-xl bg-indigo-50 dark:bg-indigo-900/10 border border-indigo-100 dark:border-indigo-800 focus:ring-2 focus:ring-indigo-500 outline-none font-bold text-lg text-indigo-700 dark:text-indigo-400"
+                    className="w-full pl-12 pr-4 py-3 rounded-xl bg-indigo-50 border border-indigo-100 focus:ring-2 focus:ring-indigo-500 outline-none font-bold text-lg text-indigo-700"
                     placeholder="0.00"
                   />
                 </div>
@@ -569,7 +579,7 @@ const SalesEntry = ({ editingSale, setEditingSale }: { editingSale?: Sale | null
                     type="number"
                     value={formData.cashSale || ''}
                     onChange={e => setFormData({...formData, cashSale: Number(e.target.value)})}
-                    className="w-full pl-12 pr-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-800 border-none focus:ring-2 focus:ring-indigo-500 outline-none font-bold text-lg"
+                    className="w-full pl-12 pr-4 py-3 rounded-xl bg-slate-50 border-none focus:ring-2 focus:ring-indigo-500 outline-none font-bold text-lg"
                   />
                 </div>
               </div>
@@ -581,7 +591,7 @@ const SalesEntry = ({ editingSale, setEditingSale }: { editingSale?: Sale | null
                     type="number"
                     value={formData.chequeSale || ''}
                     onChange={e => setFormData({...formData, chequeSale: Number(e.target.value)})}
-                    className="w-full pl-12 pr-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-800 border-none focus:ring-2 focus:ring-indigo-500 outline-none font-bold text-lg"
+                    className="w-full pl-12 pr-4 py-3 rounded-xl bg-slate-50 border-none focus:ring-2 focus:ring-indigo-500 outline-none font-bold text-lg"
                   />
                 </div>
               </div>
@@ -594,7 +604,7 @@ const SalesEntry = ({ editingSale, setEditingSale }: { editingSale?: Sale | null
                       type="number"
                       value={formData.creditSale || ''}
                       onChange={e => setFormData({...formData, creditSale: Number(e.target.value)})}
-                      className="w-full pl-12 pr-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-800 border-none focus:ring-2 focus:ring-indigo-500 outline-none font-bold text-lg"
+                      className="w-full pl-12 pr-4 py-3 rounded-xl bg-slate-50 border-none focus:ring-2 focus:ring-indigo-500 outline-none font-bold text-lg"
                     />
                   </div>
                 </div>
@@ -602,23 +612,10 @@ const SalesEntry = ({ editingSale, setEditingSale }: { editingSale?: Sale | null
             </div>
 
             <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{t.signature}</label>
-                <button 
-                  type="button" 
-                  onClick={() => sigPad.current?.clear()}
-                  className="text-[10px] flex items-center gap-1 text-rose-500 font-bold uppercase tracking-wider hover:bg-rose-50 dark:hover:bg-rose-900/20 px-2 py-0.5 rounded transition-colors"
-                >
-                  <Eraser className="w-3 h-3" /> {t.clear}
-                </button>
-              </div>
-              <div className="bg-slate-50 dark:bg-slate-800 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-xl overflow-hidden h-32">
-                <SignatureCanvas 
-                  ref={sigPad}
-                  penColor={theme === 'dark' ? '#f1f5f9' : '#0f172a'}
-                  canvasProps={{ className: 'w-full h-full' }} 
-                />
-              </div>
+              <SignaturePad 
+                onSave={(sig) => setSignature(sig)}
+                onClear={() => setSignature(null)}
+              />
             </div>
 
             <button 
@@ -647,9 +644,9 @@ const SalesEntry = ({ editingSale, setEditingSale }: { editingSale?: Sale | null
         </div>
       </form>
 
-      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden mt-12">
-        <div className="p-4 border-b dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-800 bg-opacity-50">
-          <h3 className="font-bold text-sm uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-2">
+      <div className="bg-white rounded-2xl border border-slate-100 shadow-soft overflow-hidden mt-12">
+        <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+          <h3 className="font-bold text-sm uppercase tracking-wider text-slate-700 flex items-center gap-2">
             <TrendingUp className="w-4 h-4 text-indigo-500" />
             {t.todayTransactionHistory}
           </h3>
@@ -658,7 +655,7 @@ const SalesEntry = ({ editingSale, setEditingSale }: { editingSale?: Sale | null
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
-              <tr className="bg-slate-50/50 dark:bg-slate-800/50 text-left">
+              <tr className="bg-slate-50 text-left">
                 <th className="px-6 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">{t.date}</th>
                 <th className="px-6 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">{t.type}</th>
                 <th className="px-6 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">{t.description}</th>
@@ -666,9 +663,9 @@ const SalesEntry = ({ editingSale, setEditingSale }: { editingSale?: Sale | null
                 <th className="px-6 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-right">{t.actions}</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+            <tbody className="divide-y divide-slate-100">
               {dailySalesList?.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map((s) => (
-                <tr key={s.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors group">
+                <tr key={s.id} className="hover:bg-slate-50 transition-colors group">
                   <td className="px-6 py-3.5 text-[11px] text-slate-500 font-medium">{new Date(s.date).toLocaleDateString()}</td>
                   <td className="px-6 py-3.5">
                     <span className={cn(
@@ -680,8 +677,8 @@ const SalesEntry = ({ editingSale, setEditingSale }: { editingSale?: Sale | null
                       {s.type === 'sale' ? t.due : s.type === 'payment' ? t.collection : t.todaySales}
                     </span>
                   </td>
-                  <td className="px-6 py-3.5 text-sm font-medium text-slate-700 dark:text-slate-300 capitalize max-w-[200px] truncate">{s.description || 'No description'}</td>
-                  <td className="px-6 py-3.5 text-sm font-black text-slate-900 dark:text-white">
+                  <td className="px-6 py-3.5 text-sm font-medium text-slate-700 capitalize max-w-[200px] truncate">{s.description || t.noDescription || 'No description'}</td>
+                  <td className="px-6 py-3.5 text-sm font-black text-slate-900">
                     {formatCurrency((s.cashSale || 0) + (s.chequeSale || 0) + (s.creditSale || 0), currency)}
                   </td>
                   <td className="px-6 py-3.5 text-right">
@@ -693,7 +690,7 @@ const SalesEntry = ({ editingSale, setEditingSale }: { editingSale?: Sale | null
                             handlePrintReceipt(s);
                           }}
                           disabled={isPrinting}
-                          className="p-2 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 rounded-xl transition-all active:scale-90"
+                          className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-xl transition-all active:scale-90"
                           title={t.printReceipt}
                         >
                           {isPrinting && printData?.sale.id === s.id ? (
@@ -708,7 +705,7 @@ const SalesEntry = ({ editingSale, setEditingSale }: { editingSale?: Sale | null
                           e.stopPropagation();
                           handleEdit(s);
                         }}
-                        className="p-2 text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded-xl transition-all active:scale-90"
+                        className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all active:scale-90"
                         title={t.edit}
                       >
                         <Edit2 className="w-4 h-4" />
@@ -718,7 +715,7 @@ const SalesEntry = ({ editingSale, setEditingSale }: { editingSale?: Sale | null
                           e.stopPropagation();
                           handleDelete(s.id!);
                         }}
-                        className="p-2 text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded-xl transition-all active:scale-90"
+                        className="p-2 text-rose-600 hover:bg-rose-50 rounded-xl transition-all active:scale-90"
                         title={t.delete}
                       >
                         <Trash2 className="w-4 h-4" />

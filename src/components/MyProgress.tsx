@@ -47,6 +47,7 @@ import autoTable from 'jspdf-autotable';
 import { GoogleGenAI } from "@google/genai";
 import Markdown from 'react-markdown';
 import { translations } from '../translations';
+import { markForSync } from '../lib/sync';
 
 import { useSettings } from '../context/SettingsContext';
 
@@ -196,6 +197,7 @@ const MyProgress = ({ redEyeActive }: { redEyeActive?: boolean }) => {
             creditSale: creditAmount,
             totalAmount: totalAmount
           });
+          await markForSync('sales', editingId.id);
         } else {
           await db.expenses.update(editingId.id, {
             date: new Date(selectedDate),
@@ -203,11 +205,12 @@ const MyProgress = ({ redEyeActive }: { redEyeActive?: boolean }) => {
             category: categoryInput,
             amount: totalAmount
           });
+          await markForSync('expenses', editingId.id);
         }
         setEditingId(null);
       } else {
         if (entryType === 'sale') {
-          await db.sales.add({
+          const id = await db.sales.add({
             date: new Date(selectedDate),
             description: descriptionInput || 'Daily Direct Sale',
             cashSale: cashAmount,
@@ -216,13 +219,15 @@ const MyProgress = ({ redEyeActive }: { redEyeActive?: boolean }) => {
             totalAmount: totalAmount,
             type: 'direct'
           });
+          await markForSync('sales', id as number);
         } else {
-          await db.expenses.add({
+          const id = await db.expenses.add({
             date: new Date(selectedDate),
             description: descriptionInput || 'General Expense',
             category: categoryInput,
             amount: totalAmount
           });
+          await markForSync('expenses', id as number);
         }
       }
       setAmountInput('');
@@ -685,14 +690,14 @@ const MyProgress = ({ redEyeActive }: { redEyeActive?: boolean }) => {
              <div className="absolute -right-6 -bottom-6 w-32 h-32 bg-white/5 rounded-full blur-2xl" />
           </div>
 
-          <div className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-soft">
+          <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-soft">
             <form onSubmit={handleAddEntry} className="space-y-6">
             <div className="space-y-4">
               <input 
                 type="date"
                 value={selectedDate}
                 onChange={(e) => setSelectedDate(e.target.value)}
-                className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border-none rounded-xl font-bold"
+                className="w-full px-4 py-3 bg-slate-50 border-none rounded-xl font-bold"
                 required
               />
               <div className="relative">
@@ -702,7 +707,7 @@ const MyProgress = ({ redEyeActive }: { redEyeActive?: boolean }) => {
                   value={amountInput}
                   onChange={(e) => setAmountInput(e.target.value)}
                   placeholder={language === 'en' ? "Total Sales" : 'মোট বিক্রি'}
-                  className="w-full pl-12 pr-4 py-4 bg-slate-50 dark:bg-slate-800 border-none rounded-2xl font-black text-3xl focus:ring-2 focus:ring-indigo-500"
+                  className="w-full pl-12 pr-4 py-4 bg-slate-50 border-none rounded-2xl font-black text-3xl focus:ring-2 focus:ring-indigo-500"
                   required
                 />
               </div>
@@ -716,7 +721,7 @@ const MyProgress = ({ redEyeActive }: { redEyeActive?: boolean }) => {
                       value={creditInput}
                       onChange={(e) => setCreditInput(e.target.value)}
                       placeholder="0.00"
-                      className="w-full px-4 py-3 bg-rose-50 dark:bg-rose-900/10 border-none rounded-xl font-bold text-rose-600"
+                      className="w-full px-4 py-3 bg-rose-50 border-none rounded-xl font-bold text-rose-600"
                     />
                   </div>
                   <div className="space-y-1">
@@ -726,14 +731,14 @@ const MyProgress = ({ redEyeActive }: { redEyeActive?: boolean }) => {
                       value={chequeInput}
                       onChange={(e) => setChequeInput(e.target.value)}
                       placeholder="0.00"
-                      className="w-full px-4 py-3 bg-indigo-50 dark:bg-indigo-900/10 border-none rounded-xl font-bold text-indigo-600"
+                      className="w-full px-4 py-3 bg-indigo-50 border-none rounded-xl font-bold text-indigo-600"
                     />
                   </div>
                 </div>
               )}
 
               {entryType === 'sale' && amountInput && (
-                <div className="p-4 bg-emerald-50 dark:bg-emerald-900/10 rounded-2xl border border-emerald-100 dark:border-emerald-800/30">
+                <div className="p-4 bg-emerald-50 rounded-2xl border border-emerald-100">
                   <div className="flex justify-between items-center">
                     <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">{language === 'en' ? 'Calculated Cash' : 'হিসাবকৃত নগদ'}</span>
                     <span className="text-sm font-black text-emerald-700">
@@ -748,13 +753,13 @@ const MyProgress = ({ redEyeActive }: { redEyeActive?: boolean }) => {
                 value={descriptionInput}
                 onChange={(e) => setDescriptionInput(e.target.value)}
                 placeholder={language === 'en' ? 'Description' : 'বিবরণ'}
-                className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border-none rounded-xl"
+                className="w-full px-4 py-3 bg-slate-50 border-none rounded-xl"
               />
               {entryType === 'expense' && (
                 <select 
                   value={categoryInput}
                   onChange={(e) => setCategoryInput(e.target.value)}
-                  className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border-none rounded-xl font-bold"
+                  className="w-full px-4 py-3 bg-slate-50 border-none rounded-xl font-bold"
                 >
                   <option>Rent</option>
                   <option>Electricity</option>

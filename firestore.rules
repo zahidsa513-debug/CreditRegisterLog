@@ -9,15 +9,19 @@ service cloud.firestore {
 
     // --- Helpers ---
     function isSignedIn() {
+      return request.auth != null && (request.auth.token.email_verified == true || request.auth.token.firebase.sign_in_provider == 'password');
+    }
+
+    function isBasicAuth() {
       return request.auth != null;
     }
     
     function isOwner(userId) {
-      return isSignedIn() && request.auth.uid == userId;
+      return isBasicAuth() && request.auth.uid == userId;
     }
     
     function isResourceOwner() {
-      return isSignedIn() && resource.data.userId == request.auth.uid;
+      return isBasicAuth() && resource.data.userId == request.auth.uid;
     }
     
     function incoming() {
@@ -29,7 +33,7 @@ service cloud.firestore {
     }
     
     function isValidId(id) {
-      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_-]+$');
+      return id is string && id.size() > 0 && id.size() <= 128;
     }
 
     function isValidTimestamp(val) {
@@ -64,7 +68,8 @@ service cloud.firestore {
     }
 
     function isValidSettings(data) {
-      return data.userId == request.auth.uid;
+      return data.keys().hasAll(['userId', 'companyName', 'email']) 
+        && data.userId == request.auth.uid;
     }
 
     function isValidCheck(data) {
@@ -120,12 +125,9 @@ service cloud.firestore {
     }
 
     match /settings/{settingId} {
-      allow get: if isOwner(settingId) && isValidId(settingId);
-      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
-      allow create: if isOwner(settingId) && isValidId(settingId) && isValidSettings(incoming());
-      allow update: if isOwner(settingId) && isValidId(settingId) && isValidSettings(incoming())
-        && (existing().keys().contains('userId') ? incoming().userId == existing().userId : true);
-      allow delete: if isOwner(settingId) && isValidId(settingId);
+      allow get: if isOwner(settingId);
+      allow create, update: if isOwner(settingId) && isValidSettings(incoming());
+      allow delete: if isOwner(settingId);
     }
 
     match /checks/{checkId} {

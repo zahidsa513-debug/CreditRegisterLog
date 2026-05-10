@@ -59,6 +59,7 @@ interface SettingsContextType {
   theme: Theme;
   currency: string;
   target: number;
+  offlineMode: boolean;
   updateSettings: (newSettings: Partial<CompanySettings>) => Promise<void>;
   isLoaded: boolean;
 }
@@ -72,26 +73,27 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
   const [theme, setTheme] = useState<Theme>('light');
   const [currency, setCurrency] = useState('BDT');
   const [target, setTarget] = useState(260000);
+  const [offlineMode, setOfflineMode] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
 
   // Load from Dexie first (Zero-lag)
   useEffect(() => {
     const loadLocalSettings = async () => {
       let cachedLang: Language | null = null;
-      let cachedTheme: Theme | null = null;
       let cachedCurrency: string | null = null;
+      let cachedTheme: Theme | null = null;
       
       try {
         cachedLang = localStorage.getItem('app_language') as Language;
-        cachedTheme = localStorage.getItem('app_theme') as Theme;
         cachedCurrency = localStorage.getItem('app_currency');
+        cachedTheme = localStorage.getItem('app_theme') as Theme;
       } catch (e) {
         console.warn('LocalStorage blocked or unavailable');
       }
       
       if (cachedLang) setLanguage(cachedLang);
-      if (cachedTheme) setTheme(cachedTheme);
       if (cachedCurrency) setCurrency(cachedCurrency);
+      if (cachedTheme) setTheme(cachedTheme);
 
       const localSettings = await db.settings.toArray();
       if (localSettings.length > 0) {
@@ -99,9 +101,10 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         setSettings(s);
         // Dexie overrides LS if available (LS is just for immediate paint)
         setLanguage(s.language || cachedLang || 'en');
+        setCurrency(s.currency || cachedCurrency || 'SGD');
         setTheme(s.theme || cachedTheme || 'light');
-        setCurrency(s.currency || cachedCurrency || 'BDT');
-        setTarget(s.targetAmount || 260000);
+        setTarget(s.targetAmount || 100000);
+        setOfflineMode(s.offlineMode || false);
       }
       setIsLoaded(true);
     };
@@ -126,15 +129,31 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
             setLanguage(remoteSettings.language);
             try { localStorage.setItem('app_language', remoteSettings.language); } catch(e) {}
           }
-          if (remoteSettings.theme) {
-            setTheme(remoteSettings.theme);
-            try { localStorage.setItem('app_theme', remoteSettings.theme); } catch(e) {}
-          }
           if (remoteSettings.currency) {
             setCurrency(remoteSettings.currency);
             try { localStorage.setItem('app_currency', remoteSettings.currency); } catch(e) {}
           }
-          setTarget(remoteSettings.targetAmount || 260000);
+          if (remoteSettings.theme) {
+            setTheme(remoteSettings.theme);
+            try { localStorage.setItem('app_theme', remoteSettings.theme); } catch(e) {}
+          }
+          setTarget(remoteSettings.targetAmount || 100000);
+          setOfflineMode(remoteSettings.offlineMode || false);
+        } else {
+          // New user or no settings in cloud: initialize with defaults and clear local state
+          setSettings(null);
+          setLanguage('en');
+          setCurrency('BDT');
+          setTheme('light');
+          setTarget(260000);
+          setOfflineMode(false);
+          // Optional: clear Dexie settings to match fresh start
+          await db.settings.clear();
+          try {
+            localStorage.removeItem('app_language');
+            localStorage.removeItem('app_currency');
+            localStorage.removeItem('app_theme');
+          } catch(e) {}
         }
       } catch (error) {
         console.error("Error syncing settings from Firestore:", error);
@@ -145,18 +164,24 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
   }, [user]);
 
   const updateSettings = async (newSettings: Partial<CompanySettings>) => {
+    const defaults: CompanySettings = {
+      companyName: '',
+      email: user?.email || '',
+      phone: '',
+      address: '',
+      language: 'en',
+      theme: 'light',
+      currency: 'BDT',
+      targetAmount: 260000,
+      offlineMode: false,
+      userId: user?.uid || ''
+    };
+
     const updated = {
-      ...(settings || {
-        companyName: '',
-        email: '',
-        phone: '',
-        address: '',
-        language: 'en',
-        theme: 'light',
-        currency: 'BDT',
-        targetAmount: 260000
-      }),
-      ...newSettings
+      ...defaults,
+      ...settings,
+      ...newSettings,
+      userId: user?.uid || '', // Ensure userId is never overwritten
     };
 
     // 1. Update State
@@ -174,6 +199,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
       try { localStorage.setItem('app_currency', newSettings.currency); } catch(e) {}
     }
     if (newSettings.targetAmount !== undefined) setTarget(newSettings.targetAmount);
+    if (newSettings.offlineMode !== undefined) setOfflineMode(newSettings.offlineMode);
 
     // 2. Update Dexie
     await db.settings.clear();
@@ -201,6 +227,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
       theme,
       currency,
       target,
+      offlineMode,
       updateSettings,
       isLoaded
     }}>

@@ -5,6 +5,7 @@ import { db } from '../db/db';
 import { translations } from '../translations';
 import { cn, formatCurrency } from '../lib/utils';
 import { Area, Language } from '../types';
+import { markForSync } from '../lib/sync';
 
 import { useSettings } from '../context/SettingsContext';
 
@@ -18,7 +19,8 @@ const Areas = ({ redEyeActive }: { redEyeActive?: boolean }) => {
   const handleAddArea = async (e: React.FormEvent) => {
     e.preventDefault();
     if (newArea.name && newArea.target) {
-      await db.areas.add(newArea as Area);
+      const id = await db.areas.add(newArea as Area);
+      await markForSync('areas', id as number);
       setNewArea({ name: '', target: 0, color: '#3b82f6' });
       setIsModalOpen(false);
     }
@@ -48,7 +50,7 @@ const Areas = ({ redEyeActive }: { redEyeActive?: boolean }) => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
         {areas?.map((area) => (
-          <div key={area.id} className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 shadow-sm group hover:shadow-md transition-all">
+          <div key={area.id} className="bg-white rounded-2xl border border-slate-100 p-5 shadow-soft group hover:shadow-premium transition-all">
             <div className="flex items-start justify-between">
               <div className="flex items-center gap-3">
                 <div 
@@ -66,12 +68,12 @@ const Areas = ({ redEyeActive }: { redEyeActive?: boolean }) => {
                 </div>
               </div>
               <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                <button className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg text-gray-400 hover:text-blue-600">
+                <button className="p-2 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-indigo-600">
                   <Edit2 className="w-4 h-4" />
                 </button>
                 <button 
                   onClick={() => area.id && deleteArea(area.id)}
-                  className="p-2 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg text-gray-400 hover:text-red-600"
+                  className="p-2 hover:bg-rose-50 rounded-lg text-slate-400 hover:text-rose-600"
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
@@ -79,13 +81,13 @@ const Areas = ({ redEyeActive }: { redEyeActive?: boolean }) => {
             </div>
 
             <div className="mt-8 grid grid-cols-2 gap-4">
-              <div className="p-4 bg-gray-50 dark:bg-gray-800/50 rounded-2xl">
-                <p className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Active Customers</p>
+              <div className="p-4 bg-slate-50 rounded-2xl">
+                <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Active Customers</p>
                 <p className="text-xl font-bold mt-1">128</p>
               </div>
-              <div className="p-4 bg-gray-50 dark:bg-gray-800/50 rounded-2xl">
-                <p className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">MOM Growth</p>
-                <p className="text-xl font-bold mt-1 text-green-600">+14%</p>
+              <div className="p-4 bg-slate-50 rounded-2xl">
+                <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">MOM Growth</p>
+                <p className="text-xl font-bold mt-1 text-emerald-600">+14%</p>
               </div>
             </div>
           </div>
@@ -94,7 +96,7 @@ const Areas = ({ redEyeActive }: { redEyeActive?: boolean }) => {
 
       {isModalOpen && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-          <div className="bg-white dark:bg-gray-900 w-full max-w-md rounded-[2.5rem] p-8 shadow-2xl">
+          <div className="bg-white w-full max-w-md rounded-[2.5rem] p-8 shadow-2xl">
             <h3 className="text-2xl font-display font-bold mb-6">{t.addArea}</h3>
             <form onSubmit={handleAddArea} className="space-y-5">
               <div>
@@ -105,7 +107,7 @@ const Areas = ({ redEyeActive }: { redEyeActive?: boolean }) => {
                   type="text"
                   value={newArea.name}
                   onChange={e => setNewArea({...newArea, name: e.target.value})}
-                  className="w-full px-5 py-3 rounded-2xl bg-gray-50 dark:bg-gray-800 border-none focus:ring-2 focus:ring-blue-500 outline-none"
+                  className="w-full px-5 py-3 rounded-2xl bg-slate-50 border-none focus:ring-2 focus:ring-indigo-500 outline-none"
                   placeholder="e.g. Kapar"
                 />
               </div>
@@ -116,21 +118,21 @@ const Areas = ({ redEyeActive }: { redEyeActive?: boolean }) => {
                   type="number"
                   value={newArea.target || ''}
                   onChange={e => setNewArea({...newArea, target: Number(e.target.value)})}
-                  className="w-full px-5 py-3 rounded-2xl bg-gray-50 dark:bg-gray-800 border-none focus:ring-2 focus:ring-blue-500 outline-none"
+                  className="w-full px-5 py-3 rounded-2xl bg-slate-50 border-none focus:ring-2 focus:ring-indigo-500 outline-none"
                   placeholder="50000"
                 />
               </div>
               <div>
                 <label className="block text-sm font-semibold mb-2">Theme Color</label>
                 <div className="flex gap-3">
-                  {['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'].map(color => (
+                  {['#4741e5', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'].map(color => (
                     <button
                       key={color}
                       type="button"
                       onClick={() => setNewArea({...newArea, color})}
                       className={cn(
                         "w-10 h-10 rounded-xl transition-all",
-                        newArea.color === color ? "ring-4 ring-offset-2 ring-gray-200 dark:ring-gray-700 scale-110" : ""
+                        newArea.color === color ? "ring-4 ring-offset-2 ring-slate-200 scale-110" : ""
                       )}
                       style={{ backgroundColor: color }}
                     />
@@ -141,13 +143,13 @@ const Areas = ({ redEyeActive }: { redEyeActive?: boolean }) => {
                 <button 
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="flex-1 px-6 py-3 rounded-2xl font-semibold bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 transition"
+                  className="flex-1 px-6 py-3 rounded-2xl font-semibold bg-slate-100 hover:bg-slate-200 transition"
                 >
                   {t.cancel}
                 </button>
                 <button 
                   type="submit"
-                  className="flex-1 px-6 py-3 rounded-2xl font-semibold bg-blue-600 text-white hover:bg-blue-700 transition shadow-lg shadow-blue-100"
+                  className="flex-1 px-6 py-3 rounded-2xl font-semibold bg-indigo-600 text-white hover:bg-indigo-700 transition shadow-lg shadow-indigo-100"
                 >
                   {t.save}
                 </button>
