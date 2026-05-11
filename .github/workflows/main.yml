@@ -6,10 +6,6 @@ on:
   pull_request:
     branches: [ main, master ]
 
-permissions:
-  contents: write
-  pull-requests: write
-
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -32,13 +28,25 @@ jobs:
         distribution: 'temurin'
         java-version: '17'
 
-    # ✅ সরাসরি রুট ডিরেক্টরি থেকে বিল্ড রান করা
+    # ✅ এই স্টেপটি gradlew খুঁজে বের করবে এবং বিল্ড করবে
     - name: Build Android APK
       run: |
+        # gradlew ফাইলটি কোথায় আছে তা খোঁজা হচ্ছে
+        GRADLEW_PATH=$(find . -name gradlew | head -n 1)
+        
+        if [ -z "$GRADLEW_PATH" ]; then
+          echo "Error: gradlew file not found! Please ensure your Android project files are pushed to GitHub."
+          exit 1
+        fi
+        
+        # ফাইলটির ডিরেক্টরিতে যাওয়া
+        GRADLEW_DIR=$(dirname "$GRADLEW_PATH")
+        cd "$GRADLEW_DIR"
+        
+        echo "Found gradlew in $GRADLEW_DIR. Starting build..."
         chmod +x gradlew
         ./gradlew assembleDebug
 
-    # ✅ APK আপলোড করা
     - name: Upload APK
       uses: actions/upload-artifact@v4
       with:
