@@ -15,8 +15,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+    # ✅ Checkout source code
     - uses: actions/checkout@v4
 
+    # ✅ Node.js setup
     - name: Set up Node.js
       uses: actions/setup-node@v4
       with:
@@ -32,21 +34,22 @@ jobs:
     - name: Lint
       run: npm run lint
 
-    # ✅ Android SDK সেটআপ
+    # ✅ JDK setup for Android (Java 20)
     - name: Set up JDK
       uses: actions/setup-java@v4
       with:
         distribution: 'temurin'
-        java-version: '17'
+        java-version: '20'
 
-    # ✅ Gradle দিয়ে APK Build
+    # ✅ Build Android APK (adjust path if project is inside android/)
     - name: Build Android APK
-      run: ./gradlew assembleDebug
+      run: |
+        cd android
+        ./gradlew assembleDebug
 
-    # ✅ APK Artifact Upload (Downloadable)
+    # ✅ Upload APK as Artifact (downloadable from Actions tab)
     - name: Upload APK
       uses: actions/upload-artifact@v4
       with:
         name: credit-register-apk
-        path: |
-          app/build/outputs/apk/debug/*.apk
+        path: android/app/build/outputs/apk/debug/*.apk
