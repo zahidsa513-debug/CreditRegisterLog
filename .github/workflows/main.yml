@@ -29,7 +29,7 @@ jobs:
           name: my-app-files
           path: dist/
 
-      # ✅ JDK setup for Android
+      # ✅ JDK setup for Android (Java 20)
       - name: Set up JDK
         uses: actions/setup-java@v4
         with:
@@ -40,7 +40,7 @@ jobs:
       - name: Build Android APK
         run: ./gradlew assembleDebug
 
-      # ✅ Upload APK as Artifact
+      # ✅ Upload APK as Artifact (downloadable from Actions tab)
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
