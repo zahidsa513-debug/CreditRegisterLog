@@ -6,32 +6,54 @@ on:
   pull_request:
     branches: [ main, master ]
 
+permissions:
+  contents: write
+  pull-requests: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
+    # ✅ Checkout source code
     - uses: actions/checkout@v4
 
-    - name: Set up JDK 17
+    # ✅ Node.js setup
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: 20
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm install
+
+    - name: Build
+      run: npm run build --if-present
+
+    - name: Lint
+      run: npm run lint --if-present
+
+    # ✅ JDK setup (Java 17 recommend for Android, but keeping 20 as you used)
+    - name: Set up JDK
       uses: actions/setup-java@v4
       with:
         distribution: 'temurin'
-        java-version: '17'
+        java-version: '17' # Android এর জন্য ১৭ বেশি স্টেবল, তবে ২০ ও কাজ করবে।
 
-    # ✅ অটোমেটিক Gradle ইন্সটল এবং ফাইল তৈরি করা
-    - name: Setup Gradle
-      uses: gradle/actions/setup-gradle@v3
-
+    # ✅ Build Android APK
     - name: Build Android APK
       run: |
-        # যদি gradlew না থাকে তবে এটি নতুন করে তৈরি করবে
-        gradle wrapper
+        # যদি আপনার android ফোল্ডার থাকে তবে নিচের লাইনটি ব্যবহার করুন
+        # যদি না থাকে তবে শুধু chmod +x gradlew এবং ./gradlew লিখুন
+        cd android || cd . 
         chmod +x gradlew
         ./gradlew assembleDebug
 
+    # ✅ Upload APK as Artifact
     - name: Upload APK
       uses: actions/upload-artifact@v4
       with:
         name: credit-register-apk
-        path: "**/build/outputs/apk/debug/*.apk"
+        # আপনার প্রজেক্ট স্ট্রাকচার অনুযায়ী পাথটি চেক করে নিন
+        path: android/app/build/outputs/apk/debug/*.apk
