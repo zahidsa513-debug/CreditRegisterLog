@@ -1,20 +1,38 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# Credit Register - Smart Shop Ledger
 
-# Run and deploy your AI Studio app
+A modern, cloud-synced shop ledger application designed for managing credit sales, collections, and customer relationships. Built with React, Vite, Dexie.js, and Firebase.
 
-This contains everything you need to run your app locally.
+## 🚀 Features
 
-View your app in AI Studio: https://ai.studio/apps/5cdcc599-57b4-42bf-b1db-deef8e7b4816
+- **Offline-First**: Works without internet using IndexedDB (Dexie.js).
+- **Auto-Sync**: Seamlessly synchronizes data to Firebase Cloud Firestore when online.
+- **AI Corner**: Use Gemini-powered insights for business strategy and automated reporting.
+- **Reporting**: Generate professional PDF receipts, Excel exports, and daily sales summaries.
+- **Multi-Currency & Multi-Language**: Built-in support for multiple currencies and languages (English/Bengali).
+- **Secure**: Google Authentication for data privacy and multi-device access.
+- **PWA Ready**: Can be installed on Android/iOS as a native-like application.
 
-## Run Locally
+## 🛠️ Tech Stack
 
-**Prerequisites:**  Node.js
+- **Frontend**: React + TypeScript + Tailwind CSS
+- **Database (Local)**: Dexie.js (IndexedDB)
+- **Database (Cloud)**: Firebase Firestore
+- **Auth**: Firebase Authentication (Google)
+- **AI**: Google Gemini API
+- **Animations**: Framer Motion
 
+## 📦 Installation
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+1. Clone the repository.
+2. Run `npm install` to install dependencies.
+3. Configure your Firebase credentials in `src/lib/firebase.ts`.
+4. Run `npm run dev` for the development server.
+5. Run `npm run build` for production build.
+
+## 📱 Mobile App Experience
+
+Since this is a PWA, you can open it in your mobile browser and select **"Add to Home Screen"** to use it as a native Android or iOS application.
+
+## 📄 License
+
+MIT
