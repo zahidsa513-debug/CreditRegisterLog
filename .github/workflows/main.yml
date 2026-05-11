@@ -34,22 +34,22 @@ jobs:
     - name: Lint
       run: npm run lint
 
-    # ✅ JDK setup for Android (Java 20)
+    # ✅ JDK setup (Java 20)
     - name: Set up JDK
       uses: actions/setup-java@v4
       with:
         distribution: 'temurin'
         java-version: '20'
 
-    # ✅ Build Android APK (adjust path if project is inside android/)
+    # ✅ Build Android APK (adjust path to your project)
     - name: Build Android APK
       run: |
-        cd android
+        cd app
         ./gradlew assembleDebug
 
-    # ✅ Upload APK as Artifact (downloadable from Actions tab)
+    # ✅ Upload APK as Artifact
     - name: Upload APK
       uses: actions/upload-artifact@v4
       with:
         name: credit-register-apk
-        path: android/app/build/outputs/apk/debug/*.apk
+        path: app/build/outputs/apk/debug/*.apk
