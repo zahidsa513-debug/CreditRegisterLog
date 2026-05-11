@@ -27,7 +27,7 @@ const SplashScreen = () => {
           className="text-center"
         >
           <h1 className="text-4xl font-display font-black tracking-tight text-slate-900 mb-2">
-            Credit<span className="text-[#1976D2]">Register</span>
+            Credit<span className="text-[#00C853]">Register</span>
           </h1>
           
           <motion.p 

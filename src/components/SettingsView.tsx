@@ -30,7 +30,7 @@ import {
 } from 'lucide-react';
 import Logo from './Logo';
 import { translations } from '../translations';
-import { cn } from '../lib/utils';
+import { cn, compressImage } from '../lib/utils';
 import { db } from '../db/db';
 import { Area, CompanySettings, Language, Theme, UserProfile } from '../types';
 import { syncToCloud, restoreFromCloud, markForSync } from '../lib/sync';
@@ -207,8 +207,9 @@ const SettingsView = ({
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
-      reader.onloadend = () => {
-        setCompanyForm({ ...companyForm, logo: reader.result as string });
+      reader.onloadend = async () => {
+        const compressed = await compressImage(reader.result as string);
+        setCompanyForm({ ...companyForm, logo: compressed });
       };
       reader.readAsDataURL(file);
     }
@@ -331,8 +332,9 @@ const SettingsView = ({
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
-      reader.onloadend = () => {
-        setProfileForm({ ...profileForm, avatar: reader.result as string });
+      reader.onloadend = async () => {
+        const compressed = await compressImage(reader.result as string);
+        setProfileForm({ ...profileForm, avatar: compressed });
       };
       reader.readAsDataURL(file);
     }

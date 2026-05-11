@@ -22,6 +22,18 @@ export class CreditRegistryDB extends Dexie {
       checks: '++id, checkNumber, dueDate, userId, synced'
     });
   }
+
+  async clearAllData() {
+    await Promise.all([
+      this.areas.clear(),
+      this.customers.clear(),
+      this.sales.clear(),
+      this.expenses.clear(),
+      this.profiles.clear(),
+      this.settings.clear(),
+      this.checks.clear()
+    ]);
+  }
 }
 
 export const db = new CreditRegistryDB();

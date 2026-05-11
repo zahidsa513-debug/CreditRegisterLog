@@ -132,7 +132,7 @@ const AuthScreen = ({ onAuthSuccess }: { onAuthSuccess: () => void }) => {
             <Logo size="xl" className="drop-shadow-lg" />
           </div>
           <h1 className="text-3xl font-display font-black text-slate-900 dark:text-white tracking-tight leading-tight">
-            Credit<span className="text-[#1976D2]">Register</span>
+            Credit<span className="text-[#00C853]">Register</span>
           </h1>
           <p className="text-[#666666] text-sm mt-2 font-medium px-4" style={{ fontFamily: "'Poppins', sans-serif" }}>
             Track Smarter, Grow Faster
@@ -186,7 +186,7 @@ const AuthScreen = ({ onAuthSuccess }: { onAuthSuccess: () => void }) => {
                   value={formData.email}
                   onChange={e => setFormData({...formData, email: e.target.value})}
                   placeholder="name@example.com"
-                  className="w-full pl-11 pr-4 py-3 bg-slate-50 dark:bg-slate-800 rounded-xl border-none focus:ring-2 focus:ring-[#1976D2] outline-none text-sm font-medium"
+                  className="w-full pl-11 pr-4 py-3 bg-slate-50 dark:bg-slate-800 rounded-xl border-none focus:ring-2 focus:ring-[#00C853] outline-none text-sm font-medium"
                 />
               </div>
             </div>
@@ -203,7 +203,7 @@ const AuthScreen = ({ onAuthSuccess }: { onAuthSuccess: () => void }) => {
                         setError(null);
                         setSuccess(null);
                       }}
-                      className="text-[10px] font-bold text-[#1976D2] hover:underline uppercase tracking-widest"
+                      className="text-[10px] font-bold text-[#00C853] hover:underline uppercase tracking-widest"
                     >
                       {t.forgotPassword}
                     </button>
@@ -218,7 +218,7 @@ const AuthScreen = ({ onAuthSuccess }: { onAuthSuccess: () => void }) => {
                     value={formData.password}
                     onChange={e => setFormData({...formData, password: e.target.value})}
                     placeholder="••••••••"
-                    className="w-full pl-11 pr-4 py-3 bg-slate-50 dark:bg-slate-800 rounded-xl border-none focus:ring-2 focus:ring-[#1976D2] outline-none text-sm font-medium"
+                    className="w-full pl-11 pr-4 py-3 bg-slate-50 dark:bg-slate-800 rounded-xl border-none focus:ring-2 focus:ring-[#00C853] outline-none text-sm font-medium"
                   />
                 </div>
               </div>

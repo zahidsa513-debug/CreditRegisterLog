@@ -153,11 +153,11 @@ const App = () => {
     { id: 'customers', icon: Users, label: t.customers },
     { id: 'customerProfile', icon: User, label: t.customerProfile },
     { id: 'sales', icon: PlusCircle, label: t.salesEntry },
-    { id: 'reports', icon: FileText, label: t.reports, adminOnly: true },
-    { id: 'aiCorner', icon: Sparkles, label: t.aiCorner || 'AI Corner', adminOnly: true },
+    { id: 'reports', icon: FileText, label: t.reports },
+    { id: 'aiCorner', icon: Sparkles, label: t.aiCorner || 'AI Corner' },
     { id: 'redeye', icon: Eye, label: t.redEye },
     { id: 'settings', icon: Settings, label: t.settings },
-  ].filter(item => !item.adminOnly || firebaseProfile?.role === 'admin');
+  ].filter((item: any) => !item.adminOnly || firebaseProfile?.role === 'admin');
 
   const handleLogout = async () => {
     await firebaseLogout();
@@ -201,8 +201,8 @@ const App = () => {
       {/* Mobile Header */}
       <header className="lg:hidden flex items-center justify-between p-4 bg-white border-b border-slate-100 sticky top-0 z-40">
         <div className="flex items-center gap-2">
-          <Logo size="sm" className="rounded-lg shadow-md ring-1 ring-slate-100" />
-          <span className="font-display font-bold text-lg text-slate-800">Credit<span className="text-[#1976D2]">Register</span></span>
+          <Logo size="sm" className="shadow-md" />
+          <span className="font-display font-bold text-lg text-slate-800">Credit<span className="text-[#00C853]">Register</span></span>
         </div>
         <div className="flex items-center gap-3">
           <SyncStatus className="hidden sm:flex" />
@@ -233,10 +233,8 @@ const App = () => {
         )}>
           <div className="p-6 hidden lg:flex flex-col gap-1 border-b border-white/5">
             <div className="flex items-center gap-3">
-              <div className="shrink-0 bg-white p-1 rounded-xl shadow-lg">
-                <Logo size="sm" />
-              </div>
-              <h1 className="font-display font-bold text-xl tracking-tight leading-tight">Credit<span className="text-[#1976D2]">Register</span></h1>
+              <Logo size="sm" />
+              <h1 className="font-display font-bold text-xl tracking-tight leading-tight">Credit<span className="text-[#00C853]">Register</span></h1>
             </div>
             <p className="text-[10px] text-slate-500 font-medium tracking-wide">Track Smarter, Grow Faster</p>
           </div>

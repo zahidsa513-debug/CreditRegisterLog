@@ -10,12 +10,14 @@ import {
 import { motion } from 'motion/react';
 import { db } from '../db/db';
 import { translations } from '../translations';
-import { cn, formatCurrency } from '../lib/utils';
+import { cn, formatCurrency, compressImage } from '../lib/utils';
 import { Customer, Language, Sale } from '../types';
 import { getWhatsAppLink } from '../lib/utils';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { markForSync } from '../lib/sync';
 
+import { trackFeatureUsage } from '../lib/analytics';
 import { useSettings } from '../context/SettingsContext';
 
 const CustomerProfile = ({ redEyeActive }: { redEyeActive?: boolean }) => {
@@ -54,9 +56,15 @@ const CustomerProfile = ({ redEyeActive }: { redEyeActive?: boolean }) => {
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (editFormData.id && editFormData.name) {
-      await db.customers.update(editFormData.id, editFormData);
-      setSelectedCustomer({ ...selectedCustomer, ...editFormData } as Customer);
-      setIsEditing(false);
+      try {
+        await db.customers.update(editFormData.id, editFormData);
+        await markForSync('customers', editFormData.id);
+        setSelectedCustomer({ ...selectedCustomer, ...editFormData } as Customer);
+        setIsEditing(false);
+      } catch (error) {
+        console.error("Update failed", error);
+        alert(language === 'en' ? "Failed to update profile" : "প্রোফাইল আপডেট করতে ব্যর্থ হয়েছে");
+      }
     }
   };
 
@@ -81,25 +89,35 @@ const CustomerProfile = ({ redEyeActive }: { redEyeActive?: boolean }) => {
     );
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>, field: 'licensePhoto' | 'shopImage' | 'customerPhoto' | 'documents') => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        if (field === 'licensePhoto') {
-          setEditFormData({ ...editFormData, licensePhoto: reader.result as string });
-        } else if (field === 'shopImage') {
-          setEditFormData({ ...editFormData, shopImage: reader.result as string });
-        } else if (field === 'customerPhoto') {
-          setEditFormData({ ...editFormData, customerPhoto: reader.result as string });
-        } else {
-          setEditFormData({ 
-            ...editFormData, 
-            documents: [...(editFormData.documents || []), reader.result as string] 
-          });
-        }
-      };
-      reader.readAsDataURL(file);
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, field: 'licensePhoto' | 'shopImage' | 'customerPhoto' | 'documents') => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    const processFile = async (file: File) => {
+      return new Promise<string>((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = async () => {
+          const base64 = reader.result as string;
+          const compressed = await compressImage(base64);
+          resolve(compressed);
+        };
+        reader.readAsDataURL(file);
+      });
+    };
+
+    if (field === 'documents') {
+      const newDocs: string[] = [];
+      for (let i = 0; i < files.length; i++) {
+        const compressed = await processFile(files[i]);
+        newDocs.push(compressed);
+      }
+      setEditFormData({ 
+        ...editFormData, 
+        documents: [...(editFormData.documents || []), ...newDocs] 
+      });
+    } else {
+      const compressed = await processFile(files[0]);
+      setEditFormData({ ...editFormData, [field]: compressed });
     }
   };
 
@@ -119,84 +137,221 @@ const CustomerProfile = ({ redEyeActive }: { redEyeActive?: boolean }) => {
     const doc = new jsPDF() as any;
     const companySettingsList = await db.settings.toArray();
     const company = companySettingsList.length > 0 ? companySettingsList[0] : {
-      companyName: 'CREDIT REGISTRY PRO',
+      companyName: 'CREDIT REGISTERPRO',
       phone: '',
       email: '',
       address: '',
-      website: ''
+      website: '',
+      logo: ''
     };
 
     const area = areas?.find(a => String(a.id) === String(customer.areaId));
+    const customerSales = sales?.filter(s => String(s.customerId) === String(customer.id))
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()) || [];
     
-    // Header Pad
-    doc.setFillColor(248, 250, 252);
-    doc.rect(0, 0, 210, 40, 'F');
+    // Page Settings
+    const pageWidth = doc.internal.pageSize.width;
+    const pageHeight = doc.internal.pageSize.height;
     
+    // --- BRANDING COLORS ---
+    const primaryColor: [number, number, number] = [79, 70, 229]; // Indigo-600
+    const secondaryColor: [number, number, number] = [15, 23, 42]; // Slate-900
+    const successColor: [number, number, number] = [16, 185, 129]; // Emerald-500
+    const accentColor: [number, number, number] = [244, 63, 94]; // Rose-500
+
+    // --- HEADER ---
+    doc.setFillColor(...secondaryColor); // Dark Header
+    doc.rect(0, 0, pageWidth, 50, 'F');
+    
+    if (company.logo) {
+      try {
+        doc.addImage(company.logo, 'PNG', 14, 10, 25, 25);
+      } catch (e) {
+        console.error("Logo error", e);
+      }
+    }
+
+    doc.setTextColor(255, 255, 255);
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(22);
-    doc.setTextColor(79, 70, 229);
-    doc.text(company.companyName.toUpperCase(), 14, 15);
-
-    doc.setTextColor(100, 116, 139);
+    doc.text(company.companyName.toUpperCase(), company.logo ? 45 : 14, 22);
+    
     doc.setFontSize(9);
     doc.setFont('helvetica', 'normal');
-    let headerY = 22;
-    if (company.address) {
-      doc.text(company.address, 14, headerY);
-      headerY += 5;
-    }
-    if (company.phone || company.email) {
-      doc.text(`${company.phone ? 'Phone: ' + company.phone : ''} ${company.email ? ' | Email: ' + company.email : ''}`, 14, headerY);
-      headerY += 5;
-    }
-    if (company.website) {
-      doc.text(company.website, 14, headerY);
-    }
+    doc.setTextColor(200, 200, 200);
+    doc.text(company.address || 'Business Logistics & Digital Ledger', company.logo ? 45 : 14, 30);
+    doc.text(`${company.phone ? 'Tel: ' + company.phone : ''} ${company.email ? ' | Email: ' + company.email : ''}`, company.logo ? 45 : 14, 35);
+    if (company.website) doc.text(company.website, company.logo ? 45 : 14, 40);
 
+    doc.setFontSize(16);
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(14);
-    doc.setTextColor(0, 0, 0);
-    doc.text(language === 'en' ? 'Verified Business Profile' : 'যাচাইকৃত ব্যবসায়িক প্রোফাইল', 105, 50, { align: 'center' });
+    doc.setTextColor(255, 255, 255);
+    doc.text(language === 'en' ? 'KYC BUSINESS PROFILE' : 'ব্যবাসায়িক কেওয়াইসি প্রোফাইল', pageWidth - 14, 25, { align: 'right' });
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`CERTIFICATE ID: #CRP-${customer.id}-${new Date().getTime().toString().substr(-6)}`, pageWidth - 14, 32, { align: 'right' });
+    doc.text(`GENERATION DATE: ${new Date().toLocaleString()}`, pageWidth - 14, 37, { align: 'right' });
+
+    // --- CUSTOMER IDENTITY SECTION ---
+    let currentY = 65;
     
-    // Photo section
+    // Profile Picture Box
     if (customer.customerPhoto) {
       try {
-        doc.addImage(customer.customerPhoto, 'JPEG', 150, 55, 40, 40);
+        doc.setDrawColor(230);
+        doc.setLineWidth(0.5);
+        doc.roundedRect(pageWidth - 54, currentY - 5, 40, 40, 3, 3, 'D');
+        doc.addImage(customer.customerPhoto, 'JPEG', pageWidth - 53, currentY - 4, 38, 38);
       } catch (e) {
         console.error("Error adding customer photo:", e);
       }
     }
 
+    doc.setTextColor(...primaryColor);
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.text(language === 'en' ? 'IDENTITY & SHOP INFORMATION' : 'পরিচয় ও দোকানের তথ্য', 14, currentY);
+    
     autoTable(doc, {
-      startY: 60,
-      margin: { right: customer.customerPhoto ? 65 : 14 },
-      head: [[language === 'en' ? 'Field' : 'ধরণ', language === 'en' ? 'Details' : 'বিস্তারিত']],
+      startY: currentY + 5,
+      margin: { right: customer.customerPhoto ? 60 : 14 },
       body: [
-        [language === 'en' ? 'Owner Name' : 'মালিকের নাম', customer.name],
-        [language === 'en' ? 'Shop Name' : 'দোকানের নাম', customer.shopName || 'N/A'],
-        [language === 'en' ? 'Phone' : 'ফোন', customer.phone],
-        [language === 'en' ? 'Area' : 'এলাকা', area?.name || 'N/A'],
-        [language === 'en' ? 'Email' : 'ইমেইল', customer.email || 'N/A'],
-        [language === 'en' ? 'Address' : 'ঠিকানা', customer.address || 'N/A'],
-        [language === 'en' ? 'Current Balance' : 'বর্তমান বকেয়া', formatCurrency((customer.debit || 0) - (customer.credit || 0), currency)],
+        [language === 'en' ? 'Legal Owner Name' : 'মালিকের পূর্ণ নাম', customer.ownerName || customer.name],
+        [language === 'en' ? 'Trade Name / Shop' : 'দোকান বা প্রতিষ্ঠানের নাম', customer.shopName || 'N/A'],
+        [language === 'en' ? 'Contact Number' : 'ফোন নাম্বার', customer.phone],
+        [language === 'en' ? 'Email Address' : 'ইমেইল এড্রেস', customer.email || 'N/A'],
+        [language === 'en' ? 'Assigned Area' : 'নির্ধারিত এলাকা', area?.name || 'N/A'],
+        [language === 'en' ? 'Verified Address' : 'যাচাইকৃত ঠিকানা', customer.address || 'N/A'],
+        [language === 'en' ? 'Coordinates (LAT/LNG)' : 'ভৌগোলিক স্থানাঙ্ক', customer.location ? `${customer.location.lat}, ${customer.location.lng}` : 'N/A'],
       ],
       theme: 'grid',
-      headStyles: { fillColor: [79, 70, 229], textColor: 255 },
-      styles: { fontSize: 10, cellPadding: 5 }
+      styles: { fontSize: 10, cellPadding: 4, lineColor: [230, 230, 230] },
+      columnStyles: { 0: { fontStyle: 'bold', fillColor: [248, 250, 252], cellWidth: 50 } }
     });
 
-    if (customer.shopImage) {
-      const finalY = (doc as any).lastAutoTable.finalY + 10;
-      doc.setFontSize(11);
-      doc.text(language === 'en' ? 'Shop Premises Photo:' : 'দোকানের ছবি:', 14, finalY);
-      try {
-        doc.addImage(customer.shopImage, 'JPEG', 14, finalY + 5, 182, 80);
-      } catch (e) {
-        console.error("Error adding shop image:", e);
+    currentY = (doc as any).lastAutoTable.finalY + 15;
+
+    // --- FINANCIAL SUMMARY ---
+    doc.setTextColor(...primaryColor);
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.text(language === 'en' ? 'FINANCIAL STANDING' : 'আর্থিক অবস্থা', 14, currentY);
+    
+    const balance = (customer.debit || 0) - (customer.credit || 0);
+    autoTable(doc, {
+      startY: currentY + 5,
+      body: [
+        [language === 'en' ? 'TOTAL PURCHASES (DEBIT)' : 'মোট ক্রয় (ডেবিট)', formatCurrency(customer.debit || 0, currency)],
+        [language === 'en' ? 'TOTAL RECEIVED (CREDIT)' : 'মোট পরিশোধ (ক্রেডিট)', formatCurrency(customer.credit || 0, currency)],
+        [language === 'en' ? 'CURRENT OUTSTANDING' : 'বর্তমান বকেয়া', { content: formatCurrency(balance, currency), styles: { fontStyle: 'bold', textColor: balance > 0 ? accentColor : successColor } }],
+      ],
+      theme: 'grid',
+      styles: { fontSize: 11, cellPadding: 6 },
+      columnStyles: { 0: { cellWidth: 70, fillColor: [248, 250, 252], fontStyle: 'bold' } }
+    });
+
+    currentY = (doc as any).lastAutoTable.finalY + 15;
+
+    // --- TRANSACTION HISTORY ---
+    if (customerSales.length > 0) {
+      if (currentY + 40 > pageHeight) { doc.addPage(); currentY = 20; }
+      
+      doc.setTextColor(...primaryColor);
+      doc.setFontSize(14);
+      doc.setFont('helvetica', 'bold');
+      doc.text(language === 'en' ? 'RECENT LEDGER ENTRIES' : 'সাম্প্রতিক লেনদেন সমূহ', 14, currentY);
+      
+      autoTable(doc, {
+        startY: currentY + 5,
+        head: [[
+          language === 'en' ? 'DATE' : 'তারিখ',
+          language === 'en' ? 'REF/DOC #' : 'রেফ নং',
+          language === 'en' ? 'NARRATION' : 'বিবরণ',
+          language === 'en' ? 'ENTRY' : 'ধরণ',
+          language === 'en' ? 'AMOUNT' : 'পরিমাণ'
+        ]],
+        body: customerSales.slice(0, 20).map(s => [
+          new Date(s.date).toLocaleDateString(),
+          s.invoiceNumber || s.receiptNumber || s.billNumber || '-',
+          s.description || 'Verified Batch Entry',
+          s.type === 'sale' ? (language === 'en' ? 'DEBIT' : 'ডেবিট') : (language === 'en' ? 'CREDIT' : 'ক্রেডিট'),
+          formatCurrency(s.totalAmount || ((s.cashSale || 0) + (s.chequeSale || 0) + (s.creditSale || 0)), currency)
+        ]),
+        theme: 'striped',
+        headStyles: { fillColor: secondaryColor, textColor: 255, fontSize: 9 },
+        styles: { fontSize: 8, cellPadding: 3 },
+        columnStyles: { 4: { halign: 'right', fontStyle: 'bold' } }
+      });
+      currentY = (doc as any).lastAutoTable.finalY + 15;
+    }
+
+    // --- ATTACHMENTS & VERIFICATION ---
+    const attachments = [
+      { img: customer.shopImage, label: language === 'en' ? 'SHOP PREMISES PICTURE' : 'দোকানের ছবি' },
+      { img: customer.licensePhoto, label: language === 'en' ? 'GOVERNMENT LICENSE / TRADE ID' : 'ট্রেড লাইসেন্স / পরিচয়পত্র' },
+      ...(customer.documents || []).map((d, index) => ({ img: d, label: `${language === 'en' ? 'SUPPORTING DOCUMENT' : 'সহায়ক দলিল'} #${index + 1}` }))
+    ].filter(a => a.img);
+
+    if (attachments.length > 0) {
+      doc.addPage();
+      currentY = 25;
+      doc.setTextColor(...primaryColor);
+      doc.setFontSize(18);
+      doc.setFont('helvetica', 'bold');
+      doc.text(language === 'en' ? 'DOCUMENTARY EVIDENCE' : 'কাগজপত্র ও প্রমাণাদি', 14, currentY);
+      
+      doc.setDrawColor(...primaryColor);
+      doc.setLineWidth(1);
+      doc.line(14, currentY + 2, 80, currentY + 2);
+      
+      currentY += 15;
+      
+      for (const attachment of attachments) {
+        if (currentY + 110 > pageHeight) {
+          doc.addPage();
+          currentY = 20;
+        }
+        
+        doc.setFontSize(11);
+        doc.setTextColor(...secondaryColor);
+        doc.setFont('helvetica', 'bold');
+        doc.text(attachment.label, 14, currentY);
+        
+        try {
+          if (attachment.img?.startsWith('data:image')) {
+            doc.addImage(attachment.img, 'JPEG', 14, currentY + 5, 182, 95, undefined, 'FAST');
+            currentY += 110;
+          } else {
+            doc.setFont('helvetica', 'italic');
+            doc.text('[Non-Image File or Link Attached]', 14, currentY + 10);
+            currentY += 20;
+          }
+        } catch (e) {
+          console.error("Error adding attachment:", e);
+          currentY += 10;
+        }
       }
     }
 
-    doc.save(`${customer.name}_detailed_profile.pdf`);
+    // --- FINAL FOOTER BARS ---
+    const pageCount = doc.internal.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i);
+      
+      // Footer Line
+      doc.setDrawColor(230);
+      doc.setLineWidth(0.1);
+      doc.line(14, pageHeight - 15, pageWidth - 14, pageHeight - 15);
+      
+      doc.setFontSize(7);
+      doc.setTextColor(150);
+      doc.setFont('helvetica', 'normal');
+      doc.text(`This document is electronically generated and holds a record of the merchant's financial standing as per ${company.companyName} records.`, 14, pageHeight - 11);
+      doc.text(`Page ${i} of ${pageCount} | System Verified | Confidential`, pageWidth - 14, pageHeight - 11, { align: 'right' });
+    }
+
+    doc.save(`${customer.name.replace(/\s+/g, '_')}_Full_Profile.pdf`);
+    trackFeatureUsage('customer_full_profile_print');
   };
 
   const generateLedger = async (customer: Customer) => {

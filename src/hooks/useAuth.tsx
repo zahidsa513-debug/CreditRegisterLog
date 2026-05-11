@@ -91,8 +91,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (user && lastUid !== user.uid) {
         console.warn("User switch or initial login detected, clearing local data for isolation.");
         try {
-          await dexieDb.delete();
-          await dexieDb.open();
+          await dexieDb.clearAllData();
           // Clear immediate UI preferences from LS to start fresh
           localStorage.removeItem('app_language');
           localStorage.removeItem('app_currency');
@@ -180,8 +179,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       // Ensure fresh start for new user
       try {
-        await dexieDb.delete();
-        await dexieDb.open();
+        await dexieDb.clearAllData();
         localStorage.removeItem('app_language');
         localStorage.removeItem('app_currency');
         localStorage.removeItem('app_theme');
@@ -203,7 +201,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         await setDoc(doc(db, 'users', userCredential.user.uid), newProfile);
         setProfile(newProfile);
-      } catch (err) {
+      } catch (err: any) {
+        if (err?.message?.includes('offline') || err?.code === 'unavailable') {
+          console.warn("Profile creation queued locally (offline)");
+          setProfile(newProfile); // Set state anyway so app continues
+          return;
+        }
         handleFirestoreError(err, OperationType.WRITE, path);
       }
     } catch (error) {
@@ -226,8 +229,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await signOut(auth);
       // Clear local data on logout for multi-user security
       try {
-        await dexieDb.delete();
-        await dexieDb.open();
+        await dexieDb.clearAllData();
         localStorage.removeItem('last_auth_uid');
         localStorage.removeItem('app_language');
         localStorage.removeItem('app_currency');

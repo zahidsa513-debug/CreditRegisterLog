@@ -155,7 +155,11 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
             localStorage.removeItem('app_theme');
           } catch(e) {}
         }
-      } catch (error) {
+      } catch (error: any) {
+        if (error?.message?.includes('offline') || error?.code === 'unavailable') {
+          console.warn("Firestore sync skipped: client is offline");
+          return;
+        }
         console.error("Error syncing settings from Firestore:", error);
         handleFirestoreError(error, OperationType.GET, `settings/${user.uid}`);
       }
@@ -213,7 +217,11 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
           userId: user.uid,
           updatedAt: serverTimestamp()
         });
-      } catch (error) {
+      } catch (error: any) {
+        if (error?.message?.includes('offline') || error?.code === 'unavailable') {
+          console.warn("Settings update queued locally (offline)");
+          return;
+        }
         console.error("Error saving settings to Firestore:", error);
         handleFirestoreError(error, OperationType.WRITE, `settings/${user.uid}`);
       }

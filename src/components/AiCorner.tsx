@@ -178,14 +178,14 @@ const AiCorner = ({ redEyeActive }: { redEyeActive?: boolean }) => {
       const monthName = new Date(analysisYear, analysisMonth).toLocaleString(language === 'bn' ? 'bn-BD' : 'en-US', { month: 'long' });
       
       const statsSummary = `
-        Business Stats for ${monthName} ${analysisYear}:
+        Business Stats for ${monthName} ${analysisYear} - Credit Register Project:
         - Total Sales: ${monthlyReportData.totalSales}
         - Cash Collections: ${monthlyReportData.totalCash}
         - Credit Issued: ${monthlyReportData.totalCredit}
         - Cheque Sales: ${monthlyReportData.totalCheque}
       `;
 
-      const prompt = `Analyze these business stats and provide a professional meeting script & strategic advice in ${language === 'en' ? 'English' : 'Bengali'}. Use Markdown formatting: ${statsSummary}`;
+      const prompt = `You are a strategic business advisor for "Credit Register", a credit sales and collection management application. Analyze these business stats and provide a professional meeting script & strategic advice for the salesperson in ${language === 'en' ? 'English' : 'Bengali'}. focus on improving collection efficiency and identifying growth opportunities. Use Markdown formatting: ${statsSummary}`;
 
       const response = await ai.models.generateContent({
         model: "gemini-3-flash-preview",

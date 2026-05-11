@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 import { db } from '../db/db';
 import { translations } from '../translations';
-import { cn, formatCurrency, getWhatsAppLink } from '../lib/utils';
+import { cn, formatCurrency, getWhatsAppLink, compressImage } from '../lib/utils';
 import { Customer, Sale, Language } from '../types';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -65,7 +65,12 @@ const Customers = ({ redEyeActive }: { redEyeActive?: boolean }) => {
 
   const handleAddCustomer = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (newCustomer.name && newCustomer.areaId) {
+    if (!newCustomer.name || !newCustomer.areaId || newCustomer.areaId === 0) {
+      alert(language === 'en' ? "Please provide both Name and Area" : "দয়া করে নাম এবং এলাকা উভয়ই প্রদান করুন");
+      return;
+    }
+
+    try {
       if (editingCustomer) {
         await db.customers.update(editingCustomer.id!, newCustomer);
         await markForSync('customers', editingCustomer.id!);
@@ -76,6 +81,9 @@ const Customers = ({ redEyeActive }: { redEyeActive?: boolean }) => {
       setNewCustomer(initialCustomerState);
       setEditingCustomer(null);
       setIsModalOpen(false);
+    } catch (error) {
+      console.error("Save failed", error);
+      alert(language === 'en' ? "Failed to save customer data" : "কাস্টমার ডাটা সেভ করতে ব্যর্থ হয়েছে");
     }
   };
 
@@ -106,25 +114,35 @@ const Customers = ({ redEyeActive }: { redEyeActive?: boolean }) => {
     );
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>, field: 'licensePhoto' | 'shopImage' | 'customerPhoto' | 'documents') => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        if (field === 'licensePhoto') {
-          setNewCustomer({ ...newCustomer, licensePhoto: reader.result as string });
-        } else if (field === 'shopImage') {
-          setNewCustomer({ ...newCustomer, shopImage: reader.result as string });
-        } else if (field === 'customerPhoto') {
-          setNewCustomer({ ...newCustomer, customerPhoto: reader.result as string });
-        } else {
-          setNewCustomer({ 
-            ...newCustomer, 
-            documents: [...(newCustomer.documents || []), reader.result as string] 
-          });
-        }
-      };
-      reader.readAsDataURL(file);
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, field: 'licensePhoto' | 'shopImage' | 'customerPhoto' | 'documents') => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    const processFile = async (file: File) => {
+      return new Promise<string>((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = async () => {
+          const base64 = reader.result as string;
+          const compressed = await compressImage(base64);
+          resolve(compressed);
+        };
+        reader.readAsDataURL(file);
+      });
+    };
+
+    if (field === 'documents') {
+      const newDocs: string[] = [];
+      for (let i = 0; i < files.length; i++) {
+        const compressed = await processFile(files[i]);
+        newDocs.push(compressed);
+      }
+      setNewCustomer({ 
+        ...newCustomer, 
+        documents: [...(newCustomer.documents || []), ...newDocs] 
+      });
+    } else {
+      const compressed = await processFile(files[0]);
+      setNewCustomer({ ...newCustomer, [field]: compressed });
     }
   };
 

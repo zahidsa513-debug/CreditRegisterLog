@@ -9,7 +9,7 @@ service cloud.firestore {
 
     // --- Helpers ---
     function isSignedIn() {
-      return request.auth != null && (request.auth.token.email_verified == true || request.auth.token.firebase.sign_in_provider == 'password');
+      return request.auth != null;
     }
 
     function isBasicAuth() {
@@ -20,8 +20,11 @@ service cloud.firestore {
       return isBasicAuth() && request.auth.uid == userId;
     }
     
-    function isResourceOwner() {
-      return isBasicAuth() && resource.data.userId == request.auth.uid;
+    function isResourceOwner(id) {
+      return isBasicAuth() && (
+        (resource != null && 'userId' in resource.data && resource.data.userId == request.auth.uid) || 
+        (id is string && id.startsWith(request.auth.uid + '_'))
+      );
     }
     
     function incoming() {
@@ -43,51 +46,35 @@ service cloud.firestore {
     // --- Entity Validations ---
 
     function isValidArea(data) {
-      return data.keys().hasAll(['name', 'target', 'color', 'userId']) 
-        && data.name is string && data.name.size() > 0 && data.name.size() <= 100
-        && data.target is number && data.target >= 0
-        && data.color is string && data.color.size() <= 20
-        && data.userId == request.auth.uid;
+      return data.userId == request.auth.uid && 'name' in data;
     }
 
     function isValidCustomer(data) {
-      return data.keys().hasAll(['name', 'phone', 'areaId', 'userId'])
-        && data.name is string && data.name.size() > 0 && data.name.size() <= 100
-        && data.phone is string && data.phone.size() >= 5 && data.phone.size() <= 20
-        && data.areaId is string && data.userId == request.auth.uid;
+      return data.userId == request.auth.uid && 'name' in data;
     }
 
     function isValidSale(data) {
-      return data.keys().hasAll(['date', 'type', 'userId'])
-        && isValidTimestamp(data.date)
-        && data.type in ['sale', 'payment', 'direct']
-        && (data.keys().hasAny(['cashSale']) ? data.cashSale is number : true)
-        && (data.keys().hasAny(['chequeSale']) ? data.chequeSale is number : true)
-        && (data.keys().hasAny(['creditSale']) ? data.creditSale is number : true)
-        && data.userId == request.auth.uid;
+      return data.userId == request.auth.uid && 'type' in data;
+    }
+
+    function isValidExpense(data) {
+      return data.userId == request.auth.uid && 'amount' in data;
     }
 
     function isValidSettings(data) {
-      return data.keys().hasAll(['userId', 'companyName', 'email']) 
-        && data.userId == request.auth.uid;
+      return data.userId == request.auth.uid;
     }
 
     function isValidCheck(data) {
-      return data.keys().hasAll(['checkNumber', 'bankName', 'amount', 'dueDate', 'userId'])
-        && data.checkNumber is string && data.checkNumber.size() > 0
-        && data.bankName is string && data.bankName.size() > 0
-        && data.amount is number && data.amount >= 0
-        && isValidTimestamp(data.dueDate)
-        && data.userId == request.auth.uid
-        && (!data.keys().contains('customerName') || data.customerName is string)
-        && (!data.keys().contains('imageUrl') || data.imageUrl is string);
+      return data.userId == request.auth.uid && 'amount' in data;
+    }
+
+    function isValidProfile(data) {
+      return data.uid == request.auth.uid && 'email' in data;
     }
 
     function isValidFeedback(data) {
-      return data.keys().hasAll(['message', 'userId', 'createdAt'])
-        && data.message is string && data.message.size() > 0 && data.message.size() <= 2000
-        && data.userId == request.auth.uid
-        && isValidTimestamp(data.createdAt);
+      return data.userId == request.auth.uid && 'message' in data;
     }
 
     // --- Match Blocks ---
@@ -97,31 +84,34 @@ service cloud.firestore {
       allow create, update: if isOwner(userId) && incoming().email == request.auth.token.email;
     }
 
+    match /profiles/{profileId} {
+      allow get, list: if isSignedIn() && (resource == null || resource.data.uid == request.auth.uid || profileId.startsWith(request.auth.uid + '_'));
+      allow create, update: if isSignedIn() && isValidId(profileId) && isValidProfile(incoming());
+      allow delete: if isSignedIn() && (resource.data.uid == request.auth.uid || profileId.startsWith(request.auth.uid + '_'));
+    }
+
     match /areas/{areaId} {
-      allow get: if isSignedIn() && isResourceOwner();
-      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
-      allow create: if isSignedIn() && isValidId(areaId) && isValidArea(incoming());
-      allow update: if isSignedIn() && isResourceOwner() && isValidArea(incoming())
-        && incoming().userId == existing().userId;
-      allow delete: if isSignedIn() && isResourceOwner();
+      allow get, list: if isSignedIn() && (resource == null || resource.data.userId == request.auth.uid || areaId.startsWith(request.auth.uid + '_'));
+      allow create, update: if isSignedIn() && isValidId(areaId) && isValidArea(incoming());
+      allow delete: if isSignedIn() && isResourceOwner(areaId);
     }
 
     match /customers/{customerId} {
-      allow get: if isSignedIn() && isResourceOwner();
-      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
-      allow create: if isSignedIn() && isValidId(customerId) && isValidCustomer(incoming());
-      allow update: if isSignedIn() && isResourceOwner() && isValidCustomer(incoming())
-        && incoming().userId == existing().userId;
-      allow delete: if isSignedIn() && isResourceOwner();
+      allow get, list: if isSignedIn() && (resource == null || resource.data.userId == request.auth.uid || customerId.startsWith(request.auth.uid + '_'));
+      allow create, update: if isSignedIn() && isValidId(customerId) && isValidCustomer(incoming());
+      allow delete: if isSignedIn() && isResourceOwner(customerId);
     }
 
     match /sales/{saleId} {
-      allow get: if isSignedIn() && isResourceOwner();
-      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
-      allow create: if isSignedIn() && isValidId(saleId) && isValidSale(incoming());
-      allow update: if isSignedIn() && isResourceOwner() && isValidSale(incoming())
-        && incoming().userId == existing().userId;
-      allow delete: if isSignedIn() && isResourceOwner();
+      allow get, list: if isSignedIn() && (resource == null || resource.data.userId == request.auth.uid || saleId.startsWith(request.auth.uid + '_'));
+      allow create, update: if isSignedIn() && isValidId(saleId) && isValidSale(incoming());
+      allow delete: if isSignedIn() && isResourceOwner(saleId);
+    }
+
+    match /expenses/{expenseId} {
+      allow get, list: if isSignedIn() && (resource == null || resource.data.userId == request.auth.uid || expenseId.startsWith(request.auth.uid + '_'));
+      allow create, update: if isSignedIn() && isValidId(expenseId) && isValidExpense(incoming());
+      allow delete: if isSignedIn() && isResourceOwner(expenseId);
     }
 
     match /settings/{settingId} {
@@ -131,17 +121,14 @@ service cloud.firestore {
     }
 
     match /checks/{checkId} {
-      allow get: if isSignedIn() && isResourceOwner();
-      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
-      allow create: if isSignedIn() && isValidId(checkId) && isValidCheck(incoming());
-      allow update: if isSignedIn() && isResourceOwner() && isValidCheck(incoming())
-        && incoming().userId == existing().userId;
-      allow delete: if isSignedIn() && isResourceOwner();
+      allow get, list: if isSignedIn() && (resource == null || resource.data.userId == request.auth.uid || checkId.startsWith(request.auth.uid + '_'));
+      allow create, update: if isSignedIn() && isValidId(checkId) && isValidCheck(incoming());
+      allow delete: if isSignedIn() && isResourceOwner(checkId);
     }
 
     match /feedback/{feedbackId} {
       allow create: if isSignedIn() && isValidId(feedbackId) && isValidFeedback(incoming());
-      allow get, list: if isSignedIn() && isResourceOwner();
+      allow get, list: if isSignedIn() && (resource == null || resource.data.userId == request.auth.uid || feedbackId.startsWith(request.auth.uid + '_'));
     }
   }
 }
