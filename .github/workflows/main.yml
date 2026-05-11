@@ -26,13 +26,19 @@ jobs:
           name: my-app-files
           path: dist/
 
-      # ✅ Convert PWA build into APK using bubblewrap
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '20'
+
       - name: Install Bubblewrap
         run: npm install -g @bubblewrap/cli
 
+      # ✅ Non-interactive Bubblewrap init
       - name: Generate APK from PWA
         run: |
-          bubblewrap init --manifest dist/manifest.json
+          bubblewrap init --manifest dist/manifest.json --no-input
           bubblewrap build
 
       - name: Upload APK
