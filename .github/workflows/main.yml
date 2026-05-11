@@ -1,17 +1,16 @@
-name: Generate Build Files
+name: Combined Build Workflow
 
 on:
   push:
     branches: [ main, master ]
 
 jobs:
-  build:
+  # ✅ Web/PWA build job
+  web-build:
     runs-on: ubuntu-latest
     steps:
-      # ✅ Checkout source code
       - uses: actions/checkout@v4
 
-      # ✅ Node.js setup (for web build if needed)
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
@@ -22,27 +21,29 @@ jobs:
           npm install
           npm run build
 
-      # ✅ Upload web build files (optional)
       - name: Upload Web Build
         uses: actions/upload-artifact@v4
         with:
-          name: my-app-files
+          name: web-build-files
           path: dist/
 
-      # ✅ JDK setup for Android (Java 20)
+  # ✅ Android APK build job
+  android-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
       - name: Set up JDK
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '20'
 
-      # ✅ Build Android APK (Gradle wrapper required)
       - name: Build Android APK
         run: ./gradlew assembleDebug
 
-      # ✅ Upload APK as Artifact
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: credit-register-apk
+          name: android-apk
           path: app/build/outputs/apk/debug/*.apk
