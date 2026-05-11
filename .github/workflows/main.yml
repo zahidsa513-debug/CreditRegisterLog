@@ -15,10 +15,8 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    # ✅ Checkout source code
     - uses: actions/checkout@v4
 
-    # ✅ Node.js setup
     - name: Set up Node.js
       uses: actions/setup-node@v4
       with:
@@ -28,28 +26,21 @@ jobs:
     - name: Install dependencies
       run: npm install
 
-    - name: Build
-      run: npm run build --if-present
-
-    # ✅ JDK setup (Java 17 is most compatible for modern Android)
-    - name: Set up JDK
+    - name: Set up JDK 17
       uses: actions/setup-java@v4
       with:
         distribution: 'temurin'
         java-version: '17'
 
-    # ✅ Build Android APK
+    # ✅ সরাসরি রুট ডিরেক্টরি থেকে বিল্ড রান করা
     - name: Build Android APK
       run: |
-        # আপনার রিপোজিটরিতে 'app' নামে ফোল্ডার আছে
-        cd app
         chmod +x gradlew
         ./gradlew assembleDebug
 
-    # ✅ Upload APK as Artifact
+    # ✅ APK আপলোড করা
     - name: Upload APK
       uses: actions/upload-artifact@v4
       with:
         name: credit-register-apk
-        # APK জেনারেট হওয়ার পর এই পাথে পাওয়া যাবে
-        path: app/app/build/outputs/apk/debug/*.apk
+        path: "**/build/outputs/apk/debug/*.apk"
