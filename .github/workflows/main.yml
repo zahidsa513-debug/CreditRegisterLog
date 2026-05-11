@@ -6,19 +6,13 @@ on:
   pull_request:
     branches: [ main, master ]
 
-permissions:
-  contents: write
-  pull-requests: write
-
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-    # ✅ Checkout source code
     - uses: actions/checkout@v4
 
-    # ✅ Node.js setup
     - name: Set up Node.js
       uses: actions/setup-node@v4
       with:
@@ -28,38 +22,33 @@ jobs:
     - name: Install dependencies
       run: npm install
 
-    - name: Build
-      run: npm run build --if-present
+    # ✅ Expo প্রজেক্ট হলে android ফোল্ডার জেনারেট করা
+    - name: Prebuild Android (If Expo)
+      run: npx expo prebuild --platform android --no-install || echo "Not an expo project, skipping prebuild"
 
-    # ✅ JDK setup
-    - name: Set up JDK
+    - name: Set up JDK 17
       uses: actions/setup-java@v4
       with:
         distribution: 'temurin'
         java-version: '17'
 
-    # ✅ Build Android APK (Auto-detecting directory)
     - name: Build Android APK
       run: |
-        # gradlew ফাইলটি কোথায় আছে তা খুঁজে বের করে সেখানে যাওয়া
-        GRADLEW_PATH=$(find . -name gradlew)
-        if [ -z "$GRADLEW_PATH" ]; then
-          echo "Error: gradlew file not found anywhere in the repository!"
+        # অ্যান্ড্রয়েড ফোল্ডারে ঢোকার চেষ্টা করা
+        if [ -d "android" ]; then
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleDebug
+        elif [ -f "gradlew" ]; then
+          chmod +x gradlew
+          ./gradlew assembleDebug
+        else
+          echo "Error: Could not find android folder or gradlew file. Please check your project structure."
           exit 1
         fi
-        
-        # gradlew যে ফোল্ডারে আছে সেই ডিরেক্টরিতে যাওয়া
-        GRADLEW_DIR=$(dirname "$GRADLEW_PATH")
-        cd "$GRADLEW_DIR"
-        
-        echo "Found gradlew in $GRADLEW_DIR, starting build..."
-        chmod +x gradlew
-        ./gradlew assembleDebug
 
-    # ✅ Upload APK as Artifact
     - name: Upload APK
       uses: actions/upload-artifact@v4
       with:
         name: credit-register-apk
-        # এটি সব জায়গায় খুঁজে যেখানেই .apk ফাইল তৈরি হয়েছে তা আপলোড করবে
-        path: "**/build/outputs/apk/debug/*.apk"
+        path: "**/*.apk"
