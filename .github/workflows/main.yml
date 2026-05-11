@@ -8,8 +8,10 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
+      # ✅ Checkout source code
       - uses: actions/checkout@v4
 
+      # ✅ Node.js setup (for web build if needed)
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
@@ -20,9 +22,29 @@ jobs:
           npm install
           npm run build
 
-      # ✅ এটি আপনার বিল্ড করা ফাইলগুলো সেভ করবে
+      # ✅ Upload web build files (optional)
       - name: Upload Web Build
         uses: actions/upload-artifact@v4
         with:
           name: my-app-files
           path: dist/
+
+      # ✅ JDK setup for Android
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '20'
+
+      # ✅ Build Android APK (adjust path if project is inside app/ or android/)
+      - name: Build Android APK
+        run: |
+          cd app
+          ./gradlew assembleDebug
+
+      # ✅ Upload APK as Artifact (downloadable from Actions tab)
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: credit-register-apk
+          path: app/build/outputs/apk/debug/*.apk
