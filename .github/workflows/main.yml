@@ -1,4 +1,4 @@
-name: CI/CD Build
+name: Node.js CI Build
 
 on:
   push:
@@ -11,31 +11,34 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+    # ✅ কোড চেকআউট করা
     - uses: actions/checkout@v4
 
+    # ✅ Node.js সেটআপ করা
     - name: Set up Node.js
       uses: actions/setup-node@v4
       with:
         node-version: 20
         cache: 'npm'
 
+    # ✅ ডিপেন্ডেন্সি ইন্সটল করা
     - name: Install dependencies
       run: npm install
 
-    - name: Set up JDK 17
-      uses: actions/setup-java@v4
-      with:
-        distribution: 'temurin'
-        java-version: '17'
+    # ✅ প্রোজেক্ট বিল্ড করা (যদি আপনার package.json-এ build স্ক্রিপ্ট থাকে)
+    - name: Build Project
+      run: npm run build --if-present
 
-    - name: Build Android APK
-      run: |
-        cd android
-        chmod +x gradlew
-        ./gradlew assembleDebug
+    # ✅ লিন্ট বা টেস্ট রান করা
+    - name: Run Lint
+      run: npm run lint --if-present
 
-    - name: Upload APK
+    # ✅ বিল্ড করা ফাইলগুলো সেভ করা (যেমন: dist বা build ফোল্ডার)
+    - name: Upload Build Artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: credit-register-apk
-        path: android/app/build/outputs/apk/debug/*.apk
+        name: web-build-files
+        path: |
+          dist/
+          build/
+          public/
