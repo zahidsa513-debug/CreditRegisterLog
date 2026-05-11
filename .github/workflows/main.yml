@@ -22,10 +22,6 @@ jobs:
     - name: Install dependencies
       run: npm install
 
-    # ✅ Expo প্রজেক্ট হলে android ফোল্ডার জেনারেট করা
-    - name: Prebuild Android (If Expo)
-      run: npx expo prebuild --platform android --no-install || echo "Not an expo project, skipping prebuild"
-
     - name: Set up JDK 17
       uses: actions/setup-java@v4
       with:
@@ -34,21 +30,12 @@ jobs:
 
     - name: Build Android APK
       run: |
-        # অ্যান্ড্রয়েড ফোল্ডারে ঢোকার চেষ্টা করা
-        if [ -d "android" ]; then
-          cd android
-          chmod +x gradlew
-          ./gradlew assembleDebug
-        elif [ -f "gradlew" ]; then
-          chmod +x gradlew
-          ./gradlew assembleDebug
-        else
-          echo "Error: Could not find android folder or gradlew file. Please check your project structure."
-          exit 1
-        fi
+        cd android
+        chmod +x gradlew
+        ./gradlew assembleDebug
 
     - name: Upload APK
       uses: actions/upload-artifact@v4
       with:
         name: credit-register-apk
-        path: "**/*.apk"
+        path: android/app/build/outputs/apk/debug/*.apk
