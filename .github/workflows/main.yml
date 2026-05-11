@@ -1,4 +1,4 @@
-name: Node.js CI Build
+name: CI/CD Build
 
 on:
   push:
@@ -6,39 +6,50 @@ on:
   pull_request:
     branches: [ main, master ]
 
+permissions:
+  contents: write
+  pull-requests: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-    # ✅ কোড চেকআউট করা
+    # ✅ Checkout source code
     - uses: actions/checkout@v4
 
-    # ✅ Node.js সেটআপ করা
+    # ✅ Node.js setup
     - name: Set up Node.js
       uses: actions/setup-node@v4
       with:
         node-version: 20
         cache: 'npm'
 
-    # ✅ ডিপেন্ডেন্সি ইন্সটল করা
     - name: Install dependencies
       run: npm install
 
-    # ✅ প্রোজেক্ট বিল্ড করা (যদি আপনার package.json-এ build স্ক্রিপ্ট থাকে)
-    - name: Build Project
+    - name: Build
       run: npm run build --if-present
 
-    # ✅ লিন্ট বা টেস্ট রান করা
-    - name: Run Lint
-      run: npm run lint --if-present
+    # ✅ JDK setup (Java 17 is most compatible for modern Android)
+    - name: Set up JDK
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: '17'
 
-    # ✅ বিল্ড করা ফাইলগুলো সেভ করা (যেমন: dist বা build ফোল্ডার)
-    - name: Upload Build Artifacts
+    # ✅ Build Android APK
+    - name: Build Android APK
+      run: |
+        # আপনার রিপোজিটরিতে 'app' নামে ফোল্ডার আছে
+        cd app
+        chmod +x gradlew
+        ./gradlew assembleDebug
+
+    # ✅ Upload APK as Artifact
+    - name: Upload APK
       uses: actions/upload-artifact@v4
       with:
-        name: web-build-files
-        path: |
-          dist/
-          build/
-          public/
+        name: credit-register-apk
+        # APK জেনারেট হওয়ার পর এই পাথে পাওয়া যাবে
+        path: app/app/build/outputs/apk/debug/*.apk
