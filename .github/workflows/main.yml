@@ -27,10 +27,10 @@ jobs:
           name: web-build-files
           path: dist/
 
-  # ✅ Android APK build job
+  # ✅ Android Debug APK build job
   android-build:
     runs-on: ubuntu-latest
-    needs: web-build   # web build শেষ হলে APK build শুরু হবে
+    needs: web-build
     steps:
       - uses: actions/checkout@v4
 
@@ -40,12 +40,33 @@ jobs:
           distribution: 'temurin'
           java-version: '20'
 
-      # ⚠️ Gradle wrapper দরকার
       - name: Build Android APK
         run: ./gradlew assembleDebug
 
-      - name: Upload APK
+      - name: Upload Debug APK
         uses: actions/upload-artifact@v4
         with:
-          name: android-apk
+          name: android-debug-apk
           path: app/build/outputs/apk/debug/*.apk
+
+  # ✅ Android Release APK build job (Play Store ready)
+  release-apk:
+    runs-on: ubuntu-latest
+    needs: android-build
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '20'
+
+      - name: Build Signed Release APK
+        run: ./gradlew assembleRelease
+
+      - name: Upload Release APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-release-apk
+          path: app/build/outputs/apk/release/*.apk
