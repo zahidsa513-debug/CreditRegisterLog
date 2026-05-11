@@ -1,49 +1,33 @@
-name: Combined Build Workflow
+name: CI/CD Build
 
 on:
   push:
     branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+permissions:
+  contents: write
+  pull-requests: write
 
 jobs:
-  # ✅ Web/PWA build job
-  web-build:
+  build:
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v4
+    - uses: actions/checkout@v4
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: 20
+        cache: 'npm'
 
-      - name: Install and Build
-        run: |
-          npm install
-          npm run build
+    - name: Install dependencies
+      run: npm install
 
-      - name: Upload Web Build
-        uses: actions/upload-artifact@v4
-        with:
-          name: web-build-files
-          path: dist/
+    - name: Build
+      run: npm run build
 
-  # ✅ Android APK build job
-  android-build:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up JDK
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'temurin'
-          java-version: '20'
-
-      - name: Build Android APK
-        run: ./gradlew assembleDebug
-
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: android-apk
-          path: app/build/outputs/apk/debug/*.apk
+    - name: Lint
+      run: npm run lint

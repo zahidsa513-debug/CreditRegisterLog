@@ -33,6 +33,14 @@ A modern, cloud-synced shop ledger application designed for managing credit sale
 
 Since this is a PWA, you can open it in your mobile browser and select **"Add to Home Screen"** to use it as a native Android or iOS application.
 
+## 📱 Mobile App (Android)
+
+This project uses **Capacitor** to run as a native Android application.
+
+- The Android source code is located in the `/android` directory.
+- To sync web changes to the Android app: `npx cap sync`
+- To open the project in Android Studio: `npx cap open android`
+
 ## 📄 License
 
 MIT
