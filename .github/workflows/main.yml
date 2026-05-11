@@ -36,13 +36,11 @@ jobs:
           distribution: 'temurin'
           java-version: '20'
 
-      # ✅ Build Android APK (adjust path if project is inside app/ or android/)
+      # ✅ Build Android APK (root‑এ gradlew থাকলে)
       - name: Build Android APK
-        run: |
-          cd app
-          ./gradlew assembleDebug
+        run: ./gradlew assembleDebug
 
-      # ✅ Upload APK as Artifact (downloadable from Actions tab)
+      # ✅ Upload APK as Artifact
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
