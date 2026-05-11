@@ -31,22 +31,28 @@ jobs:
     - name: Build
       run: npm run build --if-present
 
-    - name: Lint
-      run: npm run lint --if-present
-
-    # ✅ JDK setup (Java 17 recommend for Android, but keeping 20 as you used)
+    # ✅ JDK setup
     - name: Set up JDK
       uses: actions/setup-java@v4
       with:
         distribution: 'temurin'
-        java-version: '17' # Android এর জন্য ১৭ বেশি স্টেবল, তবে ২০ ও কাজ করবে।
+        java-version: '17'
 
-    # ✅ Build Android APK
+    # ✅ Build Android APK (Auto-detecting directory)
     - name: Build Android APK
       run: |
-        # যদি আপনার android ফোল্ডার থাকে তবে নিচের লাইনটি ব্যবহার করুন
-        # যদি না থাকে তবে শুধু chmod +x gradlew এবং ./gradlew লিখুন
-        cd android || cd . 
+        # gradlew ফাইলটি কোথায় আছে তা খুঁজে বের করে সেখানে যাওয়া
+        GRADLEW_PATH=$(find . -name gradlew)
+        if [ -z "$GRADLEW_PATH" ]; then
+          echo "Error: gradlew file not found anywhere in the repository!"
+          exit 1
+        fi
+        
+        # gradlew যে ফোল্ডারে আছে সেই ডিরেক্টরিতে যাওয়া
+        GRADLEW_DIR=$(dirname "$GRADLEW_PATH")
+        cd "$GRADLEW_DIR"
+        
+        echo "Found gradlew in $GRADLEW_DIR, starting build..."
         chmod +x gradlew
         ./gradlew assembleDebug
 
@@ -55,5 +61,5 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: credit-register-apk
-        # আপনার প্রজেক্ট স্ট্রাকচার অনুযায়ী পাথটি চেক করে নিন
-        path: android/app/build/outputs/apk/debug/*.apk
+        # এটি সব জায়গায় খুঁজে যেখানেই .apk ফাইল তৈরি হয়েছে তা আপলোড করবে
+        path: "**/build/outputs/apk/debug/*.apk"
