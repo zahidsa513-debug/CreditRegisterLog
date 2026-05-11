@@ -1,32 +1,28 @@
-name: CI/CD Build and Artifacts
+name: Generate Build Files
 
 on:
   push:
-    branches: [ main, master ]
-  pull_request:
     branches: [ main, master ]
 
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - name: Set up Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: 20
-        cache: 'npm'
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
 
-    - name: Install and Build Web
-      run: |
-        npm install
-        npm run build
+      - name: Install and Build
+        run: |
+          npm install
+          npm run build
 
-    # ✅ এই স্টেপটি আপনার বিল্ড ফাইলগুলো (dist ফোল্ডার) সেভ করবে
-    - name: Upload Web Build
-      uses: actions/upload-artifact@v4
-      with:
-        name: CreditRegister-Web-Files
-        path: dist/
+      # ✅ এটি আপনার বিল্ড করা ফাইলগুলো সেভ করবে
+      - name: Upload Web Build
+        uses: actions/upload-artifact@v4
+        with:
+          name: my-app-files
+          path: dist/
