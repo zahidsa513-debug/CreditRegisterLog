@@ -1,29 +1,33 @@
-name: Android APK Build
+name: CI/CD Build
 
 on:
   push:
     branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+permissions:
+  contents: write
+  pull-requests: write
 
 jobs:
-  android-build:
+  build:
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v4
+    - uses: actions/checkout@v4
 
-      - name: Set up JDK
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'temurin'
-          java-version: '20'
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: 20
+        cache: 'npm'
 
-      - name: Grant Gradlew Permission
-        run: cd android && chmod +x gradlew
+    - name: Install dependencies
+      run: npm install
 
-      - name: Build Android APK
-        run: cd android && ./gradlew assembleDebug
+    - name: Build
+      run: npm run build
 
-      - name: Upload Debug APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: android-debug-apk
-          path: android/app/build/outputs/apk/debug/*.apk
+    - name: Lint
+      run: npm run lint
