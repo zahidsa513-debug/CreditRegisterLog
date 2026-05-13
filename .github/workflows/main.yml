@@ -1,4 +1,4 @@
-name: Build Android APK (Java 21)
+name: Ultimate APK Build Fix
 
 on:
   push:
@@ -21,19 +21,25 @@ jobs:
         npm install
         npm run build --if-present
 
-    # ✅ জাভা ১৭ এর বদলে জাভা ২১ ব্যবহার করা হচ্ছে (1000345005.jpg এর সমস্যা সমাধানে)
     - name: Set up JDK 21
       uses: actions/setup-java@v4
       with:
         distribution: 'temurin'
         java-version: '21'
 
-    - name: Build Android APK
+    # ✅ নষ্ট ফাইলটি মুছে নতুন করে জেনারেট করার স্টেপ (1000345007.jpg ফিক্স)
+    - name: Repair Gradle and Build
       run: |
         if [ -d "android" ]; then
           cd android
+          # নষ্ট জার ফাইল এবং স্ক্রিপ্ট মুছে ফেলা হচ্ছে
+          rm -rf gradle/wrapper/gradle-wrapper.jar
+          rm -rf gradlew
+          
+          # সিস্টেমের ডিফল্ট গ্রেডল ব্যবহার করে নতুন র‍্যাপার তৈরি
+          gradle wrapper
+          
           chmod +x gradlew
-          # লিন্ট বা অন্য ছোট এরর এড়াতে বিল্ড কন্টিনিউ করবে
           ./gradlew assembleDebug --no-daemon
         else
           echo "Android folder not found!"
@@ -43,5 +49,5 @@ jobs:
     - name: Upload APK
       uses: actions/upload-artifact@v4
       with:
-        name: CreditRegister-APK-Java21
+        name: CreditRegister-Final-APK
         path: android/app/build/outputs/apk/debug/*.apk
