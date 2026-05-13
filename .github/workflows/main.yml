@@ -1,4 +1,4 @@
-name: Direct APK Build
+name: Fix and Build APK
 
 on:
   push:
@@ -16,10 +16,9 @@ jobs:
       with:
         node-version: 20
 
-    - name: Install and Build
+    - name: Install and Build Web
       run: |
         npm install
-        # --if-present এবং লিন্ট স্কিপ করার জন্য এই কমান্ড:
         npm run build --if-present
 
     - name: Set up JDK 17
@@ -28,20 +27,27 @@ jobs:
         distribution: 'temurin'
         java-version: '17'
 
-    # ✅ এরর এড়াতে সরাসরি অ্যান্ড্রয়েড বিল্ড
+    # ✅ নষ্ট Gradle ফাইল ঠিক করা এবং বিল্ড করা
     - name: Build Android APK
       run: |
         if [ -d "android" ]; then
           cd android
+          # করাপ্টেড ফাইলগুলো মুছে ফেলা হচ্ছে
+          rm -f gradle/wrapper/gradle-wrapper.jar
+          rm -f gradlew
+          
+          # নতুন করে Gradle Wrapper তৈরি করা
+          gradle wrapper
+          
           chmod +x gradlew
-          ./gradlew assembleDebug --stacktrace
+          ./gradlew assembleDebug
         else
-          echo "Error: Android folder still not found!"
+          echo "Android folder not found!"
           exit 1
         fi
 
     - name: Upload APK
       uses: actions/upload-artifact@v4
       with:
-        name: CreditRegister-Direct-APK
+        name: CreditRegister-Fixed-APK
         path: android/app/build/outputs/apk/debug/*.apk
