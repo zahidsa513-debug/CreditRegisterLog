@@ -409,24 +409,24 @@ const SalesEntry = ({ editingSale, setEditingSale }: { editingSale?: Sale | null
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8 pb-12">
+    <div className="max-w-4xl mx-auto space-y-10 pb-12">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-3xl font-display font-bold tracking-tight">{t.newSale}</h2>
-          <p className="text-slate-500 mt-1 text-sm">{t.monitorDescription || 'Record daily transactions efficiently'}</p>
+          <h2 className="text-4xl font-display font-bold tracking-tight text-[#1D1B20] dark:text-[#E6E1E5]">{t.newSale}</h2>
+          <p className="text-slate-500 mt-1 text-sm font-bold uppercase tracking-widest opacity-80">{t.monitorDescription || 'Record daily transactions efficiently'}</p>
         </div>
       </div>
 
-      <form onSubmit={handleSave} className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        <div className="space-y-6">
-          <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-soft space-y-5">
-            <div className="grid grid-cols-3 gap-2 p-1 bg-slate-100 rounded-xl">
+      <form onSubmit={handleSave} className="grid grid-cols-1 md:grid-cols-2 gap-10">
+        <div className="space-y-8">
+          <div className="surface-container p-8 space-y-6">
+            <div className="flex p-1 bg-black/5 dark:bg-white/5 rounded-2xl">
               <button
                 type="button"
                 onClick={() => setFormData({ ...formData, type: 'sale' })}
                 className={cn(
-                  "py-2.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all",
-                  formData.type === 'sale' ? "bg-white text-rose-600 shadow-sm" : "text-slate-500"
+                  "flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
+                  formData.type === 'sale' ? "bg-white dark:bg-[#4F378B] text-brand-primary shadow-soft" : "text-slate-500"
                 )}
               >
                 {t.due}
@@ -435,8 +435,8 @@ const SalesEntry = ({ editingSale, setEditingSale }: { editingSale?: Sale | null
                 type="button"
                 onClick={() => setFormData({ ...formData, type: 'direct' })}
                 className={cn(
-                  "py-2.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all",
-                  formData.type === 'direct' ? "bg-white text-indigo-600 shadow-sm" : "text-slate-500"
+                  "flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
+                  formData.type === 'direct' ? "bg-white dark:bg-[#4F378B] text-brand-primary shadow-soft" : "text-slate-500"
                 )}
               >
                 {t.todaySales}
@@ -445,42 +445,42 @@ const SalesEntry = ({ editingSale, setEditingSale }: { editingSale?: Sale | null
                 type="button"
                 onClick={() => setFormData({ ...formData, type: 'payment' })}
                 className={cn(
-                  "py-2.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all",
-                  formData.type === 'payment' ? "bg-white text-emerald-600 shadow-sm" : "text-slate-500"
+                  "flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
+                  formData.type === 'payment' ? "bg-white dark:bg-[#4F378B] text-brand-primary shadow-soft" : "text-slate-500"
                 )}
               >
                 {t.collection}
               </button>
             </div>
 
-            <div className="space-y-1">
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2 text-indigo-600">
+            <div className="space-y-2">
+              <label className="stat-label flex items-center gap-2 text-brand-primary">
                 {editingId && (
-                  <span className="bg-indigo-100 text-indigo-600 px-2 py-0.5 rounded-full text-[8px]">
+                  <span className="bg-[#EADDFF] text-[#21005D] px-2 py-0.5 rounded-full text-[8px] font-black">
                     {t.editingMode}
                   </span>
                 )}
-                <Calendar className="w-3 h-3" /> {t.date}
+                <Calendar className="w-4 h-4" /> {t.date}
               </label>
               <input 
                 required
                 type="date"
                 value={formData.date instanceof Date && !isNaN(formData.date.getTime()) ? formData.date.toISOString().split('T')[0] : ''}
                 onChange={e => setFormData({...formData, date: new Date(e.target.value)})}
-                className="w-full px-4 py-3 rounded-xl bg-slate-50 border-none focus:ring-2 focus:ring-indigo-500 outline-none font-medium text-sm"
+                className="w-full px-5 py-3.5 rounded-2xl bg-[#F3EDF7] dark:bg-[#2B2930] border-none focus:ring-2 focus:ring-brand-primary outline-none font-bold text-sm"
               />
             </div>
 
             {formData.type !== 'direct' && (
-              <div className="space-y-1">
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                  <UserIcon className="w-3 h-3 text-indigo-500" /> {t.customers}
+              <div className="space-y-2">
+                <label className="stat-label flex items-center gap-2 text-brand-primary">
+                  <UserIcon className="w-4 h-4" /> {t.customers}
                 </label>
                 <select 
                   required
                   value={formData.customerId}
                   onChange={e => setFormData({...formData, customerId: Number(e.target.value)})}
-                  className="w-full px-4 py-3 rounded-xl bg-slate-50 border-none focus:ring-2 focus:ring-indigo-500 outline-none font-medium appearance-none text-sm"
+                  className="w-full px-5 py-3.5 rounded-2xl bg-[#F3EDF7] dark:bg-[#2B2930] border-none focus:ring-2 focus:ring-brand-primary outline-none font-bold appearance-none text-sm"
                 >
                   <option value={0}>{t.selectCustomer}</option>
                   {customers?.map(c => (
@@ -491,57 +491,57 @@ const SalesEntry = ({ editingSale, setEditingSale }: { editingSale?: Sale | null
             )}
 
             {formData.type === 'payment' ? (
-              <div className="space-y-1">
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                  <Hash className="w-3 h-3 text-indigo-500" /> {t.moneyReceiptNumber}
+              <div className="space-y-2">
+                <label className="stat-label flex items-center gap-2 text-brand-primary">
+                  <Hash className="w-4 h-4" /> {t.moneyReceiptNumber}
                 </label>
                 <input 
                   required
                   type="text"
                   value={formData.receiptNumber}
                   onChange={e => setFormData({...formData, receiptNumber: e.target.value})}
-                  className="w-full px-4 py-3 rounded-xl bg-slate-50 border-none focus:ring-2 focus:ring-indigo-500 outline-none font-medium text-sm"
+                  className="w-full px-5 py-3.5 rounded-2xl bg-[#F3EDF7] dark:bg-[#2B2930] border-none focus:ring-2 focus:ring-brand-primary outline-none font-bold text-sm"
                   placeholder={t.mrPlaceholder}
                 />
               </div>
             ) : (
               <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                    <FileText className="w-3 h-3 text-indigo-500" /> {t.salesInvoiceNumber}
+                <div className="space-y-2">
+                  <label className="stat-label flex items-center gap-2 text-brand-primary">
+                    <FileText className="w-4 h-4" /> {t.salesInvoiceNumber}
                   </label>
                   <input 
                     required
                     type="text"
                     value={formData.invoiceNumber}
                     onChange={e => setFormData({...formData, invoiceNumber: e.target.value})}
-                    className="w-full px-4 py-3 rounded-xl bg-slate-50 border-none focus:ring-2 focus:ring-indigo-500 outline-none font-medium text-sm"
+                    className="w-full px-5 py-3.5 rounded-2xl bg-[#F3EDF7] dark:bg-[#2B2930] border-none focus:ring-2 focus:ring-brand-primary outline-none font-bold text-sm"
                     placeholder="INV-..."
                   />
                 </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                    <Hash className="w-3 h-3 text-indigo-500" /> {t.billNumber}
+                <div className="space-y-2">
+                  <label className="stat-label flex items-center gap-2 text-brand-primary">
+                    <Hash className="w-4 h-4" /> {t.billNumber}
                   </label>
                   <input 
                     type="text"
                     value={formData.billNumber}
                     onChange={e => setFormData({...formData, billNumber: e.target.value})}
-                    className="w-full px-4 py-3 rounded-xl bg-slate-50 border-none focus:ring-2 focus:ring-indigo-500 outline-none font-medium text-sm"
+                    className="w-full px-5 py-3.5 rounded-2xl bg-[#F3EDF7] dark:bg-[#2B2930] border-none focus:ring-2 focus:ring-brand-primary outline-none font-bold text-sm"
                     placeholder="B-..."
                   />
                 </div>
               </div>
             )}
 
-            <div className="space-y-1">
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                <FileText className="w-3 h-3 text-indigo-500" /> {t.description}
+            <div className="space-y-2">
+              <label className="stat-label flex items-center gap-2 text-brand-primary">
+                <FileText className="w-4 h-4" /> {t.description}
               </label>
               <textarea 
                 value={formData.description}
                 onChange={e => setFormData({...formData, description: e.target.value})}
-                className="w-full px-4 py-3 rounded-xl bg-slate-50 border-none focus:ring-2 focus:ring-indigo-500 outline-none font-medium resize-none text-sm"
+                className="w-full px-5 py-3.5 rounded-2xl bg-[#F3EDF7] dark:bg-[#2B2930] border-none focus:ring-2 focus:ring-brand-primary outline-none font-bold resize-none text-sm min-h-[120px]"
                 rows={3}
                 placeholder={t.detailsPlaceholder || 'Details...'}
               />
@@ -549,62 +549,62 @@ const SalesEntry = ({ editingSale, setEditingSale }: { editingSale?: Sale | null
           </div>
         </div>
 
-        <div className="space-y-6">
-          <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-soft space-y-6">
+        <div className="space-y-8">
+          <div className="surface-container p-8 space-y-6">
             {formData.type !== 'payment' && (
-              <div className="space-y-1">
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none">
+              <div className="space-y-2">
+                <label className="stat-label text-brand-primary">
                   {t.totalSalesAmount}
                 </label>
                 <div className="relative">
-                  <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-xs font-bold">{currency}</div>
+                  <div className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-500 font-black">{currency}</div>
                   <input 
                     required
                     type="number"
                     value={formData.totalAmount || ''}
                     onChange={e => setFormData({...formData, totalAmount: Number(e.target.value)})}
-                    className="w-full pl-12 pr-4 py-3 rounded-xl bg-indigo-50 border border-indigo-100 focus:ring-2 focus:ring-indigo-500 outline-none font-bold text-lg text-indigo-700"
+                    className="w-full pl-14 pr-5 py-5 rounded-[1.5rem] bg-[#EADDFF] dark:bg-[#4F378B] border-none focus:ring-4 focus:ring-brand-primary/20 outline-none font-black text-2xl text-[#21005D] dark:text-[#EADDFF] shadow-inner"
                     placeholder="0.00"
                   />
                 </div>
               </div>
             )}
 
-            <div className="grid grid-cols-1 gap-4">
-              <div className="space-y-1">
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none">{formData.type === 'payment' ? t.cashReceived : t.cash}</label>
+            <div className="grid grid-cols-1 gap-5">
+              <div className="space-y-2">
+                <label className="stat-label">{formData.type === 'payment' ? t.cashReceived : t.cash}</label>
                 <div className="relative">
-                  <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-xs font-bold">{currency}</div>
+                  <div className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-500 font-bold">{currency}</div>
                   <input 
                     type="number"
                     value={formData.cashSale || ''}
                     onChange={e => setFormData({...formData, cashSale: Number(e.target.value)})}
-                    className="w-full pl-12 pr-4 py-3 rounded-xl bg-slate-50 border-none focus:ring-2 focus:ring-indigo-500 outline-none font-bold text-lg"
+                    className="w-full pl-14 pr-5 py-3.5 rounded-2xl bg-[#F3EDF7] dark:bg-[#2B2930] border-none focus:ring-2 focus:ring-brand-primary outline-none font-bold text-lg"
                   />
                 </div>
               </div>
-              <div className="space-y-1">
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none">{t.cheque}</label>
+              <div className="space-y-2">
+                <label className="stat-label">{t.cheque}</label>
                 <div className="relative">
-                  <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-xs font-bold">{currency}</div>
+                  <div className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-500 font-bold">{currency}</div>
                   <input 
                     type="number"
                     value={formData.chequeSale || ''}
                     onChange={e => setFormData({...formData, chequeSale: Number(e.target.value)})}
-                    className="w-full pl-12 pr-4 py-3 rounded-xl bg-slate-50 border-none focus:ring-2 focus:ring-indigo-500 outline-none font-bold text-lg"
+                    className="w-full pl-14 pr-5 py-3.5 rounded-2xl bg-[#F3EDF7] dark:bg-[#2B2930] border-none focus:ring-2 focus:ring-brand-primary outline-none font-bold text-lg"
                   />
                 </div>
               </div>
               {formData.type === 'sale' && (
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none">{t.credit}</label>
+                <div className="space-y-2">
+                  <label className="stat-label">{t.credit}</label>
                   <div className="relative">
-                    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-xs font-bold">{currency}</div>
+                    <div className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-500 font-bold">{currency}</div>
                     <input 
                       type="number"
                       value={formData.creditSale || ''}
                       onChange={e => setFormData({...formData, creditSale: Number(e.target.value)})}
-                      className="w-full pl-12 pr-4 py-3 rounded-xl bg-slate-50 border-none focus:ring-2 focus:ring-indigo-500 outline-none font-bold text-lg"
+                      className="w-full pl-14 pr-5 py-3.5 rounded-2xl bg-[#F3EDF7] dark:bg-[#2B2930] border-none focus:ring-2 focus:ring-brand-primary outline-none font-bold text-lg"
                     />
                   </div>
                 </div>
@@ -622,20 +622,20 @@ const SalesEntry = ({ editingSale, setEditingSale }: { editingSale?: Sale | null
               type="submit"
               disabled={isSuccess}
               className={cn(
-                "w-full py-4 rounded-xl font-bold text-base transition-all shadow-lg flex items-center justify-center gap-3 active:scale-95",
+                "w-full py-5 rounded-full font-black text-lg transition-all shadow-lg flex items-center justify-center gap-3 active:scale-95",
                 isSuccess 
-                  ? "bg-emerald-500 text-white shadow-emerald-200" 
-                  : "bg-indigo-600 hover:bg-indigo-700 text-white shadow-indigo-100"
+                  ? "bg-emerald-600 text-white shadow-emerald-600/20" 
+                  : "bg-[#6750A4] hover:bg-[#4F378B] text-white shadow-black/20"
               )}
             >
               {isSuccess ? (
                 <>
-                  <CheckCircle2 className="w-5 h-5" />
+                  <CheckCircle2 className="w-6 h-6" />
                   {t.entrySaved}
                 </>
               ) : (
                 <>
-                  <Save className="w-5 h-5" />
+                  <Save className="w-6 h-6" />
                   {t.save}
                 </>
               )}
@@ -644,45 +644,45 @@ const SalesEntry = ({ editingSale, setEditingSale }: { editingSale?: Sale | null
         </div>
       </form>
 
-      <div className="bg-white rounded-2xl border border-slate-100 shadow-soft overflow-hidden mt-12">
-        <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-          <h3 className="font-bold text-sm uppercase tracking-wider text-slate-700 flex items-center gap-2">
-            <TrendingUp className="w-4 h-4 text-indigo-500" />
+      <div className="surface-container overflow-hidden mt-12">
+        <div className="p-6 border-b border-black/5 dark:border-white/5 flex items-center justify-between bg-black/5 dark:bg-white/5">
+          <h3 className="stat-label flex items-center gap-2">
+            <TrendingUp className="w-5 h-5 text-brand-primary" />
             {t.todayTransactionHistory}
           </h3>
-          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{dailySalesList?.length || 0} Entries</span>
+          <span className="text-[10px] font-black text-brand-primary bg-brand-primary/10 px-3 py-1 rounded-full uppercase tracking-widest">{dailySalesList?.length || 0} Entries</span>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
-              <tr className="bg-slate-50 text-left">
-                <th className="px-6 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">{t.date}</th>
-                <th className="px-6 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">{t.type}</th>
-                <th className="px-6 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">{t.description}</th>
-                <th className="px-6 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">{t.amount}</th>
-                <th className="px-6 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-right">{t.actions}</th>
+              <tr className="bg-black/5 dark:bg-white/5 text-left">
+                <th className="px-6 py-4 stat-label">{t.date}</th>
+                <th className="px-6 py-4 stat-label">{t.type}</th>
+                <th className="px-6 py-4 stat-label">{t.description}</th>
+                <th className="px-6 py-4 stat-label">{t.amount}</th>
+                <th className="px-6 py-4 stat-label text-right">{t.actions}</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-black/5 dark:divide-white/5">
               {dailySalesList?.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map((s) => (
-                <tr key={s.id} className="hover:bg-slate-50 transition-colors group">
-                  <td className="px-6 py-3.5 text-[11px] text-slate-500 font-medium">{new Date(s.date).toLocaleDateString()}</td>
-                  <td className="px-6 py-3.5">
+                <tr key={s.id} className="hover:bg-black/5 dark:hover:bg-white/5 transition-colors group">
+                  <td className="px-6 py-5 text-[11px] text-slate-500 font-bold">{new Date(s.date).toLocaleDateString()}</td>
+                  <td className="px-6 py-5">
                     <span className={cn(
-                      "text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest bg-opacity-10",
-                      s.type === 'sale' ? "bg-rose-500 text-rose-600" : 
-                      s.type === 'payment' ? "bg-emerald-500 text-emerald-600" : 
-                      "bg-indigo-500 text-indigo-600"
+                      "text-[9px] font-black px-3 py-1 rounded-full uppercase tracking-widest bg-opacity-10",
+                      s.type === 'sale' ? "bg-rose-500 text-rose-600 border border-rose-500/20" : 
+                      s.type === 'payment' ? "bg-emerald-500 text-emerald-600 border border-emerald-500/20" : 
+                      "bg-brand-primary text-brand-primary border border-brand-primary/20"
                     )}>
                       {s.type === 'sale' ? t.due : s.type === 'payment' ? t.collection : t.todaySales}
                     </span>
                   </td>
-                  <td className="px-6 py-3.5 text-sm font-medium text-slate-700 capitalize max-w-[200px] truncate">{s.description || t.noDescription || 'No description'}</td>
-                  <td className="px-6 py-3.5 text-sm font-black text-slate-900">
+                  <td className="px-6 py-5 text-sm font-bold text-[#1D1B20] dark:text-[#E6E1E5] capitalize max-w-[200px] truncate">{s.description || t.noDescription || 'No description'}</td>
+                  <td className="px-6 py-5 text-base font-black text-brand-primary">
                     {formatCurrency((s.cashSale || 0) + (s.chequeSale || 0) + (s.creditSale || 0), currency)}
                   </td>
-                  <td className="px-6 py-3.5 text-right">
-                    <div className="flex items-center justify-end gap-1">
+                  <td className="px-6 py-5 text-right">
+                    <div className="flex items-center justify-end gap-2">
                       {s.type === 'payment' && (
                         <button 
                           onClick={(e) => {
@@ -690,13 +690,13 @@ const SalesEntry = ({ editingSale, setEditingSale }: { editingSale?: Sale | null
                             handlePrintReceipt(s);
                           }}
                           disabled={isPrinting}
-                          className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-xl transition-all active:scale-90"
+                          className="p-3 text-emerald-600 hover:bg-emerald-100 rounded-full transition-all active:scale-90"
                           title={t.printReceipt}
                         >
                           {isPrinting && printData?.sale.id === s.id ? (
-                            <Printer className="w-4 h-4 animate-pulse" />
+                            <Printer className="w-5 h-5 animate-pulse" />
                           ) : (
-                            <Printer className="w-4 h-4" />
+                            <Printer className="w-5 h-5" />
                           )}
                         </button>
                       )}
@@ -705,7 +705,7 @@ const SalesEntry = ({ editingSale, setEditingSale }: { editingSale?: Sale | null
                           e.stopPropagation();
                           handleEdit(s);
                         }}
-                        className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all active:scale-90"
+                        className="p-3 text-brand-primary hover:bg-brand-primary/10 rounded-full transition-all active:scale-90"
                         title={t.edit}
                       >
                         <Edit2 className="w-4 h-4" />
@@ -715,7 +715,7 @@ const SalesEntry = ({ editingSale, setEditingSale }: { editingSale?: Sale | null
                           e.stopPropagation();
                           handleDelete(s.id!);
                         }}
-                        className="p-2 text-rose-600 hover:bg-rose-50 rounded-xl transition-all active:scale-90"
+                        className="p-3 text-rose-600 hover:bg-rose-100 rounded-full transition-all active:scale-90"
                         title={t.delete}
                       >
                         <Trash2 className="w-4 h-4" />
@@ -726,7 +726,7 @@ const SalesEntry = ({ editingSale, setEditingSale }: { editingSale?: Sale | null
               ))}
               {(!dailySalesList || dailySalesList.length === 0) && (
                 <tr>
-                  <td colSpan={4} className="px-6 py-8 text-center text-slate-400 text-xs italic">
+                  <td colSpan={5} className="px-6 py-12 text-center text-slate-400 text-sm font-bold italic">
                     {t.noHistoryFound}
                   </td>
                 </tr>

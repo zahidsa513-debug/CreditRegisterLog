@@ -1,49 +1,48 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Poppins:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap');
 @import "tailwindcss";
 
 @theme {
-  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
-  --font-display: "Poppins", sans-serif;
+  --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Outfit", sans-serif;
   --font-mono: "JetBrains Mono", monospace;
   
-  --color-brand-primary: #00C853; /* Green */
-  --color-brand-secondary: #FF9800; /* Orange */
-  --color-brand-accent: #1976D2; /* Blue */
-  --color-brand-danger: #EF4444; /* Red 500 */
-  --color-brand-surface: #FFFFFF;
-  --color-brand-bg: #F5F5F5;
+  --color-brand-primary: #6750A4; /* MD3 Purple */
+  --color-brand-secondary: #625B71; /* MD3 Grey-Purple */
+  --color-brand-tertiary: #7D5260; /* MD3 Pinkish */
+  --color-brand-danger: #B3261E; /* MD3 Error */
   
-  --shadow-premium: 0 20px 25px -5px rgb(0 0 0 / 0.05), 0 8px 10px -6px rgb(0 0 0 / 0.05);
-  --shadow-soft: 0 2px 4px 0 rgb(0 0 0 / 0.02), 0 1px 2px 0 rgb(0 0 0 / 0.06);
-  --shadow-touch: 0 4px 12px rgba(0,0,0,0.08);
-
-  @keyframes shake {
-    0%, 100% { transform: translateX(0); }
-    25% { transform: translateX(-10px); }
-    75% { transform: translateX(10px); }
-  }
+  --color-surface-dim: #DED8E1;
+  --color-surface-bright: #FEF7FF;
+  --color-surface-container: #F3EDF7;
+  
+  --shadow-premium: 0 10px 30px -10px rgba(103, 80, 164, 0.15);
+  --shadow-soft: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05);
 }
 
 @layer base {
   body {
-    @apply font-sans bg-[#F5F5F5] text-slate-900 selection:bg-green-100 selection:text-green-900 antialiased dark:bg-[#020617] dark:text-slate-100;
+    @apply font-sans bg-[#FEF7FF] text-[#1D1B20] selection:bg-purple-100 selection:text-purple-900 antialiased dark:bg-[#1C1B1F] dark:text-[#E6E1E5];
   }
 }
 
 @layer utilities {
-  .glass-card {
-    @apply bg-white/80 backdrop-blur-xl border border-slate-200/60 shadow-premium dark:bg-slate-900/80 dark:border-slate-800;
+  .surface-container {
+    @apply bg-[#F3EDF7] rounded-[2.5rem] border border-transparent shadow-soft dark:bg-[#2B2930] dark:border-white/5 transition-all duration-300;
   }
   
-  .bento-grid {
-    @apply grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6;
+  .glass-card {
+    @apply bg-white/70 backdrop-blur-xl border border-white/40 shadow-premium dark:bg-black/40 dark:border-white/10;
   }
   
   .text-gradient {
-    @apply bg-clip-text text-transparent bg-gradient-to-br from-[#00C853] to-[#FF9800] dark:from-green-400 dark:to-orange-400;
+    @apply bg-clip-text text-transparent bg-gradient-to-br from-[#6750A4] to-[#B099FF] dark:from-[#D0BCFF] dark:to-[#EADDFF];
   }
 
   .stat-label {
-    @apply text-[10px] uppercase tracking-[0.2em] font-black text-slate-500/80 leading-none dark:text-slate-400/80;
+    @apply text-[11px] uppercase tracking-wider font-bold text-slate-500/90 leading-none dark:text-slate-400;
+  }
+  
+  .md-btn-primary {
+    @apply px-6 py-3 bg-[#6750A4] text-white rounded-full font-bold shadow-soft hover:shadow-premium hover:brightness-110 active:scale-95 transition-all;
   }
 }

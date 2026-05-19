@@ -381,111 +381,96 @@ const SettingsView = ({
 
       <div className="flex items-center justify-between">
         <div className="space-y-1">
-          <h2 className="text-4xl font-black tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-500">{t.settings}</h2>
+          <h2 className="text-4xl font-display font-bold tracking-tight text-[#1D1B20] dark:text-[#E6E1E5]">{t.settings}</h2>
           <div className="flex items-center gap-2">
-             <div className="h-0.5 w-8 bg-indigo-600 rounded-full" />
-             <p className="text-slate-500 font-bold text-xs uppercase tracking-widest leading-none">System Architecture & Intelligence</p>
+             <div className="h-0.5 w-8 bg-brand-primary rounded-full" />
+             <p className="text-slate-500 font-bold text-[10px] uppercase tracking-widest leading-none opacity-80">System Architecture & Intelligence</p>
           </div>
         </div>
         <button 
           onClick={onLogout}
-          className="p-3 bg-rose-50 text-rose-600 rounded-2xl hover:bg-rose-100 transition-colors"
+          className="p-4 bg-rose-50 dark:bg-rose-900/20 text-rose-600 rounded-full hover:bg-rose-100 transition-all active:scale-95"
           title={t.logout}
         >
-          <LogOut className="w-5 h-5" />
+          <LogOut className="w-6 h-6" />
         </button>
       </div>
 
-      <div className="space-y-6">
+      <div className="space-y-8">
         {/* 1. User Profile Card */}
-        <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] p-8 border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 rounded-full -mr-16 -mt-16 blur-2xl" />
+        <div className="surface-container p-10 relative overflow-hidden group">
+          <div className="absolute top-0 right-0 w-48 h-48 bg-brand-primary/5 rounded-full -mr-24 -mt-24 blur-3xl transition-all group-hover:bg-brand-primary/10" />
           
-          <div className="flex flex-col sm:flex-row items-center gap-6 relative z-10">
-            <div className="relative group">
-              <div className="w-24 h-24 rounded-3xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center overflow-hidden border-2 border-indigo-100 dark:border-slate-700">
+          <div className="flex flex-col sm:flex-row items-center gap-10 relative z-10">
+            <div className="relative">
+              <div className="w-32 h-32 rounded-[2.5rem] bg-[#F3EDF7] dark:bg-[#2B2930] flex items-center justify-center overflow-hidden border-4 border-[#D0BCFF] dark:border-[#4F378B] shadow-soft">
                 {profileForm.avatar ? (
                   <img src={profileForm.avatar} className="w-full h-full object-cover" alt="avatar" referrerPolicy="no-referrer" />
                 ) : (
-                  <User className="w-10 h-10 text-slate-300" />
+                  <User className="w-14 h-14 text-slate-300" />
                 )}
               </div>
               {isEditing && (
-                <label className="absolute -bottom-2 -right-2 bg-indigo-500 text-white p-2 rounded-xl cursor-pointer shadow-lg active:scale-95 transition-transform">
-                  <Camera className="w-4 h-4" />
+                <label className="absolute -bottom-2 -right-2 bg-brand-primary text-white p-3 rounded-2xl cursor-pointer shadow-lg active:scale-90 transition-transform hover:brightness-110">
+                  <Camera className="w-5 h-5" />
                   <input type="file" className="hidden" accept="image/*" onChange={handleAvatarChange} />
                 </label>
               )}
             </div>
 
-            <div className="flex-1 text-center sm:text-left space-y-2">
+            <div className="flex-1 text-center sm:text-left space-y-3">
               {isEditing ? (
-                <div className="space-y-3">
+                <div className="space-y-4">
                   <input 
                     type="text" 
                     value={profileForm.name} 
                     onChange={e => setProfileForm({...profileForm, name: e.target.value})}
                     placeholder="Full Name"
-                    className="w-full text-xl font-bold bg-slate-50 dark:bg-slate-800 rounded-xl px-4 py-2 border-none focus:ring-2 focus:ring-indigo-500 outline-none"
+                    className="w-full text-2xl font-black bg-[#F3EDF7] dark:bg-[#2B2930] rounded-2xl px-6 py-3 border-none focus:ring-4 focus:ring-brand-primary/20 outline-none"
                   />
                   <input 
                     type="text" 
                     value={profileForm.designation} 
                     onChange={e => setProfileForm({...profileForm, designation: e.target.value})}
                     placeholder={t.designation}
-                    className="w-full text-sm font-medium bg-slate-50 dark:bg-slate-800 rounded-xl px-4 py-2 border-none focus:ring-2 focus:ring-indigo-500 outline-none"
+                    className="w-full text-base font-bold bg-[#F3EDF7] dark:bg-[#2B2930] rounded-2xl px-6 py-3 border-none focus:ring-4 focus:ring-brand-primary/20 outline-none"
                   />
-                  <input 
-                    type="tel" 
-                    value={profileForm.phone} 
-                    onChange={e => setProfileForm({...profileForm, phone: e.target.value})}
-                    placeholder="Phone Number"
-                    className="w-full text-sm bg-slate-50 dark:bg-slate-800 rounded-xl px-4 py-2 border-none focus:ring-2 focus:ring-indigo-500 outline-none"
-                  />
-                  <input 
-                    type="number" 
-                    value={profileForm.monthlyTarget} 
-                    onChange={e => setProfileForm({...profileForm, monthlyTarget: Number(e.target.value)})}
-                    placeholder={language === 'en' ? 'Monthly Sales Target' : 'মাসিক বিক্রির লক্ষ্যমাত্রা'}
-                    className="w-full text-sm bg-slate-50 dark:bg-slate-800 rounded-xl px-4 py-2 border-none focus:ring-2 focus:ring-indigo-500 outline-none"
-                  />
-                  
-                  <div className="flex gap-2 p-1 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
-                    <button 
-                      type="button"
-                      onClick={() => setProfileForm({...profileForm, role: 'staff'})}
-                      className={cn("flex-1 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all", profileForm.role === 'staff' ? "bg-white dark:bg-slate-700 shadow-sm text-indigo-600" : "text-slate-400")}
-                    >
-                      Staff Member
-                    </button>
-                    <button 
-                      type="button"
-                      onClick={() => setProfileForm({...profileForm, role: 'admin'})}
-                      className={cn("flex-1 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all", profileForm.role === 'admin' ? "bg-indigo-600 shadow-sm text-white" : "text-slate-400")}
-                    >
-                      Administrator
-                    </button>
+                  <div className="grid grid-cols-2 gap-4">
+                    <input 
+                      type="tel" 
+                      value={profileForm.phone} 
+                      onChange={e => setProfileForm({...profileForm, phone: e.target.value})}
+                      placeholder="Phone Number"
+                      className="w-full text-base bg-[#F3EDF7] dark:bg-[#2B2930] rounded-2xl px-6 py-3 border-none focus:ring-4 focus:ring-brand-primary/20 outline-none font-bold"
+                    />
+                    <input 
+                      type="number" 
+                      value={profileForm.monthlyTarget} 
+                      onChange={e => setProfileForm({...profileForm, monthlyTarget: Number(e.target.value)})}
+                      placeholder="Target"
+                      className="w-full text-base bg-[#F3EDF7] dark:bg-[#2B2930] rounded-2xl px-6 py-3 border-none focus:ring-4 focus:ring-brand-primary/20 outline-none font-bold"
+                    />
                   </div>
                 </div>
               ) : (
                 <>
-                  <h3 className="text-2xl font-display font-bold text-slate-900 dark:text-white truncate max-w-xs">{userProfile?.name}</h3>
-                  <div className="flex items-center gap-2">
-                    <p className="text-indigo-600 dark:text-indigo-400 font-bold text-xs uppercase tracking-wider">{userProfile?.designation || 'No Designation'}</p>
-                    <span className={cn("px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest", userProfile?.role === 'admin' ? "bg-amber-100 text-amber-700" : "bg-slate-100 text-slate-600")}>
+                  <h3 className="text-3xl font-display font-black text-[#1D1B20] dark:text-[#E6E1E5] tracking-tight">{userProfile?.name}</h3>
+                  <div className="flex items-center gap-3 justify-center sm:justify-start">
+                    <p className="text-brand-primary font-black text-xs uppercase tracking-widest">{userProfile?.designation || 'No Designation'}</p>
+                    <span className={cn("px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest", userProfile?.role === 'admin' ? "bg-[#EADDFF] text-[#21005D]" : "bg-black/5 text-slate-600")}>
                       {userProfile?.role || 'Staff'}
                     </span>
                   </div>
-                  <p className="text-slate-500 font-medium flex items-center justify-center sm:justify-start gap-2">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                    {userProfile?.email}
-                  </p>
-                  <div className="flex flex-wrap items-center justify-center sm:justify-start gap-4">
-                    <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">{userProfile?.phone || 'No phone set'}</p>
-                    {userProfile?.location && (
-                      <p className="text-xs text-slate-400 font-bold uppercase tracking-widest flex items-center gap-1">
-                        <MapPin className="w-3 h-3" /> {userProfile.location}
-                      </p>
+                  <div className="pt-2 flex flex-wrap items-center justify-center sm:justify-start gap-5">
+                    <div className="flex items-center gap-2">
+                       <Mail className="w-4 h-4 text-slate-400" />
+                       <span className="text-sm font-bold text-slate-500">{userProfile?.email}</span>
+                    </div>
+                    {userProfile?.phone && (
+                      <div className="flex items-center gap-2">
+                         <Phone className="w-4 h-4 text-slate-400" />
+                         <span className="text-sm font-bold text-slate-500">{userProfile.phone}</span>
+                      </div>
                     )}
                   </div>
                 </>
@@ -496,14 +481,14 @@ const SettingsView = ({
               {isEditing ? (
                 <button 
                   onClick={saveProfile}
-                  className="bg-emerald-500 text-white px-6 py-3 rounded-2xl font-bold flex items-center gap-2 shadow-lg shadow-emerald-500/20 active:scale-95 transition-transform"
+                  className="px-8 py-4 bg-emerald-600 text-white rounded-full font-black flex items-center gap-3 shadow-lg shadow-emerald-600/20 active:scale-95 transition-all hover:brightness-110"
                 >
-                  <Save className="w-4 h-4" /> Save
+                  <Save className="w-5 h-5" /> Save Changes
                 </button>
               ) : (
                 <button 
                   onClick={() => setIsEditing(true)}
-                  className="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 px-6 py-3 rounded-2xl font-bold text-sm active:scale-95 transition-transform"
+                  className="px-8 py-4 bg-black/5 dark:bg-white/5 text-slate-700 dark:text-[#E6E1E5] rounded-full font-black text-xs uppercase tracking-widest hover:bg-black/10 transition-all active:scale-95"
                 >
                   Edit Profile
                 </button>
@@ -632,124 +617,78 @@ const SettingsView = ({
         </div>
 
         {/* 3. Appearance & Preferences Section */}
-        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 divide-y dark:divide-slate-800 shadow-sm overflow-hidden">
-          <div className="p-5 flex items-center gap-4">
-            <div className="p-2.5 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-xl">
-              <Sparkles className="w-5 h-5" />
+        <div className="surface-container overflow-hidden p-0 shadow-soft">
+          <div className="p-6 flex items-center gap-4 bg-black/5 dark:bg-white/5 border-b border-black/5 dark:border-white/5">
+            <div className="p-3 bg-brand-primary/10 text-brand-primary rounded-2xl">
+              <Sparkles className="w-6 h-6" />
             </div>
             <div>
-              <p className="font-bold text-sm tracking-tight">{t.appearance}</p>
-              <p className="text-xs text-slate-500">Theme, Language & Defaults</p>
+              <p className="font-black text-sm tracking-tight text-brand-primary">{t.appearance}</p>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 opacity-70">Theme, Language & Defaults</p>
             </div>
           </div>
 
-          {/* Theme */}
-          <div className="p-5 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Smartphone className="w-4 h-4 text-slate-400" />
-              <p className="text-sm font-bold text-slate-700 dark:text-slate-300">Theme Mode</p>
-            </div>
-            <div className="flex bg-slate-50 dark:bg-slate-950 p-1 rounded-lg border border-slate-200 dark:border-slate-800">
-              <button 
-                onClick={() => updateSettings({ theme: 'light' })}
-                className={cn("px-3 py-1.5 rounded-md text-[10px] font-black uppercase tracking-widest transition-all", theme === 'light' ? "bg-white dark:bg-slate-700 shadow-sm text-indigo-600" : "text-slate-400 hover:text-slate-600")}
-              >
-                Light
-              </button>
-              <button 
-                onClick={() => updateSettings({ theme: 'dark' })}
-                className={cn("px-3 py-1.5 rounded-md text-[10px] font-black uppercase tracking-widest transition-all", theme === 'dark' ? "bg-white dark:bg-slate-700 shadow-sm text-indigo-600 dark:text-white" : "text-slate-400 hover:text-slate-200")}
-              >
-                Dark
-              </button>
-            </div>
-          </div>
-
-          {/* Language */}
-          <div className="p-5 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Languages className="w-4 h-4 text-slate-400" />
-              <p className="text-sm font-bold text-slate-700 dark:text-slate-300">{t.language}</p>
-            </div>
-            <div className="flex bg-slate-50 dark:bg-slate-950 p-1 rounded-lg border border-slate-200 dark:border-slate-800">
-              {(['en', 'bn', 'es'] as Language[]).map(lang => (
-                <button 
-                  key={lang}
-                  onClick={() => updateSettings({ language: lang })}
-                  className={cn("px-3 py-1.5 rounded-md text-[10px] font-black uppercase tracking-widest transition-all", language === lang ? "bg-white dark:bg-slate-700 shadow-sm text-indigo-600" : "text-slate-400 hover:text-slate-600")}
-                >
-                  {lang.toUpperCase()}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Currency */}
-          <div className="p-5 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <DollarSign className="w-4 h-4 text-slate-400" />
-              <p className="text-sm font-bold text-slate-700 dark:text-slate-300">Currency</p>
-            </div>
-            <select 
-              value={currency}
-              onChange={(e) => updateSettings({ currency: e.target.value })}
-              className="bg-slate-50 dark:bg-slate-950 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 text-xs font-bold focus:ring-2 focus:ring-indigo-500 outline-none"
-            >
-              {currencies.map(c => (
-                <option key={c.code} value={c.code}>{c.code} ({c.symbol})</option>
-              ))}
-            </select>
-          </div>
-
-          {/* Monthly Target */}
-          <div className="p-5 space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <Target className="w-4 h-4 text-slate-400" />
-                <p className="text-sm font-bold text-slate-700 dark:text-slate-300">Monthly Target</p>
+          <div className="divide-y divide-black/5 dark:divide-white/5">
+            {/* Theme */}
+            <div className="p-6 flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <Smartphone className="w-5 h-5 text-slate-400" />
+                <p className="text-sm font-black text-[#1D1B20] dark:text-[#E6E1E5]">Theme Mode</p>
               </div>
-              <div className="flex items-center gap-2">
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[10px] font-bold">{currency}</span>
-                  <input 
-                    type="number"
-                    value={localTarget}
-                    onChange={(e) => setLocalTarget(Number(e.target.value))}
-                    className="w-28 bg-slate-50 dark:bg-slate-950 pl-10 pr-3 py-2 rounded-xl text-xs font-bold border border-transparent dark:border-slate-800 focus:border-indigo-500 outline-none transition-all"
-                  />
-                </div>
+              <div className="flex bg-[#F3EDF7] dark:bg-[#2B2930] p-1.5 rounded-2xl">
                 <button 
-                  onClick={async () => {
-                    await updateSettings({ targetAmount: localTarget });
-                    triggerToast();
-                  }}
-                  className="p-2 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 rounded-lg hover:bg-emerald-100 transition-colors"
+                  onClick={() => updateSettings({ theme: 'light' })}
+                  className={cn("px-5 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all", theme === 'light' ? "bg-white text-brand-primary shadow-soft" : "text-slate-500")}
                 >
-                  <Save className="w-4 h-4" />
+                  Light
                 </button>
+                <button 
+                  onClick={() => updateSettings({ theme: 'dark' })}
+                  className={cn("px-5 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all", theme === 'dark' ? "bg-white dark:bg-[#4F378B] text-brand-primary shadow-soft" : "text-slate-500")}
+                >
+                  Dark
+                </button>
+              </div>
+            </div>
+
+            {/* Language */}
+            <div className="p-6 flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <Languages className="w-5 h-5 text-slate-400" />
+                <p className="text-sm font-black text-[#1D1B20] dark:text-[#E6E1E5]">{t.language}</p>
+              </div>
+              <div className="flex bg-[#F3EDF7] dark:bg-[#2B2930] p-1.5 rounded-2xl">
+                {(['en', 'bn', 'es'] as Language[]).map(lang => (
+                  <button 
+                    key={lang}
+                    onClick={() => updateSettings({ language: lang })}
+                    className={cn("px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all", language === lang ? "bg-white dark:bg-[#4F378B] text-brand-primary shadow-soft" : "text-slate-500")}
+                  >
+                    {lang.toUpperCase()}
+                  </button>
+                ))}
               </div>
             </div>
           </div>
         </div>
 
         {/* 4. Security & Cloud Management Section */}
-        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 divide-y dark:divide-slate-800 shadow-sm overflow-hidden">
-          <div className="p-5 flex items-center gap-4">
-            <div className="p-2.5 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 rounded-xl">
-              <Shield className="w-5 h-5" />
+        <div className="surface-container overflow-hidden p-0 shadow-soft">
+          <div className="p-6 flex items-center gap-4 bg-black/5 dark:bg-white/5 border-b border-black/5 dark:border-white/5">
+            <div className="p-3 bg-emerald-100 text-emerald-600 rounded-2xl">
+              <Shield className="w-6 h-6" />
             </div>
             <div>
-              <p className="font-bold text-sm tracking-tight">{t.security}</p>
-              <p className="text-xs text-slate-500">PIN, Backup & Data Integrity</p>
+              <p className="font-black text-sm tracking-tight text-emerald-600">{t.security}</p>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 opacity-70">PIN, Backup & Data Integrity</p>
             </div>
           </div>
 
-          {/* PIN Lock */}
-          <div className="p-6 space-y-4">
+          <div className="p-8 space-y-8">
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-bold">{t.screenLock}</p>
-                <p className="text-xs text-slate-500">Require 4-digit PIN to access app</p>
+              <div className="space-y-1">
+                <p className="text-sm font-black text-[#1D1B20] dark:text-[#E6E1E5]">{t.screenLock}</p>
+                <p className="text-xs font-bold text-slate-500 opacity-70">Require 4-digit PIN to access app</p>
               </div>
               <button 
                 type="button"
@@ -760,28 +699,28 @@ const SettingsView = ({
                   triggerToast();
                 }}
                 className={cn(
-                  "w-12 h-6 rounded-full transition-colors relative",
-                  companyForm.isPinEnabled ? "bg-indigo-600" : "bg-slate-200 dark:bg-slate-800"
+                  "w-16 h-8 rounded-full transition-all relative p-1",
+                  companyForm.isPinEnabled ? "bg-brand-primary" : "bg-slate-200 dark:bg-slate-700"
                 )}
               >
                 <div className={cn(
-                  "absolute top-1 w-4 h-4 rounded-full bg-white transition-all",
-                  companyForm.isPinEnabled ? "right-1" : "left-1"
+                  "w-6 h-6 rounded-full bg-white transition-all shadow-sm",
+                  companyForm.isPinEnabled ? "translate-x-8" : "translate-x-0"
                 )} />
               </button>
             </div>
 
             {companyForm.isPinEnabled && (
-              <div className="flex items-center gap-4 pt-2">
-                <div className="flex-1 space-y-1">
-                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">{t.setPin}</label>
+              <div className="pt-4 flex items-center gap-4 animate-in slide-in-from-top-2">
+                <div className="flex-1 space-y-2">
+                  <label className="stat-label">{(t as any).setPin || 'Set PIN'}</label>
                   <input 
                     type="text" 
                     maxLength={4}
                     pattern="\d{4}"
                     value={companyForm.securityPin}
                     onChange={e => setCompanyForm({...companyForm, securityPin: e.target.value.replace(/\D/g, '')})}
-                    className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 text-sm font-bold tracking-[0.5em] border border-transparent dark:border-slate-700"
+                    className="w-full px-6 py-4 rounded-2xl bg-[#F3EDF7] dark:bg-[#2B2930] border-none focus:ring-4 focus:ring-brand-primary/20 outline-none font-black tracking-[1em] text-center text-2xl"
                     placeholder="XXXX"
                   />
                 </div>
@@ -790,22 +729,24 @@ const SettingsView = ({
                     await updateSettings({ securityPin: companyForm.securityPin });
                     triggerToast();
                   }}
-                  className="mt-5 p-3 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 rounded-xl"
+                  className="mt-8 p-5 bg-brand-primary text-white rounded-2xl shadow-lg active:scale-95"
                 >
-                  <Save className="w-5 h-5" />
+                  <Save className="w-6 h-6" />
                 </button>
               </div>
             )}
           </div>
 
-          {/* Offline Mode Toggle */}
-          <div className="p-6">
+          <div className="p-8 border-t border-black/5 dark:border-white/5 space-y-8">
+            {/* Offline Mode Toggle */}
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <Smartphone className="w-5 h-5 text-indigo-600" />
+              <div className="flex items-center gap-4">
+                <div className="p-3 bg-brand-primary/5 text-brand-primary rounded-2xl">
+                  <Smartphone className="w-6 h-6" />
+                </div>
                 <div>
-                  <p className="text-sm font-bold">Offline Mode Only</p>
-                  <p className="text-xs text-slate-500">Disable automatic cloud syncing</p>
+                  <p className="text-sm font-black text-[#1D1B20] dark:text-[#E6E1E5]">Offline Mode Only</p>
+                  <p className="text-xs font-bold text-slate-500 opacity-70">Disable automatic cloud syncing</p>
                 </div>
               </div>
               <button 
@@ -817,72 +758,71 @@ const SettingsView = ({
                   triggerToast();
                 }}
                 className={cn(
-                  "w-12 h-6 rounded-full transition-colors relative",
-                  companyForm.offlineMode ? "bg-rose-500" : "bg-slate-200 dark:bg-slate-800"
+                  "w-16 h-8 rounded-full transition-all relative p-1",
+                  companyForm.offlineMode ? "bg-rose-500" : "bg-slate-200 dark:bg-slate-700"
                 )}
               >
                 <div className={cn(
-                  "absolute top-1 w-4 h-4 rounded-full bg-white transition-all",
-                  companyForm.offlineMode ? "right-1" : "left-1"
+                  "w-6 h-6 rounded-full bg-white transition-all shadow-sm",
+                  companyForm.offlineMode ? "translate-x-8" : "translate-x-0"
                 )} />
               </button>
             </div>
-          </div>
 
-          {/* Cloud Sync */}
-          <div className="p-6 space-y-6">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className="p-3 bg-indigo-600 text-white rounded-2xl shadow-lg shadow-indigo-500/20">
-                  <CloudUpload className="w-5 h-5" />
+            {/* Cloud Sync */}
+            <div className="pt-8 border-t border-black/5 dark:border-white/5 space-y-8">
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
+                <div className="flex items-center gap-5">
+                  <div className="p-4 bg-brand-primary text-white rounded-3xl shadow-lg shadow-brand-primary/20">
+                    <CloudUpload className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <p className="font-black text-sm tracking-tight text-[#1D1B20] dark:text-[#E6E1E5]">Cloud Ecosystem</p>
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 opacity-70">Secure Google Cloud Architecture</p>
+                  </div>
+                </div>
+                <div className="flex gap-3 w-full sm:w-auto">
+                  <button 
+                    onClick={handleCloudRestore}
+                    disabled={isRestoring || isSyncing}
+                    className="flex-1 sm:flex-none px-6 py-3 bg-black/5 dark:bg-white/5 rounded-full text-[10px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-400 hover:bg-slate-100 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                  >
+                    {isRestoring ? <RefreshCw className="w-3 h-3 animate-spin" /> : <CloudDownload className="w-4 h-4" />}
+                    Restore
+                  </button>
+                  <button 
+                    onClick={handleCloudBackup}
+                    disabled={isSyncing || isRestoring}
+                    className="flex-1 sm:flex-none px-8 py-3 bg-brand-primary text-white rounded-full text-[10px] font-black uppercase tracking-widest hover:brightness-110 transition-all shadow-lg shadow-brand-primary/20 active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2"
+                  >
+                    {isSyncing ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Save className="w-4 h-4" />}
+                    Backup
+                  </button>
+                </div>
+              </div>
+
+              {/* Local Sync/Export */}
+              <div className="pt-8 border-t border-black/5 dark:border-white/5 flex flex-col sm:flex-row items-center justify-between gap-6">
+              <div className="flex items-center gap-5">
+                <div className="p-3.5 bg-black/5 dark:bg-white/5 text-slate-500 rounded-2xl">
+                  <RefreshCw className="w-6 h-6" />
                 </div>
                 <div>
-                  <p className="font-bold text-sm tracking-tight">Cloud Ecosystem</p>
-                  <p className="text-xs text-slate-500">Sync data to your secure Google Cloud</p>
+                  <p className="font-black text-sm tracking-tight text-[#1D1B20] dark:text-[#E6E1E5]">Direct Data Portability</p>
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 opacity-70">JSON Encrypted Architecture</p>
                 </div>
               </div>
-              <div className="flex gap-2">
-                <button 
-                  onClick={handleCloudRestore}
-                  disabled={isRestoring || isSyncing}
-                  className="px-4 py-2 bg-slate-100 dark:bg-slate-800 rounded-xl text-[10px] font-bold uppercase tracking-widest text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all disabled:opacity-50 flex items-center gap-2"
-                >
-                  {isRestoring ? <RefreshCw className="w-3 h-3 animate-spin" /> : <CloudDownload className="w-3 h-3" />}
-                  Restore
-                </button>
-                <button 
-                  onClick={handleCloudBackup}
-                  disabled={isSyncing || isRestoring}
-                  className="px-4 py-2 bg-indigo-600 text-white rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-indigo-700 transition-all shadow-sm active:scale-95 disabled:opacity-50 flex items-center gap-2"
-                >
-                  {isSyncing ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />}
-                  Backup
-                </button>
-              </div>
-            </div>
-
-            {/* Local Sync/Export */}
-            <div className="pt-6 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className="p-2.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-xl">
-                  <RefreshCw className="w-5 h-5" />
-                </div>
-                <div>
-                  <p className="font-bold text-sm tracking-tight">Direct Data Portability</p>
-                  <p className="text-xs text-slate-500">Import/Export via JSON files</p>
-                </div>
-              </div>
-              <div className="flex gap-2">
-                <label className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 rounded-lg text-[10px] font-bold uppercase tracking-widest text-slate-600 dark:text-slate-400 hover:bg-slate-200 transition-all cursor-pointer flex items-center gap-2">
-                  <CloudDownload className="w-3 h-3" />
+              <div className="flex gap-3 w-full sm:w-auto">
+                <label className="flex-1 sm:flex-none px-6 py-3 bg-black/5 dark:bg-white/5 rounded-full text-[10px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-400 hover:bg-black/10 transition-all cursor-pointer flex items-center justify-center gap-2">
+                  <CloudDownload className="w-4 h-4" />
                   Import
                   <input type="file" accept=".json" className="hidden" onChange={importData} />
                 </label>
                 <button 
                   onClick={exportData}
-                  className="px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-[10px] font-bold uppercase tracking-widest hover:bg-indigo-700 transition-all flex items-center gap-2"
+                  className="flex-1 sm:flex-none px-6 py-3 bg-brand-primary text-white rounded-full text-[10px] font-black uppercase tracking-widest hover:brightness-110 transition-all shadow-lg shadow-brand-primary/20 flex items-center justify-center gap-2"
                 >
-                  <CloudUpload className="w-3 h-3" />
+                  <CloudUpload className="w-4 h-4" />
                   Export
                 </button>
               </div>
@@ -891,55 +831,83 @@ const SettingsView = ({
         </div>
 
         {/* 5. Area Management Section */}
-        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
-          <div className="p-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="p-2.5 bg-rose-50 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 rounded-xl">
-                <MapPin className="w-5 h-5" />
-              </div>
-              <div>
-                <p className="font-bold text-sm tracking-tight">{language === 'en' ? 'Operational Areas' : 'পরিচালনা অঞ্চল'}</p>
-                <p className="text-xs text-slate-500">Configure regions for logistics</p>
-              </div>
+        <div className="surface-container overflow-hidden p-0 shadow-soft">
+          <div className="p-6 flex items-center gap-4 bg-black/5 dark:bg-white/5 border-b border-black/5 dark:border-white/5">
+            <div className="p-3 bg-brand-tertiary/10 text-brand-tertiary rounded-2xl">
+              <MapPin className="w-6 h-6" />
+            </div>
+            <div>
+              <p className="font-black text-sm tracking-tight text-brand-tertiary">{language === 'en' ? 'Operational Areas' : 'পরিচালনা অঞ্চল'}</p>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 opacity-70">Configure Logistics Clusters</p>
             </div>
             <button 
               onClick={() => setIsAddingArea(true)}
-              className="p-2 bg-rose-50 dark:bg-rose-900/40 text-rose-600 rounded-lg hover:bg-rose-100 transition-colors"
+              className="ml-auto p-3 bg-brand-tertiary text-white rounded-full shadow-lg active:scale-90"
             >
-              <Plus className="w-4 h-4" />
+              <Plus className="w-5 h-5" />
             </button>
           </div>
           
-          <div className="divide-y dark:divide-slate-800 max-h-60 overflow-y-auto">
+          <div className="divide-y divide-black/5 dark:divide-white/5 max-h-80 overflow-y-auto custom-scrollbar">
             {areas?.map(area => (
-              <div key={area.id} className="p-4 flex items-center justify-between group hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
-                <div className="flex items-center gap-3">
-                  <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: area.color }} />
-                  <span className="text-sm font-bold text-slate-700 dark:text-slate-300">{area.name}</span>
+              <div key={area.id} className="p-5 flex items-center justify-between group hover:bg-black/5 dark:hover:bg-white/5 transition-all">
+                <div className="flex items-center gap-4">
+                  <div className="w-4 h-4 rounded-full border-2 border-white dark:border-[#1D1B20] shadow-sm" style={{ backgroundColor: area.color }} />
+                  <span className="text-base font-black text-[#49454F] dark:text-[#E6E1E5]">{area.name}</span>
                 </div>
-                <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className="flex gap-2">
                   <button 
                     onClick={() => setEditingArea(area)}
-                    className="p-1.5 text-slate-400 hover:text-indigo-600 transition-colors"
+                    className="p-3 bg-[#F3EDF7] dark:bg-[#2B2930] rounded-full text-[#6750A4] dark:text-[#D0BCFF] hover:brightness-95 transition-all active:scale-90"
                   >
-                    <Edit2 className="w-3.5 h-3.5" />
+                    <Edit2 className="w-4 h-4" />
                   </button>
                   <button 
                     onClick={() => deleteArea(area.id!)}
-                    className="p-1.5 text-slate-400 hover:text-rose-600 transition-colors"
+                    className="p-3 bg-rose-50 rounded-full text-rose-500 hover:bg-rose-100 transition-all active:scale-90"
                   >
-                    <Trash2 className="w-3.5 h-3.5" />
+                    <Trash2 className="w-4 h-4" />
                   </button>
                 </div>
               </div>
             ))}
             {(!areas || areas.length === 0) && (
-              <div className="p-8 text-center text-slate-400 text-xs font-medium italic">
-                No active regions. Assign zones to get started.
+              <div className="p-12 text-center text-slate-400">
+                <MapPin className="w-12 h-12 mx-auto mb-4 opacity-10" />
+                <p className="text-xs font-black uppercase tracking-widest opacity-50">No clusters detected</p>
               </div>
             )}
           </div>
         </div>
+
+        {/* 6. Legal & Intelligence Footer */}
+        <div className="pt-12 pb-8 flex flex-col items-center gap-8 justify-center border-t border-black/5 dark:border-white/5">
+          <div className="flex flex-col items-center gap-4">
+             <Logo className="w-12 h-12 grayscale opacity-20" />
+             <div className="text-center">
+                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">SyncForce Intelligence Engine</p>
+                <p className="text-[8px] font-bold text-slate-300 mt-1 uppercase tracking-widest">Version 2.4.0 • Enterprise Core • Protected by Cryptographic Architecture</p>
+             </div>
+          </div>
+
+          <div className="flex flex-wrap justify-center gap-4">
+             <button 
+                onClick={() => setIsFeedbackOpen(true)}
+                className="flex items-center gap-2 px-6 py-2 bg-black/5 dark:bg-white/5 rounded-full text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-brand-primary hover:bg-black/10 transition-all"
+             >
+                <MessageSquare className="w-3.5 h-3.5" />
+                Transmit Feedback
+             </button>
+             <button 
+                onClick={clearDatabase}
+                className="flex items-center gap-2 px-6 py-2 bg-rose-50/50 dark:bg-rose-900/5 rounded-full text-[10px] font-black uppercase tracking-widest text-rose-400 hover:text-rose-600 hover:bg-rose-50 transition-all"
+             >
+                <X className="w-3.5 h-3.5" />
+                Purge Intelligence
+             </button>
+          </div>
+        </div>
+      </div>
 
         {isAddingArea && (
           <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">

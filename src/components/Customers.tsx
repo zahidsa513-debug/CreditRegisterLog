@@ -296,14 +296,14 @@ const Customers = ({ redEyeActive }: { redEyeActive?: boolean }) => {
         </div>
         <button 
           onClick={() => setIsModalOpen(true)}
-          className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition shadow-lg shadow-indigo-200 dark:shadow-none active:scale-95"
+          className="md-btn-primary flex items-center gap-2"
         >
           <Plus className="w-4 h-4" />
           {t.addCustomer}
         </button>
         <button 
           onClick={generateMasterCreditReport}
-          className="flex items-center gap-2 px-5 py-2.5 bg-emerald-600 text-white rounded-xl font-bold hover:bg-emerald-700 transition shadow-lg shadow-emerald-200 dark:shadow-none active:scale-95"
+          className="px-6 py-3 bg-brand-tertiary text-white rounded-full font-bold shadow-soft hover:brightness-110 active:scale-95 transition-all flex items-center gap-2"
         >
           <Download className="w-4 h-4" />
           {language === 'en' ? 'Master Report' : 'মাস্টার রিপোর্ট'}
@@ -311,70 +311,70 @@ const Customers = ({ redEyeActive }: { redEyeActive?: boolean }) => {
       </div>
 
     <div className="relative group">
-        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4 group-focus-within:text-indigo-500 transition-colors" />
+        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4 group-focus-within:text-brand-primary transition-colors" />
         <input 
           type="text"
           placeholder={t.search}
           value={searchQuery}
           onChange={e => setSearchQuery(e.target.value)}
-          className="w-full bg-white border border-slate-100 pl-11 pr-5 py-3 rounded-xl shadow-sm outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all font-medium text-sm"
+          className="w-full bg-[#F3EDF7] dark:bg-[#2B2930] pl-11 pr-5 py-3.5 rounded-full outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-medium text-sm border border-transparent"
         />
       </div>
 
-      <div className="bg-white rounded-2xl border border-slate-100 shadow-soft overflow-hidden">
+      <div className="surface-container overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left">
             <thead>
-              <tr className="bg-slate-50/50">
-                <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">{t.customers}</th>
-                <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">{t.areas}</th>
-                <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">{t.balance}</th>
+              <tr className="bg-black/5 dark:bg-white/5">
+                <th className="px-6 py-4 stat-label">{t.customers}</th>
+                <th className="px-6 py-4 stat-label">{t.areas}</th>
+                <th className="px-6 py-4 stat-label">{t.balance}</th>
                 <th className="px-6 py-4"></th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-black/5 dark:divide-white/5">
               {filteredCustomers?.map((customer) => {
                 const area = areas?.find(a => a.id === customer.areaId);
                 const balance = (customer.debit || 0) - (customer.credit || 0);
                 return (
-                  <tr key={customer.id} className="hover:bg-slate-50/80 transition-colors cursor-pointer group">
+                  <tr key={customer.id} className="hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer group">
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
                         {customer.customerPhoto ? (
                           <img 
                             src={customer.customerPhoto} 
                             alt={customer.name} 
-                            className="w-9 h-9 rounded-full object-cover border border-slate-100"
+                            className="w-10 h-10 rounded-full object-cover border border-black/5"
                           />
                         ) : customer.shopImage ? (
                           <img 
                             src={customer.shopImage} 
                             alt={customer.shopName} 
-                            className="w-9 h-9 rounded-lg object-cover border border-slate-100"
+                            className="w-10 h-10 rounded-2xl object-cover border border-black/5"
                           />
                         ) : (
-                          <div className="w-9 h-9 bg-indigo-50 text-indigo-600 rounded-lg flex items-center justify-center font-bold font-display text-sm">
+                          <div className="w-10 h-10 bg-[#EADDFF] text-[#21005D] rounded-2xl flex items-center justify-center font-bold font-display text-sm">
                             {customer.name.charAt(0)}
                           </div>
                         )}
                         <div>
-                          <p className={cn("font-bold text-slate-900 leading-tight", redEyeActive && "blur-sm")}>{customer.name} <span className="text-[10px] text-slate-400 font-normal">({customer.shopName || 'No Shop'})</span></p>
-                          <p className="text-[11px] text-slate-400 mt-0.5 flex items-center">
+                          <p className={cn("font-bold text-[#1D1B20] dark:text-[#E6E1E5] leading-tight", redEyeActive && "blur-sm")}>{customer.name} <span className="text-[10px] text-slate-500 font-normal">({customer.shopName || 'No Shop'})</span></p>
+                          <p className="text-[11px] text-slate-500 mt-0.5 flex items-center">
                             <Phone className="w-3 h-3 mr-1 opacity-70" /> {customer.phone}
                           </p>
                         </div>
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <span className="inline-flex items-center px-2 py-0.5 bg-slate-100 rounded text-[11px] font-bold uppercase tracking-tight text-slate-600">
-                        <MapPin className="w-3 h-3 mr-1 text-indigo-500 opacity-70" />
+                      <span className="inline-flex items-center px-2 py-0.5 bg-brand-primary/10 rounded text-[11px] font-bold uppercase tracking-tight text-brand-primary">
+                        <MapPin className="w-3 h-3 mr-1 opacity-70" />
                         {area?.name || 'N/A'}
                       </span>
                     </td>
                     <td className="px-6 py-4">
                       <span className={cn(
                         "px-2 py-0.5 rounded text-[11px] font-bold",
-                        balance > 0 ? "bg-rose-50 text-rose-600" : "bg-emerald-50 text-emerald-600",
+                        balance > 0 ? "bg-rose-100 text-rose-700" : "bg-emerald-100 text-emerald-700",
                         redEyeActive && "blur-sm"
                       )}>
                         {formatCurrency(balance, currency)}
@@ -434,8 +434,8 @@ const Customers = ({ redEyeActive }: { redEyeActive?: boolean }) => {
       </div>
 
       {isModalOpen && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm overflow-y-auto">
-          <div className="bg-white dark:bg-slate-900 w-full max-w-2xl rounded-[2.5rem] p-8 shadow-2xl my-8">
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/40 backdrop-blur-md overflow-y-auto">
+          <div className="bg-[#FEF7FF] dark:bg-[#1D1B20] w-full max-w-2xl rounded-[2.5rem] p-8 shadow-2xl my-8">
             <div className="flex items-center justify-between mb-8">
               <div>
                 <h3 className="text-2xl font-display font-bold">{editingCustomer ? t.editCustomer : t.addCustomer}</h3>
@@ -447,44 +447,44 @@ const Customers = ({ redEyeActive }: { redEyeActive?: boolean }) => {
                   setEditingCustomer(null);
                   setNewCustomer(initialCustomerState);
                 }}
-                className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl"
+                className="p-3 hover:bg-black/5 dark:hover:bg-white/5 rounded-full"
               >
                 <X className="w-6 h-6 text-slate-400" />
               </button>
             </div>
 
-            <form onSubmit={handleAddCustomer} className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <form onSubmit={handleAddCustomer} className="space-y-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 {/* Shop Section */}
                 <div className="space-y-4">
-                  <h4 className="text-[10px] font-bold text-indigo-500 uppercase tracking-widest flex items-center gap-2">
-                    <Store className="w-3 h-3" /> {language === 'en' ? 'Shop Information' : 'দোকানের তথ্য'}
+                  <h4 className="stat-label flex items-center gap-2 text-brand-primary">
+                    <Store className="w-4 h-4" /> {language === 'en' ? 'Shop Information' : 'দোকানের তথ্য'}
                   </h4>
                   
                   <div className="space-y-2">
-                    <label className="text-xs font-bold text-slate-400 pl-1 uppercase tracking-tight">{language === 'en' ? 'Shop Name' : 'দোকানের নাম'}</label>
+                    <label className="stat-label pl-1">{language === 'en' ? 'Shop Name' : 'দোকানের নাম'}</label>
                     <div className="relative">
-                      <Store className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" />
+                      <Store className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                       <input 
                         required
                         type="text" 
                         value={newCustomer.shopName}
                         onChange={e => setNewCustomer({...newCustomer, shopName: e.target.value})}
-                        className="w-full pl-11 pr-4 py-3 bg-slate-50 dark:bg-slate-800 rounded-xl border-none focus:ring-2 focus:ring-indigo-500 outline-none text-sm"
+                        className="w-full pl-11 pr-4 py-3 bg-[#F3EDF7] dark:bg-[#2B2930] rounded-2xl border-none focus:ring-2 focus:ring-brand-primary outline-none text-sm"
                         placeholder="Ex: Rahman Traders"
                       />
                     </div>
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-xs font-bold text-slate-400 pl-1 uppercase tracking-tight">{language === 'en' ? 'Area' : 'এলাকা'}</label>
+                    <label className="stat-label pl-1">{language === 'en' ? 'Area' : 'এলাকা'}</label>
                     <div className="relative">
-                      <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" />
+                      <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                       <select 
                         required
                         value={newCustomer.areaId}
                         onChange={e => setNewCustomer({...newCustomer, areaId: Number(e.target.value)})}
-                        className="w-full pl-11 pr-4 py-3 bg-slate-50 dark:bg-slate-800 rounded-xl border-none focus:ring-2 focus:ring-indigo-500 outline-none text-sm appearance-none"
+                        className="w-full pl-11 pr-4 py-3 bg-[#F3EDF7] dark:bg-[#2B2930] rounded-2xl border-none focus:ring-2 focus:ring-brand-primary outline-none text-sm appearance-none"
                       >
                         <option value={0}>Select Area</option>
                         {areas?.map(area => (

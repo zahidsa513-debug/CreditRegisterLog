@@ -12,28 +12,48 @@ export default defineConfig(({mode}) => {
       tailwindcss(),
       VitePWA({
         registerType: 'autoUpdate',
-        includeAssets: ['logo.png'],
-        workbox: {
-          maximumFileSizeToCacheInBytes: 5 * 1024 * 1024, // 5MB
-        },
+        includeAssets: ['favicon.ico', 'robots.txt', 'apple-touch-icon.png'],
         manifest: {
           name: 'Credit Register - Smart Shop Ledger',
           short_name: 'CreditReg',
-          description: 'Smart shop ledger for credit and sales management',
-          theme_color: '#4f46e5',
-          background_color: '#ffffff',
+          description: 'Premium shop ledger for credit and sales management with Material Design 3',
+          theme_color: '#6750A4',
+          background_color: '#FEF7FF',
           display: 'standalone',
+          orientation: 'portrait',
+          categories: ['business', 'finance'],
           icons: [
             {
               src: 'https://cdn-icons-png.flaticon.com/512/2830/2830305.png',
               sizes: '192x192',
-              type: 'image/png'
+              type: 'image/png',
+              purpose: 'any'
             },
             {
               src: 'https://cdn-icons-png.flaticon.com/512/2830/2830305.png',
               sizes: '512x512',
               type: 'image/png',
               purpose: 'any maskable'
+            }
+          ]
+        },
+        workbox: {
+          globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
+          maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
+          runtimeCaching: [
+            {
+              urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
+              handler: 'CacheFirst',
+              options: {
+                cacheName: 'google-fonts-cache',
+                expiration: {
+                  maxEntries: 10,
+                  maxAgeSeconds: 60 * 60 * 24 * 365 // <== 365 days
+                },
+                cacheableResponse: {
+                  statuses: [0, 200]
+                }
+              }
             }
           ]
         }

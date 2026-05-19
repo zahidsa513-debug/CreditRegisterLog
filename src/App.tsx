@@ -197,12 +197,12 @@ const App = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#F5F5F5] text-slate-900">
+    <div className="min-h-screen bg-[#FEF7FF] dark:bg-[#1C1B1F] text-[#1D1B20] dark:text-[#E6E1E5]">
       {/* Mobile Header */}
-      <header className="lg:hidden flex items-center justify-between p-4 bg-white border-b border-slate-100 sticky top-0 z-40">
+      <header className="lg:hidden flex items-center justify-between p-4 bg-[#F3EDF7] dark:bg-[#2B2930] sticky top-0 z-40">
         <div className="flex items-center gap-2">
           <Logo size="sm" className="shadow-md" />
-          <span className="font-display font-bold text-lg text-slate-800">Credit<span className="text-[#00C853]">Register</span></span>
+          <span className="font-display font-bold text-lg text-brand-primary">Credit<span className="text-[#1D1B20] dark:text-white">Register</span></span>
         </div>
         <div className="flex items-center gap-3">
           <SyncStatus className="hidden sm:flex" />
@@ -210,7 +210,7 @@ const App = () => {
             onClick={() => setRedEyeActive(!redEyeActive)}
             className={cn(
               "p-2 rounded-xl transition-all",
-              redEyeActive ? "bg-rose-500 text-white shadow-lg shadow-rose-500/20" : "bg-slate-100 text-slate-500"
+              redEyeActive ? "bg-rose-600 text-white shadow-lg shadow-rose-600/20" : "bg-white/50 text-slate-500"
             )}
             title={redEyeActive ? "Privacy Mode ON" : "Privacy Mode OFF"}
           >
@@ -218,7 +218,7 @@ const App = () => {
           </button>
           <button 
             onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-            className="p-2 rounded-lg hover:bg-slate-100"
+            className="p-2 rounded-lg hover:bg-black/5"
           >
             {isSidebarOpen ? <X /> : <Menu />}
           </button>
@@ -228,19 +228,19 @@ const App = () => {
       <div className="flex h-[calc(100vh-64px)] lg:h-screen">
         {/* Sidebar */}
         <aside className={cn(
-          "fixed inset-y-0 left-0 z-50 w-64 bg-slate-900 text-white flex flex-col shrink-0 transform lg:relative lg:translate-x-0 transition-transform duration-300 ease-in-out",
+          "fixed inset-y-0 left-0 z-50 w-72 bg-[#1D1B20] text-[#E6E1E5] flex flex-col shrink-0 transform lg:relative lg:translate-x-0 transition-transform duration-300 ease-in-out",
           isSidebarOpen ? "translate-x-0" : "-translate-x-full"
         )}>
-          <div className="p-6 hidden lg:flex flex-col gap-1 border-b border-white/5">
+          <div className="p-8 hidden lg:flex flex-col gap-1 border-b border-white/5">
             <div className="flex items-center gap-3">
               <Logo size="sm" />
-              <h1 className="font-display font-bold text-xl tracking-tight leading-tight">Credit<span className="text-[#00C853]">Register</span></h1>
+              <h1 className="font-display font-bold text-2xl tracking-tight leading-tight">Credit<span className="text-[#D0BCFF]">Register</span></h1>
             </div>
-            <p className="text-[10px] text-slate-500 font-medium tracking-wide">Track Smarter, Grow Faster</p>
+            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">Smart Shop Ledger</p>
           </div>
 
-          <nav className="mt-4 px-4 space-y-1">
-            <div className="px-3 mb-4">
+          <nav className="mt-6 px-4 space-y-2">
+            <div className="px-3 mb-6">
               <SyncStatus />
             </div>
             {navItems.map((item) => (
@@ -251,34 +251,42 @@ const App = () => {
                   setIsSidebarOpen(false);
                 }}
                 className={cn(
-                  "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 group text-sm",
+                  "w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all duration-200 group text-sm relative overflow-hidden",
                   activeTab === item.id 
-                    ? "bg-gradient-to-r from-[#00C853] to-[#FF9800] text-white shadow-lg shadow-green-500/20 font-semibold" 
-                    : "text-slate-400 hover:text-white hover:bg-slate-800"
+                    ? "bg-[#4F378B] text-[#EADDFF] font-black shadow-lg shadow-black/20" 
+                    : "text-[#CAC4D0] hover:text-white hover:bg-white/5"
                 )}
               >
-                <item.icon className={cn("w-5 h-5", activeTab === item.id ? "text-white" : "text-slate-500 group-hover:text-slate-300")} />
+                {activeTab === item.id && (
+                  <motion.div 
+                    layoutId="nav-active" 
+                    className="absolute left-0 w-1.5 h-6 bg-[#D0BCFF] rounded-r-full" 
+                  />
+                )}
+                <item.icon className={cn("w-5 h-5", activeTab === item.id ? "text-[#D0BCFF]" : "text-[#938F99] group-hover:text-slate-300")} />
                 <span>{item.label}</span>
               </button>
             ))}
           </nav>
 
-          <div className="mt-auto p-4 bg-slate-800/50 m-4 rounded-xl border border-white/5">
-            <p className="text-[10px] text-slate-400 mb-2 uppercase tracking-widest font-bold">{t.monthlyTarget}</p>
-            <div className="flex justify-between text-[11px] mb-1 font-medium">
+          <div className="mt-auto p-6 bg-white/5 m-6 rounded-3xl border border-white/10">
+            <p className="stat-label text-slate-400 mb-3">{t.monthlyTarget}</p>
+            <div className="flex justify-between text-[11px] mb-2 font-bold">
               <span>{progressPercent}% {t.completed}</span>
-              <span className="text-slate-500">{currency} {remaining.toLocaleString()} {t.left}</span>
+              <span className="text-[#D0BCFF]">{currency} {remaining.toLocaleString()} {t.left}</span>
             </div>
-            <div className="w-full bg-slate-700 h-1.5 rounded-full overflow-hidden">
-              <div 
-                className="bg-gradient-to-r from-[#00C853] to-[#FF9800] h-full transition-all duration-1000" 
-                style={{ width: `${progressPercent}%` }} 
+            <div className="w-full bg-white/10 h-2 rounded-full overflow-hidden">
+              <motion.div 
+                initial={{ width: 0 }}
+                animate={{ width: `${progressPercent}%` }}
+                className="bg-[#D0BCFF] h-full" 
+                transition={{ duration: 1.5, ease: "easeOut" }}
               />
             </div>
           </div>
 
-          <div className="p-4 border-t border-slate-800 flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full overflow-hidden bg-slate-700 flex items-center justify-center text-xs font-bold ring-2 ring-slate-700 shrink-0">
+          <div className="p-6 border-t border-white/5 flex items-center gap-4">
+            <div className="w-10 h-10 rounded-2xl overflow-hidden bg-[#4F378B] flex items-center justify-center text-xs font-black ring-2 ring-white/10 shrink-0">
               {firebaseProfile?.avatar ? (
                 <img src={firebaseProfile.avatar} alt="avatar" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
               ) : (
@@ -286,30 +294,30 @@ const App = () => {
               )}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium truncate">{firebaseProfile?.name || 'User'}</p>
-              <p className="text-[10px] text-[#1976D2] uppercase font-bold tracking-wider truncate leading-none mb-0.5">{firebaseProfile?.designation || (firebaseProfile?.email || 'Admin')}</p>
+              <p className="text-sm font-bold truncate">{firebaseProfile?.name || 'User'}</p>
+              <p className="text-[10px] text-[#D0BCFF] uppercase font-black tracking-widest truncate leading-none mt-1 opacity-80">{firebaseProfile?.designation || (firebaseProfile?.email || 'Admin')}</p>
             </div>
-            <button className="text-[10px] font-bold px-1.5 py-0.5 bg-slate-700 rounded text-slate-300 uppercase shrink-0">{language}</button>
+            <button className="text-[10px] font-black px-2 py-1 bg-white/10 rounded-lg text-[#D0BCFF] uppercase shrink-0 border border-white/10">{language}</button>
           </div>
         </aside>
 
         {/* Global Overlay for Mobile */}
         {isSidebarOpen && (
           <div 
-            className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-40 lg:hidden"
+            className="fixed inset-0 bg-[#1D1B20]/60 backdrop-blur-md z-40 lg:hidden"
             onClick={() => setIsSidebarOpen(false)}
           />
         )}
 
         {/* Main Content */}
-        <main className="flex-1 overflow-y-auto bg-[#F5F5F5] p-6 lg:p-8">
+        <main className="flex-1 overflow-y-auto bg-[#FEF7FF] dark:bg-[#1C1B1F] p-6 lg:p-10">
           <AnimatePresence mode="wait">
             <motion.div
               key={activeTab}
-              initial={{ y: 20, opacity: 0 }}
+              initial={{ y: 15, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
-              exit={{ y: -20, opacity: 0 }}
-              transition={{ duration: 0.2 }}
+              exit={{ y: -15, opacity: 0 }}
+              transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
             >
               {renderContent()}
             </motion.div>

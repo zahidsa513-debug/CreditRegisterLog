@@ -409,180 +409,182 @@ const CustomerProfile = ({ redEyeActive }: { redEyeActive?: boolean }) => {
     const balance = (selectedCustomer.debit || 0) - (selectedCustomer.credit || 0);
 
     return (
-      <div className="space-y-8 pb-12">
-        <div className="flex flex-col md:flex-row md:items-center gap-4 bg-white p-4 rounded-[2rem] border border-slate-100 shadow-soft">
+      <div className="space-y-10 pb-16">
+        <div className="flex flex-col md:flex-row md:items-center gap-6 surface-container p-6 shadow-soft">
           <button 
             onClick={() => setSelectedCustomer(null)}
-            className="p-3 bg-slate-50 hover:bg-indigo-50 text-slate-500 hover:text-indigo-600 rounded-2xl transition-all"
+            className="p-4 bg-black/5 dark:bg-white/5 hover:bg-brand-primary/10 text-slate-500 hover:text-brand-primary rounded-full transition-all active:scale-90"
           >
-            <ChevronRight className="w-6 h-6 rotate-180" />
+            <ChevronRight className="w-7 h-7 rotate-180" />
           </button>
-          <div className="flex-1 flex flex-col md:flex-row md:items-center gap-4">
-            <div className="flex items-center gap-4">
-              <div className="w-14 h-14 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center font-black text-2xl shadow-inner overflow-hidden">
+          <div className="flex-1 flex flex-col md:flex-row md:items-center gap-6">
+            <div className="flex items-center gap-5">
+              <div className="w-20 h-20 bg-brand-primary/5 text-brand-primary rounded-3xl flex items-center justify-center font-black text-3xl shadow-inner overflow-hidden border-2 border-brand-primary/20">
                 {selectedCustomer.customerPhoto ? (
                   <img src={selectedCustomer.customerPhoto} alt={selectedCustomer.name} className="w-full h-full object-cover" />
                 ) : selectedCustomer.name.charAt(0)}
               </div>
               <div>
-                <h2 className={cn("text-2xl font-display font-black tracking-tight", redEyeActive && "blur-sm")}>{selectedCustomer.name}</h2>
-                <div className="flex items-center gap-2">
-                  <span className="text-[10px] font-black uppercase tracking-widest text-indigo-500 bg-indigo-50 px-2 py-0.5 rounded-md">{selectedCustomer.shopName || 'Retailer'}</span>
-                  <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">ID: #{selectedCustomer.id}</span>
+                <h2 className={cn("text-3xl font-display font-black tracking-tight text-[#1D1B20] dark:text-[#E6E1E5]", redEyeActive && "blur-sm")}>{selectedCustomer.name}</h2>
+                <div className="flex flex-wrap items-center gap-2 mt-1">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-[#21005D] bg-[#EADDFF] px-3 py-1 rounded-full">{selectedCustomer.shopName || 'Retailer'}</span>
+                  <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 opacity-70">ID: #{selectedCustomer.id} • Registered Oct 24</span>
                 </div>
               </div>
             </div>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-3">
             <button 
               onClick={() => sendWhatsAppReminder(selectedCustomer)}
-              className="px-4 py-3 bg-emerald-500 text-white rounded-2xl hover:bg-emerald-600 transition-all font-black text-[10px] uppercase tracking-widest flex items-center gap-2 shadow-lg shadow-emerald-500/20"
+              className="px-6 py-4 bg-emerald-600 text-white rounded-full hover:brightness-110 transition-all font-black text-[10px] uppercase tracking-widest flex items-center gap-3 shadow-lg shadow-emerald-600/20 active:scale-95"
             >
-              <Phone className="w-4 h-4" /> WhatsApp
+              <Phone className="w-5 h-5" /> WhatsApp
             </button>
             <button 
               onClick={() => generateLedger(selectedCustomer)}
-              className="px-4 py-3 bg-indigo-50 text-indigo-600 rounded-2xl hover:bg-indigo-100 transition-all font-black text-[10px] uppercase tracking-widest flex items-center gap-2"
+              className="px-6 py-4 bg-[#F3EDF7] dark:bg-[#2B2930] text-[#6750A4] dark:text-[#D0BCFF] rounded-full hover:brightness-95 transition-all font-black text-[10px] uppercase tracking-widest flex items-center gap-3 active:scale-95"
             >
-              <FileText className="w-4 h-4" /> Ledger
-            </button>
-            <button 
-              onClick={() => handleEdit(selectedCustomer)}
-              className="px-4 py-3 bg-indigo-50 text-indigo-600 rounded-2xl hover:bg-indigo-100 transition-all font-black text-[10px] uppercase tracking-widest flex items-center gap-2"
-            >
-              <Edit2 className="w-4 h-4" /> Edit
+              <FileText className="w-5 h-5" /> Ledger
             </button>
             <button 
               onClick={() => printFullProfile(selectedCustomer)}
-              className="px-4 py-3 bg-slate-50 text-slate-600 rounded-2xl hover:bg-slate-100 transition-all font-black text-[10px] uppercase tracking-widest flex items-center gap-2"
+              className="px-6 py-4 bg-brand-primary text-white rounded-full hover:brightness-110 transition-all font-black text-[10px] uppercase tracking-widest flex items-center gap-3 shadow-lg shadow-brand-primary/20 active:scale-95"
             >
-              <Printer className="w-4 h-4" /> Export
+              <Printer className="w-5 h-5" /> Full Profile
+            </button>
+            <button 
+              onClick={() => handleEdit(selectedCustomer)}
+              className="p-4 bg-brand-primary/5 dark:bg-brand-primary/10 text-brand-primary rounded-full hover:bg-brand-primary/20 transition-all active:scale-95"
+            >
+              <Edit2 className="w-5 h-5" />
             </button>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="space-y-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
+          <div className="space-y-10">
             <motion.div 
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              className="bg-white rounded-[2.5rem] border border-slate-100 shadow-soft overflow-hidden p-8"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="surface-container p-10 relative overflow-hidden group"
             >
-              <div className="text-center mb-10">
-                <div className="relative inline-block mb-6">
-                  {selectedCustomer.customerPhoto ? (
-                    <img 
-                      src={selectedCustomer.customerPhoto} 
-                      alt="customer" 
-                      className="w-40 h-40 rounded-[2.5rem] object-cover ring-8 ring-slate-50"
-                    />
-                  ) : selectedCustomer.shopImage ? (
-                    <img 
-                      src={selectedCustomer.shopImage} 
-                      alt="shop" 
-                      className="w-40 h-40 rounded-[2.5rem] object-cover ring-8 ring-slate-50"
-                    />
-                  ) : (
-                    <div className="w-40 h-40 bg-gradient-to-br from-indigo-500 to-indigo-600 text-white rounded-[2.5rem] flex items-center justify-center text-5xl font-display font-black shadow-xl">
-                      {selectedCustomer.name.charAt(0)}
+              <div className="absolute top-0 right-0 w-48 h-48 bg-brand-primary/5 rounded-full -mr-24 -mt-24 blur-3xl" />
+              
+              <div className="text-center mb-10 relative z-10">
+                <div className="relative inline-block mb-8">
+                  <div className="w-48 h-48 rounded-[3rem] bg-[#F3EDF7] dark:bg-[#21005D]/20 p-2 border-4 border-[#D0BCFF] dark:border-[#4F378B] shadow-2xl relative">
+                    {selectedCustomer.customerPhoto ? (
+                      <img 
+                        src={selectedCustomer.customerPhoto} 
+                        alt="customer" 
+                        className="w-full h-full rounded-[2.5rem] object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-brand-primary text-white rounded-[2.5rem] flex items-center justify-center text-7xl font-display font-black">
+                        {selectedCustomer.name.charAt(0)}
+                      </div>
+                    )}
+                    <div className="absolute -bottom-4 -right-4 w-16 h-16 bg-[#21005D] text-white rounded-3xl flex items-center justify-center border-4 border-white dark:border-[#1D1B20] shadow-2xl rotate-12 scale-110">
+                      <CheckCircle2 className="w-8 h-8" />
                     </div>
-                  )}
-                  <div className="absolute -bottom-2 -right-2 w-12 h-12 bg-emerald-500 text-white rounded-2xl flex items-center justify-center border-4 border-white shadow-xl">
-                    <User className="w-6 h-6" />
                   </div>
                 </div>
-                <h3 className={cn("text-2xl font-display font-black tracking-tight", redEyeActive && "blur-sm")}>{selectedCustomer.name}</h3>
-                <p className="text-indigo-500 font-black text-[10px] uppercase tracking-[0.2em] mt-1">{selectedCustomer.shopName || 'Store Owner'}</p>
+                <h3 className={cn("text-3xl font-display font-black tracking-tight text-[#1D1B20] dark:text-[#E6E1E5]", redEyeActive && "blur-sm")}>{selectedCustomer.name}</h3>
+                <p className="text-brand-primary font-black text-[10px] uppercase tracking-[0.3em] mt-2 opacity-80">{selectedCustomer.shopName || 'STORE OWNER'}</p>
               </div>
               
-              <div className="grid grid-cols-2 gap-4 mb-8">
-                <div className="p-5 rounded-[1.5rem] bg-slate-50 border border-slate-100">
+              <div className="grid grid-cols-2 gap-4 mb-10">
+                <div className="p-6 rounded-[2rem] bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/5 shadow-inner">
                   <p className="stat-label">Balance</p>
-                  <p className={cn("text-xl font-black mt-1", balance > 0 ? "text-rose-600" : "text-emerald-600", redEyeActive && "blur-sm")}>
+                  <p className={cn("text-2xl font-black mt-2", balance > 0 ? "text-rose-600" : "text-emerald-600", redEyeActive && "blur-sm")}>
                     {formatCurrency(balance, currency)}
                   </p>
                 </div>
-                <div className="p-5 rounded-[1.5rem] bg-slate-50 border border-slate-100">
-                  <p className="stat-label">Area</p>
-                  <p className="text-sm font-black text-slate-800 mt-2 truncate">
-                    {area?.name || 'N/A'}
+                <div className="p-6 rounded-[2rem] bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/5 shadow-inner">
+                  <p className="stat-label">Cluster</p>
+                  <p className="text-sm font-black text-brand-primary mt-3 truncate uppercase tracking-widest">
+                    {area?.name || 'GENERIC'}
                   </p>
                 </div>
               </div>
 
-              <div className="space-y-3">
-                <a href={`tel:${selectedCustomer.phone}`} className="flex items-center gap-4 p-4 bg-slate-50 rounded-2xl border border-slate-100 hover:border-indigo-200 transition-all group">
-                  <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center text-indigo-500 shadow-sm border border-slate-100 group-hover:scale-110 transition-transform">
-                    <Phone className="w-5 h-5" />
+              <div className="space-y-4">
+                <a href={`tel:${selectedCustomer.phone}`} className="flex items-center gap-5 p-5 bg-[#F3EDF7] dark:bg-[#2B2930] rounded-3xl border border-transparent hover:border-brand-primary/20 transition-all group active:scale-95">
+                  <div className="w-14 h-14 rounded-2xl bg-white dark:bg-[#4F378B] flex items-center justify-center text-brand-primary dark:text-[#D0BCFF] shadow-soft group-hover:scale-110 transition-transform">
+                    <Phone className="w-6 h-6" />
                   </div>
-                  <p className="text-sm font-black text-slate-700">{selectedCustomer.phone}</p>
+                  <div className="flex-1">
+                    <p className="stat-label lowercase">Primary Contact</p>
+                    <p className="text-base font-black text-[#1D1B20] dark:text-[#E6E1E5]">{selectedCustomer.phone}</p>
+                  </div>
                 </a>
-                {selectedCustomer.email && (
-                  <a href={`mailto:${selectedCustomer.email}`} className="flex items-center gap-4 p-4 bg-slate-50 rounded-2xl border border-slate-100 hover:border-indigo-200 transition-all group">
-                    <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center text-indigo-500 shadow-sm border border-slate-100 group-hover:scale-110 transition-transform">
-                      <Mail className="w-5 h-5" />
-                    </div>
-                    <p className="text-sm font-black text-slate-700 truncate">{selectedCustomer.email}</p>
-                  </a>
-                )}
+                <a href={`mailto:${selectedCustomer.email}`} className="flex items-center gap-5 p-5 bg-[#F3EDF7] dark:bg-[#2B2930] rounded-3xl border border-transparent hover:border-brand-primary/20 transition-all group active:scale-95">
+                  <div className="w-14 h-14 rounded-2xl bg-white dark:bg-[#4F378B] flex items-center justify-center text-brand-primary dark:text-[#D0BCFF] shadow-soft group-hover:scale-110 transition-transform">
+                    <Mail className="w-6 h-6" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="stat-label lowercase">Digital Link</p>
+                    <p className="text-base font-black text-[#1D1B20] dark:text-[#E6E1E5] truncate">{selectedCustomer.email || 'N/A'}</p>
+                  </div>
+                </a>
               </div>
             </motion.div>
 
             {selectedCustomer.location && (
               <motion.div 
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2 }}
-                className="bg-white rounded-[2.5rem] border border-slate-100 shadow-soft p-8"
+                className="surface-container p-10 mt-10"
               >
-                <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center justify-between mb-8">
                   <h4 className="stat-label flex items-center gap-2">
-                    <MapPin className="w-4 h-4 text-rose-500" /> Location
+                    <MapPin className="w-5 h-5 text-rose-500" /> Logistics Hub
                   </h4>
                   <a 
                     href={`https://www.google.com/maps/search/?api=1&query=${selectedCustomer.location.lat},${selectedCustomer.location.lng}`}
                     target="_blank"
                     rel="noreferrer"
-                    className="text-[10px] font-black text-indigo-500 uppercase tracking-widest hover:underline flex items-center gap-1"
+                    className="text-[10px] font-black text-brand-primary uppercase tracking-widest hover:underline flex items-center gap-2"
                   >
-                    View Map <ExternalLink className="w-3 h-3" />
+                    Satellite View <ExternalLink className="w-4 h-4" />
                   </a>
                 </div>
-                <div className="aspect-[16/10] bg-slate-50 rounded-2xl flex flex-col items-center justify-center text-center p-6 border border-slate-100">
-                  <div className="w-16 h-16 bg-rose-50 rounded-full flex items-center justify-center mb-4">
-                    <MapPin className="w-8 h-8 text-rose-500 animate-bounce" />
+                <div className="aspect-[16/9] bg-[#F3EDF7] dark:bg-[#2B2930] rounded-[2rem] flex flex-col items-center justify-center text-center p-8 border border-brand-primary/10 shadow-inner">
+                  <div className="w-20 h-20 bg-rose-50 dark:bg-rose-900/20 rounded-full flex items-center justify-center mb-6 shadow-soft">
+                    <Navigation className="w-10 h-10 text-rose-500 animate-pulse" />
                   </div>
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">GPS Coordinates</p>
-                  <p className="text-xs font-mono text-slate-500">{selectedCustomer.location.lat.toFixed(6)}, {selectedCustomer.location.lng.toFixed(6)}</p>
+                  <p className="stat-label mb-2">GPS Verification Matrix</p>
+                  <p className="text-sm font-mono text-slate-500 tracking-widest">{selectedCustomer.location.lat.toFixed(6)}, {selectedCustomer.location.lng.toFixed(6)}</p>
                 </div>
               </motion.div>
             )}
           </div>
 
-          <div className="lg:col-span-2 space-y-8">
+          <div className="lg:col-span-2 space-y-10">
             {/* Transaction History Section */}
             <motion.div 
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 }}
-              className="bg-white rounded-[2.5rem] border border-slate-100 shadow-soft overflow-hidden"
+              className="surface-container overflow-hidden p-0 shadow-soft"
             >
-              <div className="p-8 border-b border-slate-100 flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="p-3 bg-amber-50 text-amber-600 rounded-2xl">
-                    <Calendar className="w-6 h-6" />
+              <div className="p-10 border-b border-black/5 dark:border-white/5 flex items-center justify-between bg-black/5 dark:bg-white/5">
+                <div className="flex items-center gap-5">
+                  <div className="p-4 bg-[#EADDFF] text-[#21005D] rounded-3xl">
+                    <Calendar className="w-8 h-8" />
                   </div>
                   <div>
-                    <h4 className="text-xl font-display font-black tracking-tight">{t.transactionHistory}</h4>
-                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
-                      {showAllTransactions ? t.allHistory : t.last5Transactions}
+                    <h4 className="text-2xl font-display font-black tracking-tight text-[#1D1B20] dark:text-[#E6E1E5]">{t.transactionHistory}</h4>
+                    <p className="stat-label text-slate-500">
+                      {showAllTransactions ? 'ENTERPRISE AUDIT TRAIL' : 'LATEST OPERATIONAL ENTRIES'}
                     </p>
                   </div>
                 </div>
                 {customerTransactions.length > 5 && (
                   <button 
                     onClick={() => setShowAllTransactions(!showAllTransactions)}
-                    className="px-4 py-2 bg-slate-50 hover:bg-slate-100 text-slate-600 rounded-xl transition-all font-black text-[10px] uppercase tracking-widest flex items-center gap-2 border border-slate-100"
+                    className="px-6 py-3 bg-black/5 dark:bg-white/5 hover:bg-black/10 text-slate-600 dark:text-[#E6E1E5] rounded-full transition-all font-black text-[10px] uppercase tracking-widest flex items-center gap-3 active:scale-95"
                   >
                     {showAllTransactions ? t.showLess : t.viewAllTransactions}
                   </button>
@@ -592,14 +594,14 @@ const CustomerProfile = ({ redEyeActive }: { redEyeActive?: boolean }) => {
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead>
-                    <tr className="bg-slate-50">
-                      <th className="px-8 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">{t.date}</th>
-                      <th className="px-8 py-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">{t.description}</th>
-                      <th className="px-8 py-4 text-center text-[10px] font-black text-slate-400 uppercase tracking-widest">{t.type}</th>
-                      <th className="px-8 py-4 text-right text-[10px] font-black text-slate-400 uppercase tracking-widest">{t.amount}</th>
+                    <tr className="bg-black/5 dark:bg-white/5">
+                      <th className="px-10 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">{t.date}</th>
+                      <th className="px-10 py-5 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">{t.description}</th>
+                      <th className="px-10 py-5 text-center text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">{t.type}</th>
+                      <th className="px-10 py-5 text-right text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">{t.amount}</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100">
+                  <tbody className="divide-y divide-black/5 dark:divide-white/5">
                     {displayedTransactions.length > 0 ? (
                       displayedTransactions.map((s, idx) => {
                         const totalAmount = s.totalAmount || ((s.cashSale || 0) + (s.chequeSale || 0) + (s.creditSale || 0));
@@ -609,32 +611,32 @@ const CustomerProfile = ({ redEyeActive }: { redEyeActive?: boolean }) => {
                             animate={{ opacity: 1, x: 0 }}
                             transition={{ delay: idx * 0.05 }}
                             key={s.id || idx}
-                            className="hover:bg-slate-50 transition-colors"
+                            className="hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
                           >
-                            <td className="px-8 py-5 whitespace-nowrap">
-                              <span className="text-xs font-bold text-slate-600">
+                            <td className="px-10 py-6 whitespace-nowrap">
+                              <span className="text-sm font-black text-[#49454F] dark:text-[#E6E1E5]">
                                 {new Date(s.date).toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' })}
                               </span>
                             </td>
-                            <td className="px-8 py-5">
-                              <p className="text-sm font-bold text-slate-800 truncate max-w-[200px]">
+                            <td className="px-10 py-6">
+                              <p className="text-base font-black text-[#1D1B20] dark:text-[#E6E1E5] truncate max-w-[250px]">
                                 {s.description || '-'}
                               </p>
-                              <span className="text-[9px] font-black text-slate-400 uppercase tracking-tighter">
-                                {s.invoiceNumber || s.receiptNumber || s.billNumber || '#REF-00'}
+                              <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest opacity-60">
+                                {s.invoiceNumber || s.receiptNumber || s.billNumber || '#CRP-BATCH-DATA'}
                               </span>
                             </td>
-                            <td className="px-8 py-5 text-center">
+                            <td className="px-10 py-6 text-center">
                               <span className={cn(
-                                "text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full",
-                                s.type === 'sale' ? "bg-rose-50 text-rose-600" : "bg-emerald-50 text-emerald-600"
+                                "text-[10px] font-black uppercase tracking-widest px-4 py-1.5 rounded-full border-2 shadow-sm",
+                                s.type === 'sale' ? "bg-rose-50 text-rose-600 border-rose-100" : "bg-emerald-50 text-emerald-600 border-emerald-100"
                               )}>
                                 {s.type === 'sale' ? t.due : t.collection}
                               </span>
                             </td>
-                            <td className="px-8 py-5 text-right whitespace-nowrap">
+                            <td className="px-10 py-6 text-right whitespace-nowrap">
                               <span className={cn(
-                                "text-sm font-black",
+                                "text-lg font-black",
                                 s.type === 'sale' ? "text-rose-600" : "text-emerald-600",
                                 redEyeActive && "blur-sm"
                               )}>
@@ -646,9 +648,11 @@ const CustomerProfile = ({ redEyeActive }: { redEyeActive?: boolean }) => {
                       })
                     ) : (
                       <tr>
-                        <td colSpan={4} className="px-8 py-20 text-center">
-                          <FileText className="w-12 h-12 text-slate-200 mx-auto mb-4" />
-                          <p className="text-xs font-black uppercase tracking-[0.3em] text-slate-300 italic">{t.noHistoryFound}</p>
+                        <td colSpan={4} className="px-10 py-24 text-center">
+                          <div className="w-20 h-20 bg-black/5 dark:bg-white/5 rounded-full flex items-center justify-center mx-auto mb-6">
+                            <FileText className="w-10 h-10 text-slate-300" />
+                          </div>
+                          <p className="text-xs font-black uppercase tracking-[0.4em] text-slate-400 opacity-60 italic">{t.noHistoryFound}</p>
                         </td>
                       </tr>
                     )}
@@ -661,62 +665,62 @@ const CustomerProfile = ({ redEyeActive }: { redEyeActive?: boolean }) => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
-              className="bg-white rounded-[2.5rem] border border-slate-100 shadow-soft p-10"
+              className="surface-container p-12"
             >
-              <div className="flex items-center gap-4 mb-10">
-                <div className="p-3 bg-indigo-50 text-indigo-600 rounded-2xl">
-                  <Info className="w-6 h-6" />
+              <div className="flex items-center gap-5 mb-12">
+                <div className="p-4 bg-brand-primary/10 text-brand-primary rounded-3xl">
+                  <Info className="w-8 h-8" />
                 </div>
-                <h4 className="text-2xl font-display font-black tracking-tight">Personal Details</h4>
+                <h4 className="text-3xl font-display font-black tracking-tight text-[#1D1B20] dark:text-[#E6E1E5]">Corporate Intelligence</h4>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-                <div className="space-y-1.5 p-4 rounded-2xl bg-slate-50 border border-slate-100">
-                  <h5 className="stat-label">Full Legal Name</h5>
-                  <p className={cn("text-lg font-black text-slate-800 uppercase", redEyeActive && "blur-sm")}>{selectedCustomer.ownerName || selectedCustomer.name}</p>
+                <div className="space-y-3 p-6 rounded-[2rem] bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/5 shadow-inner">
+                  <h5 className="stat-label">System Legal Name</h5>
+                  <p className={cn("text-xl font-black text-[#49454F] dark:text-[#E6E1E5] uppercase tracking-tight", redEyeActive && "blur-sm")}>{selectedCustomer.ownerName || selectedCustomer.name}</p>
                 </div>
-                <div className="space-y-1.5 p-4 rounded-2xl bg-slate-50 border border-slate-100">
-                  <h5 className="stat-label">Registration Date</h5>
-                  <p className="text-lg font-black text-slate-800 uppercase">Dec 12, 2023</p>
+                <div className="space-y-3 p-6 rounded-[2rem] bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/5 shadow-inner">
+                  <h5 className="stat-label">Network Entry Point</h5>
+                  <p className="text-xl font-black text-[#49454F] dark:text-[#E6E1E5] uppercase tracking-tight">Enterprise Node - verified</p>
                 </div>
-                <div className="md:col-span-2 space-y-1.5 p-6 rounded-2xl bg-slate-50 border border-slate-100 relative overflow-hidden">
-                  <h5 className="stat-label">Verified Address</h5>
-                  <p className="text-lg font-black text-slate-800 leading-relaxed mt-2 uppercase">{selectedCustomer.address || 'No address provided'}</p>
-                  <MapPin className="absolute -right-4 -bottom-4 w-24 h-24 text-slate-200 opacity-20 pointer-events-none" />
+                <div className="md:col-span-2 space-y-3 p-8 rounded-[2rem] bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/5 relative overflow-hidden shadow-inner">
+                  <h5 className="stat-label">Verified Logistics Coordinates</h5>
+                  <p className="text-2xl font-black text-[#49454F] dark:text-[#E6E1E5] leading-relaxed mt-4 uppercase tracking-tight">{selectedCustomer.address || 'NO COORDINATES RECORDED'}</p>
+                  <MapPin className="absolute -right-8 -bottom-8 w-40 h-40 text-brand-primary opacity-5 pointer-events-none" />
                 </div>
               </div>
 
               <div className="mt-16">
-                <div className="flex items-center justify-between mb-8">
-                  <div className="flex items-center gap-3">
-                    <Camera className="w-5 h-5 text-indigo-500" />
-                    <h4 className="text-sm font-black uppercase tracking-[0.2em] text-slate-400">Identity & Proofs</h4>
+                <div className="flex items-center justify-between mb-10">
+                  <div className="flex items-center gap-4">
+                    <Camera className="w-6 h-6 text-brand-primary" />
+                    <h4 className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-400 opacity-60">Architectural Assets</h4>
                   </div>
                 </div>
                 
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
                   {selectedCustomer.licensePhoto && (
-                    <motion.div whileHover={{ scale: 1.05 }} className="group relative aspect-square rounded-3xl overflow-hidden shadow-lg border-2 border-white">
+                    <motion.div whileHover={{ scale: 1.05, rotate: -2 }} className="group relative aspect-square rounded-[2rem] overflow-hidden shadow-2xl border-4 border-white dark:border-[#1D1B20]">
                       <img src={selectedCustomer.licensePhoto} className="w-full h-full object-cover" alt="License" />
-                      <div className="absolute inset-0 bg-indigo-600/60 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-all flex flex-col items-center justify-center">
-                        <Download className="w-6 h-6 text-white mb-2" />
-                        <span className="text-[10px] font-black text-white uppercase tracking-widest">License</span>
+                      <div className="absolute inset-0 bg-[#21005D]/70 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-all flex flex-col items-center justify-center p-4 text-center">
+                        <Download className="w-8 h-8 text-white mb-3" />
+                        <span className="text-[10px] font-black text-white uppercase tracking-widest leading-tight">IDENTIFICATION<br/>MATRIX</span>
                       </div>
                     </motion.div>
                   )}
                   {selectedCustomer.documents?.map((doc, idx) => (
-                    <motion.div key={idx} whileHover={{ scale: 1.05 }} className="group relative aspect-square rounded-3xl overflow-hidden shadow-lg border-2 border-white">
+                    <motion.div key={idx} whileHover={{ scale: 1.05, rotate: 2 }} className="group relative aspect-square rounded-[2rem] overflow-hidden shadow-2xl border-4 border-white dark:border-[#1D1B20]">
                       <img src={doc} className="w-full h-full object-cover" alt={`doc-${idx}`} />
-                      <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-all flex flex-col items-center justify-center">
-                        <Download className="w-6 h-6 text-white mb-2" />
-                        <span className="text-[10px] font-black text-white uppercase tracking-widest">Document {idx + 1}</span>
+                      <div className="absolute inset-0 bg-slate-900/70 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-all flex flex-col items-center justify-center p-4 text-center">
+                        <Download className="w-8 h-8 text-white mb-3" />
+                        <span className="text-[10px] font-black text-white uppercase tracking-widest leading-tight">ASSET ENTITY<br/>#{idx + 1}</span>
                       </div>
                     </motion.div>
                   ))}
                   {(!selectedCustomer.licensePhoto && !selectedCustomer.documents?.length) && (
-                    <div className="col-span-full py-20 flex flex-col items-center justify-center text-slate-300 border-4 border-dashed border-slate-50 rounded-[2rem]">
-                      <UploadCloud className="w-16 h-16 mb-4 opacity-10" />
-                      <p className="text-xs font-black uppercase tracking-[0.3em] opacity-40 italic">System storage empty</p>
+                    <div className="col-span-full py-24 flex flex-col items-center justify-center text-slate-300 border-4 border-dashed border-black/5 dark:border-white/5 rounded-[3rem]">
+                      <UploadCloud className="w-20 h-20 mb-6 opacity-10" />
+                      <p className="text-[10px] font-black uppercase tracking-[0.4em] opacity-40 italic">Repository currently empty</p>
                     </div>
                   )}
                 </div>
@@ -728,71 +732,74 @@ const CustomerProfile = ({ redEyeActive }: { redEyeActive?: boolean }) => {
         {/* Edit Modal */}
         {isEditing && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm overflow-y-auto">
-            <div className="bg-white w-full max-w-2xl rounded-[2.5rem] p-8 shadow-2xl my-8">
+            <div className="bg-[#FEF7FF] dark:bg-[#1D1B20] w-full max-w-2xl rounded-[2.5rem] p-8 shadow-2xl my-8">
               <div className="flex items-center justify-between mb-8">
                 <div>
-                  <h3 className="text-2xl font-display font-bold">{t.editCustomer}</h3>
+                  <h3 className="text-2xl font-display font-bold text-[#1D1B20] dark:text-[#E6E1E5]">{t.editCustomer}</h3>
                 </div>
                 <button 
                   onClick={() => setIsEditing(false)}
-                  className="p-2 hover:bg-slate-100 rounded-xl"
+                  className="p-3 hover:bg-black/5 dark:hover:bg-white/5 rounded-full transition-colors"
                 >
-                  <X className="w-6 h-6 text-slate-400" />
+                  <X className="w-6 h-6 text-[#49454F] dark:text-[#CAC4D0]" />
                 </button>
               </div>
 
               <form onSubmit={handleUpdate} className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   {/* Shop Section */}
-                  <div className="space-y-4">
-                    <h4 className="text-[10px] font-bold text-indigo-500 uppercase tracking-widest flex items-center gap-2">
-                      <Store className="w-3 h-3" /> {language === 'en' ? 'Shop Information' : 'দোকানের তথ্য'}
+                  <div className="space-y-6">
+                    <h4 className="text-[10px] font-black text-brand-primary uppercase tracking-[0.3em] flex items-center gap-3">
+                      <Store className="w-4 h-4" /> {language === 'en' ? 'Shop Information' : 'দোকানের তথ্য'}
                     </h4>
                     <div className="space-y-2">
-                      <label className="text-xs font-bold text-slate-400 uppercase tracking-tight">Shop Name</label>
+                      <label className="text-xs font-bold text-slate-500 pl-1 uppercase tracking-tight">Shop Name</label>
                       <input 
                         type="text" 
                         value={editFormData.shopName}
                         onChange={e => setEditFormData({...editFormData, shopName: e.target.value})}
-                        className="w-full px-4 py-3 bg-slate-50 rounded-xl border-none focus:ring-2 focus:ring-indigo-500 outline-none text-sm"
+                        className="w-full px-5 py-4 bg-black/5 dark:bg-white/5 rounded-2xl border-none focus:ring-2 focus:ring-brand-primary outline-none text-sm transition-all"
                       />
                     </div>
                     <div className="space-y-2">
-                      <label className="text-xs font-bold text-slate-400 uppercase tracking-tight">{language === 'en' ? 'Area' : 'এলাকা'}</label>
-                      <select 
-                        required
-                        value={editFormData.areaId}
-                        onChange={e => setEditFormData({...editFormData, areaId: Number(e.target.value)})}
-                        className="w-full px-4 py-3 bg-slate-50 rounded-xl border-none focus:ring-2 focus:ring-indigo-500 outline-none text-sm appearance-none"
-                      >
-                        {areas?.map(area => (
-                          <option key={area.id} value={area.id}>{area.name}</option>
-                        ))}
-                      </select>
+                      <label className="text-xs font-bold text-slate-500 pl-1 uppercase tracking-tight">{language === 'en' ? 'Area' : 'এলাকা'}</label>
+                      <div className="relative">
+                        <select 
+                          required
+                          value={editFormData.areaId}
+                          onChange={e => setEditFormData({...editFormData, areaId: Number(e.target.value)})}
+                          className="w-full px-5 py-4 bg-black/5 dark:bg-white/5 rounded-2xl border-none focus:ring-2 focus:ring-brand-primary outline-none text-sm appearance-none transition-all"
+                        >
+                          {areas?.map(area => (
+                            <option key={area.id} value={area.id}>{area.name}</option>
+                          ))}
+                        </select>
+                        <ChevronRight className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 rotate-90 text-slate-400 pointer-events-none" />
+                      </div>
                     </div>
                     <div className="space-y-2">
-                      <label className="text-xs font-bold text-slate-400 uppercase tracking-tight">Address</label>
+                      <label className="text-xs font-bold text-slate-500 pl-1 uppercase tracking-tight">Address</label>
                       <textarea 
                         value={editFormData.address}
                         onChange={e => setEditFormData({...editFormData, address: e.target.value})}
-                        className="w-full px-4 py-3 bg-slate-50 rounded-xl border-none focus:ring-2 focus:ring-indigo-500 outline-none text-sm min-h-[100px]"
+                        className="w-full px-5 py-4 bg-black/5 dark:bg-white/5 rounded-2xl border-none focus:ring-2 focus:ring-brand-primary outline-none text-sm min-h-[120px] transition-all"
                       />
                     </div>
                     <div className="space-y-2">
-                      <label className="text-xs font-bold text-slate-400 pl-1 uppercase tracking-tight">{language === 'en' ? 'Shop Front Picture' : 'দোকানের সামনের ছবি'}</label>
+                      <label className="text-xs font-bold text-slate-500 pl-1 uppercase tracking-tight">{language === 'en' ? 'Shop Front Picture' : 'দোকানের সামনের ছবি'}</label>
                       <div className="flex items-center gap-4">
-                        <label className="flex-1 flex flex-col items-center justify-center p-6 bg-white border-2 border-dashed border-slate-200 rounded-xl hover:border-indigo-400 transition-all cursor-pointer group relative overflow-hidden h-32">
+                        <label className="flex-1 flex flex-col items-center justify-center p-6 bg-black/5 dark:bg-white/5 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-3xl hover:border-brand-primary transition-all cursor-pointer group relative overflow-hidden h-32">
                           {editFormData.shopImage ? (
                             <>
                               <img src={editFormData.shopImage} className="absolute inset-0 w-full h-full object-cover" alt="shop front" />
-                              <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                              <div className="absolute inset-0 bg-brand-primary/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                                 <Camera className="w-8 h-8 text-white" />
                               </div>
                             </>
                           ) : (
                             <>
-                              <Camera className="w-8 h-8 text-slate-300 group-hover:text-indigo-500 mb-2 transition-colors" />
-                              <span className="text-[10px] font-bold text-slate-400 uppercase">{language === 'en' ? 'Upload' : 'আপলোড'}</span>
+                              <Camera className="w-8 h-8 text-slate-300 group-hover:text-brand-primary mb-2 transition-colors" />
+                              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{language === 'en' ? 'Upload' : 'আপলোড'}</span>
                             </>
                           )}
                           <input type="file" className="hidden" accept="image/*" capture="environment" onChange={e => handleFileUpload(e, 'shopImage')} />
@@ -801,7 +808,7 @@ const CustomerProfile = ({ redEyeActive }: { redEyeActive?: boolean }) => {
                           <button 
                             type="button" 
                             onClick={() => removePhoto('shopImage')}
-                            className="p-3 bg-rose-50 text-rose-600 rounded-xl hover:bg-rose-100 transition-colors"
+                            className="p-4 bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 rounded-2xl hover:bg-rose-100 transition-colors"
                           >
                             <Trash2 className="w-5 h-5" />
                           </button>
@@ -812,38 +819,38 @@ const CustomerProfile = ({ redEyeActive }: { redEyeActive?: boolean }) => {
                       type="button"
                       onClick={handleLocationFetch}
                       disabled={isLocating}
-                      className="w-full py-3 px-4 bg-white border-2 border-dashed border-slate-200 rounded-xl flex items-center justify-center gap-3 text-sm font-bold text-slate-600 hover:border-indigo-400 transition-all"
+                      className="w-full py-4 px-6 bg-black/5 dark:bg-white/5 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-3xl flex items-center justify-center gap-3 text-[10px] uppercase tracking-widest font-black text-slate-600 dark:text-slate-400 hover:border-brand-primary transition-all"
                     >
                       {isLocating ? (
-                        <div className="animate-spin rounded-full h-4 w-4 border-2 border-indigo-500 border-t-transparent" />
+                        <div className="animate-spin rounded-full h-4 w-4 border-2 border-brand-primary border-t-transparent" />
                       ) : (
-                        <Navigation className="w-4 h-4 text-indigo-500" />
+                        <Navigation className="w-4 h-4 text-brand-primary" />
                       )}
-                      {editFormData.location ? 'Location Updated' : 'Update Location'}
+                      {editFormData.location ? 'Location Synced' : 'Sync Coordinates'}
                     </button>
                   </div>
 
                   {/* Owner Section */}
-                  <div className="space-y-4">
-                    <h4 className="text-[10px] font-bold text-indigo-500 uppercase tracking-widest flex items-center gap-2">
-                      <User className="w-3 h-3" /> {language === 'en' ? 'Owner Information' : 'মালিকের তথ্য'}
+                  <div className="space-y-6">
+                    <h4 className="text-[10px] font-black text-brand-primary uppercase tracking-[0.3em] flex items-center gap-3">
+                      <User className="w-4 h-4" /> {language === 'en' ? 'Owner Information' : 'মালিকের তথ্য'}
                     </h4>
 
                     {/* Customer Photo Upload */}
                     <div className="space-y-2">
-                       <label className="text-xs font-bold text-slate-400 pl-1 uppercase tracking-tight">{language === 'en' ? 'Customer Profile Photo' : 'কাস্টমারের প্রোফাইল ছবি'}</label>
+                       <label className="text-xs font-bold text-slate-500 pl-1 uppercase tracking-tight">{language === 'en' ? 'Customer Profile Photo' : 'কাস্টমারের প্রোফাইল ছবি'}</label>
                        <div className="flex items-center gap-4">
-                         <label className="shrink-0 w-24 h-24 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200 hover:border-indigo-400 transition-all cursor-pointer group relative overflow-hidden">
+                         <label className="shrink-0 w-24 h-24 bg-black/5 dark:bg-white/5 rounded-3xl border-2 border-dashed border-slate-200 dark:border-slate-800 hover:border-brand-primary transition-all cursor-pointer group relative overflow-hidden">
                            {editFormData.customerPhoto ? (
                              <>
                                <img src={editFormData.customerPhoto} className="absolute inset-0 w-full h-full object-cover" alt="customer" />
-                               <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                               <div className="absolute inset-0 bg-brand-primary/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                                  <Camera className="w-8 h-8 text-white" />
                                </div>
                              </>
                            ) : (
                              <div className="flex flex-col items-center justify-center h-full">
-                               <Camera className="w-8 h-8 text-slate-300 group-hover:text-indigo-500 mb-1 transition-colors" />
+                               <Camera className="w-8 h-8 text-slate-300 group-hover:text-brand-primary mb-1 transition-colors" />
                                <span className="text-[8px] font-black text-slate-400 uppercase">Profile</span>
                              </div>
                            )}
@@ -853,76 +860,76 @@ const CustomerProfile = ({ redEyeActive }: { redEyeActive?: boolean }) => {
                            <button 
                              type="button" 
                              onClick={() => removePhoto('customerPhoto')}
-                             className="p-3 bg-rose-50 text-rose-600 rounded-xl hover:bg-rose-100 transition-colors"
+                             className="p-4 bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 rounded-2xl hover:bg-rose-100 transition-colors"
                            >
                              <Trash2 className="w-5 h-5" />
                            </button>
                          )}
                          <div className="flex-1">
                            <p className="text-[10px] text-slate-400 italic">
-                             {language === 'en' ? 'Help customers recognize you. Upload a clear profile picture.' : 'কাস্টমারদের আপনাকে চিনতে সাহায্য করুন। একটি পরিষ্কার ছবি আপলোড দিন।'}
+                             {language === 'en' ? 'High-fidelity portrait required for system verification.' : 'সিস্টেম ভেরিফিকেশনের জন্য ছবি প্রয়োজন।'}
                            </p>
                          </div>
                        </div>
                     </div>
 
                     <div className="space-y-2">
-                      <label className="text-xs font-bold text-slate-400 uppercase tracking-tight">Owner Name</label>
+                      <label className="text-xs font-bold text-slate-500 pl-1 uppercase tracking-tight">Owner Name</label>
                       <input 
                         type="text" 
                         value={editFormData.name}
                         onChange={e => setEditFormData({...editFormData, name: e.target.value, ownerName: e.target.value})}
-                        className="w-full px-4 py-3 bg-slate-50 rounded-xl border-none focus:ring-2 focus:ring-indigo-500 outline-none text-sm"
+                        className="w-full px-5 py-4 bg-black/5 dark:bg-white/5 rounded-2xl border-none focus:ring-2 focus:ring-brand-primary outline-none text-sm transition-all"
                       />
                     </div>
                     <div className="space-y-2">
-                      <label className="text-xs font-bold text-slate-400 uppercase tracking-tight">Phone</label>
+                      <label className="text-xs font-bold text-slate-500 pl-1 uppercase tracking-tight">Phone</label>
                       <input 
                         type="tel" 
                         value={editFormData.phone}
                         onChange={e => setEditFormData({...editFormData, phone: e.target.value})}
-                        className="w-full px-4 py-3 bg-slate-50 rounded-xl border-none focus:ring-2 focus:ring-indigo-500 outline-none text-sm"
+                        className="w-full px-5 py-4 bg-black/5 dark:bg-white/5 rounded-2xl border-none focus:ring-2 focus:ring-brand-primary outline-none text-sm transition-all"
                       />
                     </div>
                     <div className="space-y-2">
-                      <label className="text-xs font-bold text-slate-400 uppercase tracking-tight">Email</label>
+                      <label className="text-xs font-bold text-slate-500 pl-1 uppercase tracking-tight">Email</label>
                       <input 
                         type="email" 
                         value={editFormData.email}
                         onChange={e => setEditFormData({...editFormData, email: e.target.value})}
-                        className="w-full px-4 py-3 bg-slate-50 rounded-xl border-none focus:ring-2 focus:ring-indigo-500 outline-none text-sm"
+                        className="w-full px-5 py-4 bg-black/5 dark:bg-white/5 rounded-2xl border-none focus:ring-2 focus:ring-brand-primary outline-none text-sm transition-all"
                       />
                     </div>
                     {/* Documents Section */}
                     <div className="space-y-3 pt-2">
-                      <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">{language === 'en' ? 'License & Documents' : 'লাইসেন্স এবং ডকুমেন্টস'}</label>
-                      <div className="grid grid-cols-2 gap-3">
-                        <label className="flex flex-col items-center justify-center p-4 bg-slate-50 rounded-xl border-2 border-dashed border-slate-200 hover:border-indigo-400 transition-all cursor-pointer group relative overflow-hidden">
+                      <label className="text-xs font-bold text-slate-500 pl-1 uppercase tracking-widest">{language === 'en' ? 'License & Documents' : 'লাইসেন্স এবং ডকুমেন্টস'}</label>
+                      <div className="grid grid-cols-2 gap-4">
+                        <label className="flex flex-col items-center justify-center p-4 bg-black/5 dark:bg-white/5 rounded-3xl border-2 border-dashed border-slate-200 dark:border-slate-800 hover:border-brand-primary transition-all cursor-pointer group relative overflow-hidden">
                           {editFormData.licensePhoto ? (
                             <div className="relative w-full h-12">
-                              <img src={editFormData.licensePhoto} className="w-full h-full object-cover rounded" alt="license" />
-                              <CheckCircle2 className="absolute -top-1 -right-1 w-4 h-4 text-emerald-500 bg-white rounded-full" />
+                              <img src={editFormData.licensePhoto} className="w-full h-full object-cover rounded-xl" alt="license" />
+                              <CheckCircle2 className="absolute -top-1 -right-1 w-4 h-4 text-emerald-500 bg-white rounded-full shadow-sm" />
                               <button 
                                 type="button" 
                                 onClick={(e) => { e.preventDefault(); e.stopPropagation(); removePhoto('licensePhoto'); }}
-                                className="absolute -bottom-1 -right-1 p-1 bg-rose-600 text-white rounded-md shadow-sm"
+                                className="absolute -bottom-1 -right-1 p-1 bg-rose-600 text-white rounded-md shadow-lg"
                               >
                                 <X className="w-2 h-2" />
                               </button>
                             </div>
                           ) : (
                             <>
-                              <Camera className="w-5 h-5 text-slate-300 group-hover:text-indigo-500 mb-1" />
-                              <span className="text-[9px] font-bold text-slate-400 uppercase">License</span>
+                              <Camera className="w-5 h-5 text-slate-300 group-hover:text-brand-primary mb-1" />
+                              <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">License</span>
                             </>
                           )}
                           <input type="file" className="hidden" accept="image/*" onChange={e => handleFileUpload(e, 'licensePhoto')} />
                         </label>
 
-                        <label className="flex flex-col items-center justify-center p-4 bg-slate-50 rounded-xl border-2 border-dashed border-slate-200 hover:border-indigo-400 transition-all cursor-pointer group">
-                          <UploadCloud className="w-5 h-5 text-slate-300 group-hover:text-indigo-500 mb-1" />
-                          <span className="text-[9px] font-bold text-slate-400 uppercase">
-                            {editFormData.documents?.length ? `${editFormData.documents.length} Docs` : 'Documents'}
+                        <label className="flex flex-col items-center justify-center p-4 bg-black/5 dark:bg-white/5 rounded-3xl border-2 border-dashed border-slate-200 dark:border-slate-800 hover:border-brand-primary transition-all cursor-pointer group">
+                          <UploadCloud className="w-5 h-5 text-slate-300 group-hover:text-brand-primary mb-1" />
+                          <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                            {editFormData.documents?.length ? `${editFormData.documents.length} Assets` : 'Archive'}
                           </span>
                           <input type="file" className="hidden" multiple accept="image/*,.pdf" onChange={e => handleFileUpload(e, 'documents')} />
                         </label>
@@ -931,9 +938,9 @@ const CustomerProfile = ({ redEyeActive }: { redEyeActive?: boolean }) => {
                   </div>
                 </div>
 
-                <div className="flex gap-4 pt-4">
-                  <button type="button" onClick={() => setIsEditing(false)} className="flex-1 px-8 py-4 rounded-2xl font-bold bg-slate-100 text-sm">Cancel</button>
-                  <button type="submit" className="flex-1 px-8 py-4 rounded-2xl font-bold bg-indigo-600 text-white shadow-lg text-sm transition active:scale-95">Update Profile</button>
+                <div className="flex gap-4 pt-8">
+                  <button type="button" onClick={() => setIsEditing(false)} className="flex-1 py-4 rounded-3xl font-black text-[10px] uppercase tracking-widest bg-black/5 dark:bg-white/5 text-slate-600 dark:text-slate-400 active:scale-95 transition-all">Cancel</button>
+                  <button type="submit" className="flex-1 py-4 rounded-3xl font-black text-[10px] uppercase tracking-widest bg-brand-primary text-white shadow-xl shadow-brand-primary/20 hover:brightness-110 active:scale-95 transition-all">Synchronize Entry</button>
                 </div>
               </form>
             </div>
@@ -944,26 +951,26 @@ const CustomerProfile = ({ redEyeActive }: { redEyeActive?: boolean }) => {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div className="space-y-10 pb-20">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
-          <h2 className="text-3xl font-display font-bold tracking-tight">{t.customerProfile}</h2>
-          <p className="text-slate-500 text-sm">{language === 'en' ? 'Select a customer to view complete profile data' : 'সম্পূর্ণ প্রোফাইল ডাটা দেখতে একটি কাস্টমার সিলেক্ট করুন'}</p>
+          <h2 className="text-4xl font-display font-black tracking-tight text-[#1D1B20] dark:text-[#E6E1E5]">{t.customerProfile}</h2>
+          <p className="text-slate-500 font-medium mt-1">{language === 'en' ? 'Authorized personnel access only. Select a record node.' : 'অনুমোদিত ব্যক্তিরা শুধুমাত্র এক্সেস করতে পারবেন। একটি রেকর্ড নোড সিলেক্ট করুন।'}</p>
         </div>
       </div>
 
       <div className="relative group">
-        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4 group-focus-within:text-indigo-500 transition-colors" />
+        <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5 group-focus-within:text-brand-primary transition-colors" />
         <input 
           type="text"
           placeholder={t.search}
           value={searchQuery}
           onChange={e => setSearchQuery(e.target.value)}
-          className="w-full bg-white border border-slate-100 pl-11 pr-5 py-3 rounded-xl shadow-soft outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all font-medium text-sm"
+          className="w-full bg-[#F3EDF7] dark:bg-[#2B2930] text-[#1D1B20] dark:text-[#E6E1E5] border-none pl-14 pr-6 py-5 rounded-[2rem] shadow-inner outline-none focus:ring-2 focus:ring-brand-primary transition-all font-bold text-base"
         />
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
         {filteredCustomers?.map((customer) => {
           const area = areas?.find(a => String(a.id) === String(customer.areaId));
           const balance = (customer.debit || 0) - (customer.credit || 0);
@@ -971,47 +978,52 @@ const CustomerProfile = ({ redEyeActive }: { redEyeActive?: boolean }) => {
           return (
             <motion.div 
               key={customer.id}
-              whileHover={{ y: -5 }}
+              whileHover={{ y: -8, scale: 1.02 }}
               onClick={() => setSelectedCustomer(customer)}
-              className="bg-white rounded-[2.5rem] p-6 border border-slate-100 shadow-soft hover:shadow-premium transition-all cursor-pointer group"
+              className="surface-container rounded-[3rem] p-8 shadow-soft hover:shadow-premium transition-all cursor-pointer group border-2 border-transparent hover:border-brand-primary/20"
             >
-              <div className="flex items-start gap-4 mb-6">
-                <div className="shrink-0 transition-transform group-hover:scale-105">
+              <div className="flex items-start gap-6 mb-8">
+                <div className="shrink-0 transition-transform group-hover:rotate-6">
                   {customer.shopImage ? (
-                    <img src={customer.shopImage} className="w-16 h-16 rounded-2xl object-cover ring-2 ring-slate-50" alt="shop" />
+                    <img src={customer.shopImage} className="w-20 h-20 rounded-[2rem] object-cover ring-4 ring-white dark:ring-black/20 shadow-xl" alt="shop" />
                   ) : (
-                    <div className="w-16 h-16 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center font-black text-xl">
+                    <div className="w-20 h-20 bg-brand-primary/10 text-brand-primary rounded-[2rem] flex items-center justify-center font-black text-3xl shadow-inner uppercase tracking-tighter">
                       {customer.name.charAt(0)}
                     </div>
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h4 className={cn("font-bold text-slate-900 truncate text-lg leading-tight mb-0.5 group-hover:text-indigo-600 transition-colors", redEyeActive && "blur-sm")}>{customer.name}</h4>
-                  <p className="text-xs font-bold text-indigo-500 uppercase tracking-widest truncate">{customer.shopName || 'No Shop'}</p>
+                  <h4 className={cn("font-display font-black text-[#1C1B1F] dark:text-[#E6E1E5] truncate text-xl leading-tight mb-2 group-hover:text-brand-primary transition-colors", redEyeActive && "blur-sm")}>{customer.name}</h4>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-black text-brand-primary uppercase tracking-[0.2em] px-3 py-1 bg-brand-primary/5 rounded-full truncate">{customer.shopName || 'Independent'}</span>
+                  </div>
                 </div>
               </div>
 
-              <div className="space-y-4">
-                <div className="flex items-center justify-between p-3 bg-slate-50 rounded-2xl border border-slate-100">
-                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Balance</span>
-                  <span className={cn("text-sm font-black", balance > 0 ? "text-rose-600" : "text-emerald-600", redEyeActive && "blur-sm")}>
-                    {formatCurrency(balance, currency)}
-                  </span>
+              <div className="space-y-6">
+                <div className="flex items-center justify-between p-5 bg-black/5 dark:bg-white/5 rounded-[2rem] border border-black/5 dark:border-white/5">
+                  <div className="flex flex-col">
+                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Portfolio Balance</span>
+                    <span className={cn("text-lg font-black", balance > 0 ? "text-[#B3261E]" : "text-emerald-500", redEyeActive && "blur-sm")}>
+                      {formatCurrency(balance, currency)}
+                    </span>
+                  </div>
+                  <ChevronRight className="w-6 h-6 text-slate-300 group-hover:text-brand-primary transition-all group-hover:translate-x-1" />
                 </div>
                 
-                <div className="flex items-center justify-between px-1">
-                  <div className="flex items-center gap-2">
-                    <MapPin className="w-3.5 h-3.5 text-slate-300" />
-                    <span className="text-xs font-bold text-slate-500">{area?.name || 'N/A'}</span>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="flex items-center gap-3 px-2">
+                    <MapPin className="w-4 h-4 text-brand-primary opacity-40" />
+                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest truncate">{area?.name || 'Unknown'}</span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Phone className="w-3.5 h-3.5 text-slate-300" />
-                    <span className="text-xs font-bold text-slate-500">{customer.phone}</span>
+                  <div className="flex items-center gap-3 px-2">
+                    <Phone className="w-4 h-4 text-brand-primary opacity-40" />
+                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest truncate">{customer.phone}</span>
                   </div>
                 </div>
 
-                <button className="w-full py-3 bg-slate-50 hover:bg-indigo-600 text-slate-600 hover:text-white border border-slate-100 hover:border-indigo-600 rounded-xl text-xs font-black uppercase tracking-widest transition-all duration-300">
-                  {language === 'en' ? 'View Full Profile' : 'পুরো প্রোফাইল দেখুন'}
+                <button className="w-full py-4 bg-brand-primary/5 dark:bg-white/5 group-hover:bg-brand-primary text-brand-primary dark:text-brand-primary group-hover:text-white rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all duration-300 shadow-sm group-hover:shadow-lg group-hover:shadow-brand-primary/20">
+                  {language === 'en' ? 'De-encrypt Record' : 'রেকর্ড দেখুন'}
                 </button>
               </div>
             </motion.div>
@@ -1020,12 +1032,12 @@ const CustomerProfile = ({ redEyeActive }: { redEyeActive?: boolean }) => {
       </div>
 
       {filteredCustomers?.length === 0 && (
-        <div className="py-20 text-center bg-white rounded-[3rem] border border-slate-100 shadow-soft">
-          <div className="w-20 h-20 bg-slate-50 rounded-3xl flex items-center justify-center mx-auto mb-4 border border-slate-100">
-            <Search className="w-8 h-8 text-slate-300" />
+        <div className="py-32 text-center bg-black/5 dark:bg-white/5 rounded-[4rem] border-4 border-dashed border-black/5 dark:border-white/5">
+          <div className="w-24 h-24 bg-white dark:bg-black/20 rounded-[2.5rem] flex items-center justify-center mx-auto mb-8 shadow-xl">
+            <Search className="w-10 h-10 text-slate-300/50" />
           </div>
-          <h3 className="text-lg font-bold text-slate-400 uppercase tracking-widest">{t.search}</h3>
-          <p className="text-slate-400 text-sm italic">No matching customers found</p>
+          <h3 className="text-xl font-display font-black text-slate-400 uppercase tracking-[0.4em] mb-3">{t.search}</h3>
+          <p className="text-slate-400 font-medium italic">No nodes identified in current search trajectory</p>
         </div>
       )}
     </div>

@@ -395,46 +395,34 @@ const Reports = ({ setActiveTab, setEditingSale, redEyeActive }: { setActiveTab?
   };
 
   return (
-    <div className="space-y-8">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div className="space-y-10">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
-          <h2 className="text-3xl font-display font-bold tracking-tight">{t.reports}</h2>
-          <p className="text-slate-500 mt-1 text-sm">{language === 'en' ? 'Export data and generate insights' : 'ডেটা রপ্তানি করুন এবং অন্তর্দৃষ্টি তৈরি করুন'}</p>
+          <h2 className="text-4xl font-display font-bold tracking-tight text-[#1D1B20] dark:text-[#E6E1E5]">{t.reports}</h2>
+          <p className="text-slate-500 mt-1 text-sm font-bold uppercase tracking-widest opacity-80">{language === 'en' ? 'Export data and generate insights' : 'ডেটা রপ্তানি করুন এবং অন্তর্দৃষ্টি তৈরি করুন'}</p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-3">
           <button 
             onClick={handleGenerateAiSummary}
             disabled={isGeneratingAi}
-            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-indigo-600 to-violet-600 text-white rounded-xl font-bold hover:shadow-lg hover:shadow-indigo-200 transition shadow-sm active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-6 py-2.5 bg-[#4F378B] text-[#EADDFF] rounded-full font-black text-xs uppercase tracking-widest shadow-lg shadow-black/10 flex items-center gap-2 hover:brightness-110 active:scale-95 transition-all disabled:opacity-50"
           >
-            {isGeneratingAi ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
-            <span className="text-xs uppercase tracking-wider">{language === 'en' ? 'Smart Summary' : 'স্মার্ট সারসংক্ষেপ'}</span>
+            {isGeneratingAi ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+            {language === 'en' ? 'Smart Summary' : 'স্মার্ট সারসংক্ষেপ'}
           </button>
           <button 
             onClick={generateMasterAreaReport}
-            className="flex items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-600 rounded-xl font-bold hover:bg-indigo-100 transition shadow-sm active:scale-95"
+            className="px-6 py-2.5 bg-brand-tertiary text-white rounded-full font-black text-xs uppercase tracking-widest shadow-lg shadow-black/10 flex items-center gap-2 hover:brightness-110 active:scale-95 transition-all"
           >
-            <FileSpreadsheet className="w-3.5 h-3.5" />
-            <span className="text-xs uppercase tracking-wider">{language === 'en' ? 'Master Area Report' : 'মাস্টার এরিয়া রিপোর্ট'}</span>
+            <FileSpreadsheet className="w-4 h-4" />
+            {language === 'en' ? 'Master Area Report' : 'মাস্টার এরিয়া রিপোর্ট'}
           </button>
           <button 
             onClick={printPDF}
-            className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-xl font-bold hover:bg-slate-800 transition shadow-lg active:scale-95"
+            className="md-btn-primary px-6 py-2.5 rounded-full text-xs"
           >
-            <Printer className="w-3.5 h-3.5" />
-            <span className="text-xs uppercase tracking-wider">{t.printReport}</span>
-          </button>
-          <label className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-100 rounded-xl font-bold cursor-pointer hover:bg-slate-50 transition shadow-sm active:scale-95">
-            <Upload className="w-3.5 h-3.5 text-slate-500" />
-            <span className="text-xs uppercase tracking-wider">{t.import}</span>
-            <input type="file" className="hidden" accept=".xlsx,.xls" onChange={handleFileUpload} />
-          </label>
-          <button 
-            onClick={exportToExcel}
-            className="flex items-center gap-2 px-5 py-2 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition shadow-lg shadow-indigo-100 active:scale-95"
-          >
-            <Download className="w-3.5 h-3.5" />
-            <span className="text-xs uppercase tracking-wider">{t.export}</span>
+            <Printer className="w-4 h-4" />
+            {t.printReport}
           </button>
         </div>
       </div>
@@ -442,29 +430,29 @@ const Reports = ({ setActiveTab, setEditingSale, redEyeActive }: { setActiveTab?
       <AnimatePresence>
         {aiSummary && (
           <motion.div 
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="bg-gradient-to-br from-indigo-50 to-violet-50 rounded-2xl border border-indigo-100 p-6 shadow-sm relative overflow-hidden"
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className="bg-[#EADDFF] dark:bg-[#2B2930] rounded-[2.5rem] border border-[#D0BCFF] p-10 relative overflow-hidden shadow-soft"
           >
-            <div className="absolute top-0 right-0 p-3">
+            <div className="absolute top-0 right-0 p-6">
               <button 
                 onClick={() => setAiSummary(null)}
-                className="p-1.5 bg-white/50 hover:bg-white rounded-full text-slate-400 transition-colors"
+                className="p-3 bg-white/50 hover:bg-white rounded-full text-slate-500 transition-colors"
               >
-                <X className="w-4 h-4" />
+                <X className="w-5 h-5" />
               </button>
             </div>
             
-            <div className="flex items-start gap-4">
-              <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center shrink-0 shadow-lg shadow-indigo-100">
-                <Sparkles className="w-5 h-5 text-white" />
+            <div className="flex items-start gap-6">
+              <div className="w-14 h-14 bg-[#6750A4] rounded-2xl flex items-center justify-center shrink-0 shadow-lg shadow-indigo-100">
+                <Sparkles className="w-7 h-7 text-white" />
               </div>
               <div className="flex-1 min-w-0">
-                <h3 className="text-lg font-bold text-indigo-900 mb-2 flex items-center gap-2">
+                <h3 className="text-2xl font-black text-[#21005D] dark:text-[#EADDFF] mb-4 flex items-center gap-3">
                   {language === 'en' ? 'AI Business Insights' : 'AI বিজনেস ইনসাইটস'}
                 </h3>
-                <div className="prose prose-sm prose-indigo max-w-none prose-p:leading-relaxed prose-li:my-1 text-slate-700">
+                <div className="prose prose-sm prose-indigo max-w-none prose-p:leading-relaxed prose-li:my-2 text-[#1D1B20] dark:text-[#E6E1E5]">
                   <ReactMarkdown>{aiSummary}</ReactMarkdown>
                 </div>
               </div>
@@ -484,125 +472,125 @@ const Reports = ({ setActiveTab, setEditingSale, redEyeActive }: { setActiveTab?
         </motion.div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
         {/* Filters Sidebar */}
-        <div className="lg:col-span-1 space-y-6">
-          <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-soft space-y-5">
-            <h4 className="text-xs font-bold uppercase tracking-widest flex items-center gap-2 text-slate-800">
-              <Filter className="w-3.5 h-3.5 text-indigo-500" /> Filter Options
+        <div className="lg:col-span-1 space-y-8">
+          <div className="surface-container p-6 space-y-6 shadow-soft">
+            <h4 className="stat-label flex items-center gap-2 text-brand-primary">
+              <Filter className="w-4 h-4" /> Filter Options
             </h4>
             
-            <div className="space-y-4">
-              <div className="space-y-1">
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Select Area</label>
+            <div className="space-y-5">
+              <div className="space-y-2">
+                <label className="stat-label">Select Area</label>
                 <div className="relative">
                   <select 
                     value={selectedArea}
                     onChange={e => setSelectedArea(e.target.value)}
-                    className="w-full px-4 py-2.5 bg-slate-50 border-none rounded-lg outline-none appearance-none font-bold text-xs"
+                    className="w-full px-5 py-3 bg-[#F3EDF7] dark:bg-[#2B2930] border-none rounded-2xl outline-none appearance-none font-bold text-xs"
                   >
                     <option value="all">All Areas</option>
                     {areas?.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
                   </select>
-                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
+                  <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
                 </div>
               </div>
 
-              <div className="space-y-1">
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Select Customer</label>
+              <div className="space-y-2">
+                <label className="stat-label">Select Customer</label>
                 <div className="relative">
                   <select 
                     value={selectedCustomer}
                     onChange={e => setSelectedCustomer(e.target.value)}
-                    className="w-full px-4 py-2.5 bg-slate-50 border-none rounded-lg outline-none appearance-none font-bold text-xs"
+                    className="w-full px-5 py-3 bg-[#F3EDF7] dark:bg-[#2B2930] border-none rounded-2xl outline-none appearance-none font-bold text-xs"
                   >
                     <option value="all">All Customers</option>
                     {customers?.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                   </select>
-                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
+                  <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
                 </div>
               </div>
 
-              <div className="space-y-1">
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Start Date</label>
+              <div className="space-y-2">
+                <label className="stat-label">Start Date</label>
                 <input 
                   type="date" 
                   value={dateRange.start}
                   onChange={e => setDateRange({...dateRange, start: e.target.value})}
-                  className="w-full px-4 py-2.5 bg-slate-50 border-none rounded-lg outline-none font-bold text-xs" 
+                  className="w-full px-5 py-3 bg-[#F3EDF7] dark:bg-[#2B2930] border-none rounded-2xl outline-none font-bold text-xs" 
                 />
               </div>
 
-              <div className="space-y-1">
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">End Date</label>
+              <div className="space-y-2">
+                <label className="stat-label">End Date</label>
                 <input 
                   type="date" 
                   value={dateRange.end}
                   onChange={e => setDateRange({...dateRange, end: e.target.value})}
-                  className="w-full px-4 py-2.5 bg-slate-50 border-none rounded-lg outline-none font-bold text-xs" 
+                  className="w-full px-5 py-3 bg-[#F3EDF7] dark:bg-[#2B2930] border-none rounded-2xl outline-none font-bold text-xs" 
                 />
               </div>
 
-              <button className="w-full py-3 bg-slate-900 text-white rounded-xl font-bold text-xs mt-2 active:scale-95 transition-transform uppercase tracking-widest shadow-lg shadow-slate-200">
+              <button className="w-full py-4 bg-[#1D1B20] text-white rounded-full font-black text-xs mt-2 active:scale-95 transition-transform uppercase tracking-widest shadow-lg shadow-black/20">
                 Apply Filters
               </button>
             </div>
           </div>
           
-          <div className="bg-slate-900 p-6 rounded-2xl text-white shadow-xl">
-            <Share2 className="w-6 h-6 mb-4 text-indigo-500" />
-            <h4 className="font-bold text-base leading-tight">Instant Reports</h4>
-            <p className="text-slate-400 text-[11px] mt-2 leading-relaxed">Share PDF invoices or collection reports via WhatsApp automatically.</p>
-            <button className="w-full py-2.5 bg-indigo-600 text-white rounded-lg font-bold text-[11px] mt-5 hover:bg-indigo-700 transition uppercase tracking-widest">
+          <div className="bg-[#1D1B20] p-8 rounded-[2rem] text-white shadow-xl">
+            <Share2 className="w-7 h-7 mb-4 text-[#D0BCFF]" />
+            <h4 className="font-bold text-lg leading-tight">Instant Reports</h4>
+            <p className="text-slate-400 text-[11px] mt-3 leading-relaxed font-bold uppercase tracking-wide opacity-70">Share PDF invoices or collection reports via WhatsApp automatically.</p>
+            <button className="w-full py-3.5 bg-[#6750A4] text-white rounded-full font-black text-[11px] mt-6 hover:bg-[#4F378B] transition uppercase tracking-widest">
               Share Now
             </button>
           </div>
         </div>
 
         {/* Report Preview */}
-        <div className="lg:col-span-3 space-y-6">
-          <div className="bg-white rounded-2xl border border-slate-100 shadow-soft overflow-hidden">
-            <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-              <h4 className="font-bold text-sm uppercase tracking-wider text-slate-700">
+        <div className="lg:col-span-3 space-y-8">
+          <div className="surface-container overflow-hidden shadow-soft">
+            <div className="p-6 border-b border-black/5 dark:border-white/5 flex items-center justify-between bg-black/5 dark:bg-white/5">
+              <h4 className="stat-label">
                 {language === 'en' ? 'Transaction Age Report' : 'বকেয়া বয়স রিপোর্ট'}
               </h4>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
-                  <tr className="bg-slate-50 text-left">
-                    <th className="px-6 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">{language === 'en' ? 'Customer' : 'কাস্টমার'}</th>
-                    <th className="px-6 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">{language === 'en' ? 'Bill / Receipt' : 'বিল / রিসিট'}</th>
-                    <th className="px-6 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">{language === 'en' ? 'Date' : 'তারিখ'}</th>
-                    <th className="px-6 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">{language === 'en' ? 'Age (Days)' : 'বয়স (দিন)'}</th>
-                    <th className="px-6 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">{language === 'en' ? 'Amount' : 'পরিমাণ'}</th>
-                    <th className="px-6 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">{language === 'en' ? 'Type' : 'ধরণ'}</th>
+                  <tr className="bg-black/5 dark:bg-white/5 text-left">
+                    <th className="px-6 py-4 stat-label">{language === 'en' ? 'Customer' : 'কাস্টমার'}</th>
+                    <th className="px-6 py-4 stat-label">{language === 'en' ? 'Bill - Receipt' : 'বিল - রিসিট'}</th>
+                    <th className="px-6 py-4 stat-label">{language === 'en' ? 'Date' : 'তারিখ'}</th>
+                    <th className="px-6 py-4 stat-label">{language === 'en' ? 'Age (Days)' : 'বয়স (দিন)'}</th>
+                    <th className="px-6 py-4 stat-label">{language === 'en' ? 'Amount' : 'পরিমাণ'}</th>
+                    <th className="px-6 py-4 stat-label">{language === 'en' ? 'Type' : 'ধরণ'}</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody className="divide-y divide-black/5 dark:divide-white/5">
                   {filteredSales?.map((s, i) => {
                     const customer = customers?.find(c => String(c.id) === String(s.customerId));
                     const age = calculateAge(s.date);
                     return (
-                      <tr key={i} className="hover:bg-slate-50 transition-colors">
-                        <td className={cn("px-6 py-3.5 text-sm font-bold text-slate-900", redEyeActive && "blur-sm")}>{customer?.name || 'Unknown'}</td>
-                        <td className="px-6 py-3.5 text-xs text-slate-500 font-mono">{s.invoiceNumber || s.receiptNumber || 'N/A'}</td>
-                        <td className="px-6 py-3.5 text-xs text-slate-500">{new Date(s.date).toLocaleDateString()}</td>
-                        <td className="px-6 py-3.5">
+                      <tr key={i} className="hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
+                        <td className={cn("px-6 py-4 text-sm font-black text-[#1D1B20] dark:text-[#E6E1E5]", redEyeActive && "blur-sm")}>{customer?.name || 'Unknown'}</td>
+                        <td className="px-6 py-4 text-xs text-slate-500 font-black tracking-widest">{s.invoiceNumber || s.receiptNumber || 'N/A'}</td>
+                        <td className="px-6 py-4 text-xs text-slate-500 font-bold">{new Date(s.date).toLocaleDateString()}</td>
+                        <td className="px-6 py-4">
                           <span className={cn(
-                            "px-2 py-0.5 rounded text-[11px] font-bold",
-                            age > 30 ? "bg-rose-50 text-rose-600" : "bg-emerald-50 text-emerald-600"
+                            "px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest",
+                            age > 30 ? "bg-rose-100 text-rose-700" : "bg-emerald-100 text-emerald-700"
                           )}>
                             {age} {language === 'en' ? 'Days' : 'দিন'}
                           </span>
                         </td>
-                        <td className={cn("px-6 py-3.5 text-sm font-bold", redEyeActive && "blur-sm")}>
+                        <td className={cn("px-6 py-4 text-sm font-black text-brand-primary", redEyeActive && "blur-sm")}>
                           {formatCurrency(s.cashSale + s.chequeSale + s.creditSale, currency)}
                         </td>
-                        <td className="px-6 py-3.5">
+                        <td className="px-6 py-4">
                           <span className={cn(
-                            "inline-flex px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-tighter",
-                            s.type === 'sale' ? "bg-indigo-50 text-indigo-600" : "bg-emerald-50 text-emerald-600"
+                            "inline-flex px-2 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border border-current bg-opacity-10",
+                            s.type === 'sale' ? "bg-[#4F378B] text-[#4F378B]" : "bg-emerald-600 text-emerald-600"
                           )}>
                             {s.type}
                           </span>
@@ -612,7 +600,7 @@ const Reports = ({ setActiveTab, setEditingSale, redEyeActive }: { setActiveTab?
                   })}
                   {(!filteredSales || filteredSales.length === 0) && (
                     <tr>
-                      <td colSpan={6} className="px-6 py-10 text-center text-slate-400 text-sm italic">
+                      <td colSpan={6} className="px-6 py-12 text-center text-slate-400 text-sm font-bold italic">
                         {language === 'en' ? 'No transactions found for current filters' : 'ফিল্টার অনুযায়ী কোনো লেনদেন পাওয়া যায়নি'}
                       </td>
                     </tr>
@@ -621,51 +609,51 @@ const Reports = ({ setActiveTab, setEditingSale, redEyeActive }: { setActiveTab?
               </table>
             </div>
 
-            <div className="p-4 border-b border-slate-100 flex items-center justify-between mt-8 bg-indigo-50/30">
-              <h4 className="font-bold text-sm uppercase tracking-wider text-indigo-700">
+            <div className="p-6 border-b border-black/5 dark:border-white/5 flex items-center justify-between mt-10 bg-[#EADDFF] dark:bg-[#4F378B] bg-opacity-20">
+              <h4 className="stat-label text-[#21005D] dark:text-[#EADDFF]">
                 {language === 'en' ? 'Daily Sales Report (Non-Credit)' : 'দৈনিক বিক্রি রিপোর্ট (নন-ক্রেডিট)'}
               </h4>
               <button
                 onClick={handlePrintDailySales}
-                className="flex items-center gap-2 px-3 py-1.5 bg-indigo-100 hover:bg-indigo-200 text-indigo-700 rounded-lg text-xs font-bold transition-all border border-indigo-200"
+                className="flex items-center gap-2 px-5 py-2 bg-white dark:bg-[#1D1B20] hover:brightness-95 rounded-full text-xs font-black transition-all border border-black/5"
               >
-                <Printer className="w-3.5 h-3.5" />
+                <Printer className="w-4 h-4" />
                 {language === 'en' ? 'Print' : 'প্রিন্ট'}
               </button>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
-                  <tr className="bg-slate-50 text-left">
-                    <th className="px-6 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">{t.date}</th>
-                    <th className="px-6 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">{t.description}</th>
-                    <th className="px-6 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">{language === 'en' ? 'Invoice' : 'ইনভয়েস'}</th>
-                    <th className="px-6 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">{t.cash}</th>
-                    <th className="px-6 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">{language === 'en' ? 'Actions' : 'অ্যাকশন'}</th>
+                  <tr className="bg-black/5 dark:bg-white/5 text-left">
+                    <th className="px-6 py-4 stat-label">{t.date}</th>
+                    <th className="px-6 py-4 stat-label">{t.description}</th>
+                    <th className="px-6 py-4 stat-label">{language === 'en' ? 'Invoice' : 'ইনভয়েস'}</th>
+                    <th className="px-6 py-4 stat-label">{t.cash}</th>
+                    <th className="px-6 py-4 stat-label">{language === 'en' ? 'Actions' : 'অ্যাকশন'}</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody className="divide-y divide-black/5 dark:divide-white/5">
                   {sales?.filter(s => {
                     const sDate = new Date(s.date).toISOString().split('T')[0];
                     return s.type === 'direct' && 
                       (!dateRange.start || sDate >= dateRange.start) && 
                       (!dateRange.end || sDate <= dateRange.end);
                   }).map((s) => (
-                    <tr key={s.id} className="hover:bg-slate-50 transition-colors">
-                      <td className="px-6 py-3.5 text-xs text-slate-500">{new Date(s.date).toLocaleDateString()}</td>
-                      <td className="px-6 py-3.5 text-sm font-medium text-slate-900 capitalize">{s.description || 'N/A'}</td>
-                      <td className="px-6 py-3.5 text-xs text-slate-500 font-mono">{s.invoiceNumber || 'N/A'}</td>
-                      <td className={cn("px-6 py-3.5 text-sm font-black text-indigo-600", redEyeActive && "blur-sm")}>
+                    <tr key={s.id} className="hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
+                      <td className="px-6 py-4 text-xs text-slate-500 font-bold">{new Date(s.date).toLocaleDateString()}</td>
+                      <td className="px-6 py-4 text-sm font-black text-[#1D1B20] dark:text-[#E6E1E5] capitalize">{s.description || 'N/A'}</td>
+                      <td className="px-6 py-4 text-xs text-slate-500 font-black tracking-widest">{s.invoiceNumber || 'N/A'}</td>
+                      <td className={cn("px-6 py-4 text-sm font-black text-brand-primary", redEyeActive && "blur-sm")}>
                         {formatCurrency(s.cashSale, currency)}
                       </td>
-                      <td className="px-6 py-3.5">
+                      <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
                           <button 
                             onClick={(e) => {
                               e.stopPropagation();
                               handleEditDailySale(s);
                             }}
-                            className="p-2 text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-all shadow-sm active:scale-95 border border-indigo-100"
+                            className="p-3 text-brand-primary bg-brand-primary/10 hover:bg-brand-primary/20 rounded-full transition-all active:scale-95 translate-y-0"
                             title={language === 'en' ? 'Edit' : 'এডিট'}
                           >
                             <Edit2 className="w-4 h-4" />
@@ -675,7 +663,7 @@ const Reports = ({ setActiveTab, setEditingSale, redEyeActive }: { setActiveTab?
                               e.stopPropagation();
                               handleDeleteDailySale(s.id!);
                             }}
-                            className="p-2 text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-lg transition-all shadow-sm active:scale-95 border border-rose-100"
+                            className="p-3 text-rose-600 bg-rose-100 hover:bg-rose-200 rounded-full transition-all active:scale-95"
                             title={language === 'en' ? 'Delete' : 'ডিলিট'}
                           >
                             <Trash2 className="w-4 h-4" />
@@ -684,23 +672,11 @@ const Reports = ({ setActiveTab, setEditingSale, redEyeActive }: { setActiveTab?
                       </td>
                     </tr>
                   ))}
-                  {sales?.filter(s => s.type === 'direct' && (!dateRange.start || new Date(s.date) >= new Date(dateRange.start)) && (!dateRange.end || new Date(s.date) <= new Date(dateRange.end))).length === 0 && (
-                    <tr>
-                      <td colSpan={5} className="px-6 py-12 text-center text-slate-400 text-xs italic">
-                        <div className="flex flex-col items-center justify-center gap-2">
-                          <div className="w-10 h-10 bg-slate-50 rounded-full flex items-center justify-center border border-slate-100">
-                            <TableIcon className="w-5 h-5 text-slate-300" />
-                          </div>
-                          {language === 'en' ? 'No daily sales entries found for this period' : 'এই সময়ের জন্য কোনো দৈনিক বিক্রির তথ্য পাওয়া যায়নি'}
-                        </div>
-                      </td>
-                    </tr>
-                  )}
                 </tbody>
-                <tfoot className="bg-slate-50/50">
+                <tfoot className="bg-black/5 dark:bg-white/5">
                   <tr>
-                    <td colSpan={4} className="px-6 py-4 text-xs font-bold text-slate-500 uppercase text-right">{language === 'en' ? 'Total Daily Sales' : 'মোট দৈনিক বিক্রি'}</td>
-                    <td className={cn("px-6 py-4 text-sm font-black text-indigo-600", redEyeActive && "blur-sm")}>
+                    <td colSpan={3} className="px-6 py-5 stat-label text-right">{language === 'en' ? 'Total Daily Sales' : 'মোট দৈনিক বিক্রি'}</td>
+                    <td colSpan={2} className={cn("px-6 py-5 text-lg font-black text-brand-primary", redEyeActive && "blur-sm")}>
                       {formatCurrency(sales?.filter(s => {
                         const sDate = new Date(s.date).toISOString().split('T')[0];
                         return s.type === 'direct' && 
@@ -712,37 +688,41 @@ const Reports = ({ setActiveTab, setEditingSale, redEyeActive }: { setActiveTab?
                 </tfoot>
               </table>
             </div>
+          </div>
+        </div>
+      </div>
 
-            <div className="p-4 border-b border-slate-100 flex items-center justify-between mt-8">
-              <h4 className="font-bold text-sm uppercase tracking-wider text-slate-700">
-                {language === 'en' ? 'Monthly Customer Summary' : 'মাসিক কাস্টমার সংক্ষিপ্ত বিবরণ'}
+            <div className="surface-container overflow-hidden p-0 shadow-soft mt-10">
+            <div className="p-8 border-b border-black/5 dark:border-white/5 flex items-center justify-between bg-black/5 dark:bg-white/5">
+              <h4 className="text-[10px] font-black text-brand-primary uppercase tracking-[0.4em]">
+                {language === 'en' ? 'Node Portfolio Summary' : 'মাসিক কাস্টমার সংক্ষিপ্ত বিবরণ'}
               </h4>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
-                  <tr className="bg-slate-50 text-left">
-                    <th className="px-6 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">{language === 'en' ? 'Customer' : 'কাস্টমার'}</th>
-                    <th className="px-6 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">{language === 'en' ? 'Total Sales' : 'মোট বিক্রি'}</th>
-                    <th className="px-6 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">{language === 'en' ? 'Total Collection' : 'মোট কালেকশন'}</th>
-                    <th className="px-6 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">{language === 'en' ? 'Balance' : 'বাকি'}</th>
+                  <tr className="bg-black/5 dark:bg-white/5 text-left">
+                    <th className="px-10 py-5 stat-label">{language === 'en' ? 'Entity' : 'কাস্টমার'}</th>
+                    <th className="px-10 py-5 stat-label">{language === 'en' ? 'Total Sales' : 'মোট বিক্রি'}</th>
+                    <th className="px-10 py-5 stat-label">{language === 'en' ? 'Total Collection' : 'মোট কালেকশন'}</th>
+                    <th className="px-10 py-5 stat-label">{language === 'en' ? 'Net Balance' : 'বাকি'}</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody className="divide-y divide-black/5 dark:divide-white/5">
                   {customers?.filter(c => selectedCustomer === 'all' || String(c.id) === String(selectedCustomer)).map((c, i) => {
                     const customerSales = sales?.filter(s => String(s.customerId) === String(c.id)) || [];
-                    const customerDebit = customerSales.filter(s => s.type === 'sale').reduce((acc, s) => acc + ((s.cashSale || 0) + (s.chequeSale || 0) + (s.creditSale || 0)), 0);
+                    const customerDebit = customerSales.filter(s => s.type === 'sale' || s.type === 'direct').reduce((acc, s) => acc + ((s.cashSale || 0) + (s.chequeSale || 0) + (s.creditSale || 0)), 0);
                     const customerCredit = customerSales.filter(s => s.type === 'payment').reduce((acc, s) => acc + ((s.cashSale || 0) + (s.chequeSale || 0) + (s.creditSale || 0)), 0);
                     
                     return (
-                      <tr key={i} className="hover:bg-slate-50 transition-colors">
-                        <td className={cn("px-6 py-3.5 text-sm font-bold text-slate-900", redEyeActive && "blur-sm")}>{c.name}</td>
-                        <td className={cn("px-6 py-3.5 text-xs text-slate-500", redEyeActive && "blur-sm")}>{formatCurrency(customerDebit, currency)}</td>
-                        <td className={cn("px-6 py-3.5 text-xs text-slate-500", redEyeActive && "blur-sm")}>{formatCurrency(customerCredit, currency)}</td>
-                        <td className="px-6 py-3.5">
+                      <tr key={i} className="hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
+                        <td className={cn("px-10 py-5 text-sm font-black text-[#1D1B20] dark:text-[#E6E1E5]", redEyeActive && "blur-sm")}>{c.name}</td>
+                        <td className={cn("px-10 py-5 text-xs text-slate-500 font-bold", redEyeActive && "blur-sm")}>{formatCurrency(customerDebit, currency)}</td>
+                        <td className={cn("px-10 py-5 text-xs text-slate-500 font-bold", redEyeActive && "blur-sm")}>{formatCurrency(customerCredit, currency)}</td>
+                        <td className="px-10 py-5">
                           <span className={cn(
-                            "px-2 py-0.5 rounded text-[11px] font-bold",
-                            (customerDebit - customerCredit) > 0 ? "bg-rose-50 text-rose-600" : "bg-emerald-50 text-emerald-600",
+                            "px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-widest leading-none",
+                            (customerDebit - customerCredit) > 0 ? "bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400" : "bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
                             redEyeActive && "blur-sm"
                           )}>
                             {formatCurrency(customerDebit - customerCredit, currency)}
@@ -755,40 +735,38 @@ const Reports = ({ setActiveTab, setEditingSale, redEyeActive }: { setActiveTab?
               </table>
             </div>
           </div>
-        </div>
-      </div>
 
       {/* Delete Confirmation Modal */}
       {isDeleting && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
           <motion.div 
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="bg-white w-full max-w-sm rounded-[2rem] p-8 shadow-2xl text-center"
+            className="bg-[#FEF7FF] dark:bg-[#1D1B20] w-full max-w-sm rounded-[2.5rem] p-8 shadow-2xl text-center"
           >
-            <div className="w-16 h-16 bg-rose-50 text-rose-600 rounded-full flex items-center justify-center mx-auto mb-6">
-              <Trash2 className="w-8 h-8" />
+            <div className="w-20 h-20 bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 rounded-full flex items-center justify-center mx-auto mb-8">
+              <Trash2 className="w-10 h-10" />
             </div>
-            <h3 className="text-xl font-display font-bold text-slate-900 mb-2">
-              {language === 'en' ? 'Confirm Deletion' : 'ডিলিট নিশ্চিত করুন'}
+            <h3 className="text-2xl font-display font-black text-[#1D1B20] dark:text-[#E6E1E5] mb-3 uppercase tracking-tight">
+              {language === 'en' ? 'Confirm Removal' : 'ডিলিট নিশ্চিত করুন'}
             </h3>
-            <p className="text-sm text-slate-500 mb-8 leading-relaxed">
+            <p className="text-slate-500 font-medium mb-10 leading-relaxed text-sm">
               {language === 'en' 
-                ? 'Are you sure you want to remove this record? This action cannot be undone.' 
+                ? 'This action will permanently purge the selected record from the secure ledger.' 
                 : 'আপনি কি এই রেকর্ডটি মুছে ফেলতে নিশ্চিত? এই কাজটি আর ফিরিয়ে আনা যাবে না।'}
             </p>
-            <div className="flex gap-3">
+            <div className="flex gap-4">
               <button 
                 onClick={() => setIsDeleting(false)}
-                className="flex-1 py-3 bg-slate-100 text-slate-600 rounded-xl font-bold transition active:scale-95"
+                className="flex-1 py-4 bg-black/5 dark:bg-white/5 text-slate-600 dark:text-slate-400 rounded-2xl font-black text-[10px] uppercase tracking-widest transition active:scale-95"
               >
                 {t.cancel}
               </button>
               <button 
                 onClick={confirmDelete}
-                className="flex-1 py-3 bg-rose-600 text-white rounded-xl font-bold shadow-lg shadow-rose-200 active:scale-95 transition-all"
+                className="flex-1 py-4 bg-[#B3261E] text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-rose-600/20 active:scale-95 transition-all"
               >
-                {language === 'en' ? 'Delete Now' : 'ডিলিট করুন'}
+                {language === 'en' ? 'Execute Purge' : 'ডিলিট করুন'}
               </button>
             </div>
           </motion.div>

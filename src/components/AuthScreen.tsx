@@ -44,8 +44,23 @@ const AuthScreen = ({ onAuthSuccess }: { onAuthSuccess: () => void }) => {
         setError(t.enableGoogleSignIn);
       } else if (authErrorMsg.includes('missing initial state')) {
         setError(t.browserSettingsError);
-      } else if (authErrorCode === 'auth/invalid-credential' || authErrorMsg.includes('invalid-credential')) {
-        setError(language === 'en' ? 'Authentication failed. Please try again or use a different method.' : 'অথেনটিকেশন ব্যর্থ হয়েছে। অনুগ্রহ করে আবার চেষ্টা করুন।');
+      } else if (
+        authErrorCode === 'auth/invalid-credential' || 
+        authErrorCode === 'auth/invalid-login-credentials' ||
+        authErrorCode === 'auth/wrong-password' || 
+        authErrorCode === 'auth/user-not-found' ||
+        authErrorCode === 'auth/invalid-email' ||
+        authErrorMsg.includes('invalid-credential') ||
+        authErrorMsg.includes('invalid-login-credentials') ||
+        authErrorMsg.includes('wrong-password') ||
+        authErrorMsg.includes('user-not-found') ||
+        authErrorMsg.includes('invalid-email')
+      ) {
+        setError(language === 'en' 
+          ? 'Invalid email or password. If you are a new user, please click "Create New" below to register first.' 
+          : 'ভুল ইমেইল বা পাসওয়ার্ড। আপনি যদি নতুন ব্যবহারকারী হন, তবে নিচের "নতুন তৈরি করুন" বাটনে ক্লিক করে রেজিস্ট্রেশন করুন।');
+      } else if (authErrorCode === 'auth/operation-not-allowed' || authErrorMsg.includes('operation-not-allowed')) {
+        setError(t.enableGoogleSignIn || 'Sign-in method not enabled. Please check Firebase Console.');
       } else {
         setError(err.message || 'Login failed');
       }
@@ -93,17 +108,23 @@ const AuthScreen = ({ onAuthSuccess }: { onAuthSuccess: () => void }) => {
         setError(t.confirmDomain);
       } else if (
         authErrorCode === 'auth/invalid-credential' || 
+        authErrorCode === 'auth/invalid-login-credentials' ||
         authErrorCode === 'auth/wrong-password' || 
         authErrorCode === 'auth/user-not-found' ||
         authErrorCode === 'auth/invalid-email' ||
         authErrorMsg.includes('invalid-credential') ||
+        authErrorMsg.includes('invalid-login-credentials') ||
         authErrorMsg.includes('wrong-password') ||
         authErrorMsg.includes('user-not-found') ||
         authErrorMsg.includes('invalid-email')
       ) {
         setError(language === 'en' 
-          ? 'Invalid email or password. If you are a new user, please click "Create New" at the bottom to register first.' 
-          : 'ভুল ইমেইল বা পাসওয়ার্ড। আপনি যদি নতুন ব্যবহারকারী হন, তবে প্রথমে নিচের "নতুন তৈরি করুন" বাটনে ক্লিক করে রেজিস্ট্রেশন করুন।');
+          ? 'Invalid email or password. If you are a new user, please click "Create New" below to register. If you forgot your password, use the "Forgot?" link.' 
+          : 'ভুল ইমেইল বা পাসওয়ার্ড। আপনি যদি নতুন ব্যবহারকারী হন, তবে নিচের "নতুন তৈরি করুন" বাটনে ক্লিক করে রেজিস্ট্রেশন করুন। পাসওয়ার্ড ভুলে গেলে "Forgot?" লিংকে ক্লিক করুন।');
+      } else if (authErrorCode === 'auth/operation-not-allowed' || authErrorMsg.includes('operation-not-allowed')) {
+        setError(language === 'en' 
+          ? 'Email/Password login is not enabled in Firebase Console. Please enable it in Authentication > Sign-in method.' 
+          : 'ফায়ারবেজ কনসোলে ইমেইল/পাসওয়ার্ড লগইন এনাবল করা নেই। অনুগ্রহ করে Authentication > Sign-in method-এ গিয়ে এটি চালু করুন।');
       } else if (authErrorCode === 'auth/too-many-requests' || authErrorMsg.includes('too-many-requests')) {
         setError(language === 'en' 
           ? 'Too many failed attempts. Please try again later or reset your password.' 
